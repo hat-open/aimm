@@ -1,8 +1,7 @@
 # .readthedocs.yaml
 
 build:
-  image: latest
+    image: latest
 
 python:
-  version: 3.8
-  setup_py_install: true
+    version: 3.8

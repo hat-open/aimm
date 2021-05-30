@@ -1,10 +1,11 @@
 import setuptools
 from pathlib import Path
 
-import aimm.version
-
 
 repo_root = Path(__file__).parent
+
+with open(repo_root / 'VERSION') as fh:
+    version = fh.read()[:-1]
 
 with open(repo_root / 'README.rst', 'r') as fh:
     long_description = fh.read()
@@ -12,7 +13,7 @@ with open(repo_root / 'README.rst', 'r') as fh:
 setuptools.setup(
     name='AIMM',
     packages=setuptools.find_packages(repo_root),
-    version=aimm.version.get_version(),
+    version=version,
     url='https://github.com/ZlatSic/aimm',
     author='Zlatan Sičanica',
     author_email='zlatan.sicanica@koncar-ket.hr',

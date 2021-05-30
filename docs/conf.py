@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import aimm.version
-
 
 root = Path(__file__).parents[1]
 
@@ -9,8 +7,9 @@ project = 'AIMM'
 copyright = '2021, Zlatan Sičanica'
 author = 'Zlatan Sičanica'
 
-version = aimm.version.get_version()
 
+with open(root / 'VERSION') as fh:
+    version = fh.read()[:-1]
 
 extensions = [
     'sphinxcontrib.programoutput',
