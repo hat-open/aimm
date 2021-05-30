@@ -1,0 +1,59 @@
+---
+components:
+-   args:
+    - hat-syslog
+    - --conf
+    - ./conf/syslog.yaml
+    delay: 0
+    name: syslog
+    revive: false
+-   args:
+    - hat-monitor
+    - --conf
+    - ./conf/monitor.yaml
+    delay: 0
+    name: monitor
+    revive: false
+-   args:
+    - hat-event
+    - --conf
+    - ./conf/event.yaml
+    delay: 1
+    name: event
+    revive: false
+-   args:
+    - hat-gateway
+    - --conf
+    - ./conf/gateway.yaml
+    delay: 2
+    name: gateway
+    revive: false
+-   args:
+    - hat-gui
+    - --conf
+    - ./conf/gui.yaml
+    delay: 3
+    name: gui
+    revive: false
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+type: orchestrator
+ui:
+    address: http://127.0.0.1:23021
+...

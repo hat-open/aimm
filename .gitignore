@@ -1,0 +1,8 @@
+.doit*
+__pycache__/
+test/.coverage
+build/
+dist/
+*.egg-info/
+docs/.drawio
+**/json_schema_repo.json

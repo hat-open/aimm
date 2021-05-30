@@ -1,0 +1,47 @@
+---
+type: gui
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+monitor:
+    component_address: null
+    group: gui
+    monitor_address: tcp+sbs://127.0.0.1:23010
+    name: gui
+event_server_group: event
+adapters:
+  - module: hat.adapter
+    name: adapter
+views:
+  - name: login
+    view_path: ./view/login
+    conf_path: null
+  - name: grid
+    view_path: ./view/grid
+    conf_path: null
+address: http://127.0.0.1:23023
+initial_view: login
+users:
+  - name: user
+    password:
+        hash: 7b21e2726033becd34582fe850437f52e03afde86debd8edbab58a5731ef4dbc
+        salt: b8454437a170fd8a86833a3c89ed0bc6
+    roles:
+        - user_role
+    view: grid
+...

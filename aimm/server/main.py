@@ -1,0 +1,154 @@
+import appdirs
+import argparse
+import asyncio
+import contextlib
+from functools import partial
+import importlib
+from hat import aio
+from hat import json
+import hat.monitor.client
+import hat.event.client
+import hat.event.common
+import logging.config
+from pathlib import Path
+import sys
+
+from aimm import plugins
+from aimm.server import common
+import aimm.server.backend
+import aimm.server.control
+import aimm.server.engine
+
+
+mlog = logging.getLogger('aimm.server.main')
+default_conf_path = Path(appdirs.user_data_dir('aimm')) / 'server.yaml'
+
+
+def main():
+    aio.init_asyncio()
+
+    args = _create_parser().parse_args()
+    conf = json.decode_file(args.conf)
+    common.json_schema_repo.validate('aimm://server/main.yaml#', conf)
+
+    logging.config.dictConfig(conf['log'])
+    plugins.initialize(conf['plugins'])
+    with contextlib.suppress(asyncio.CancelledError):
+        aio.run_asyncio(async_main(conf))
+
+
+async def async_main(conf):
+    if 'hat' not in conf:
+        mlog.info('running without hat compatibility')
+        return await run(conf)
+
+    monitor = await hat.monitor.client.connect(conf['hat']['monitor'])
+    component = hat.monitor.client.Component(
+        monitor, run_monitor_component, conf, monitor)
+    component.set_enabled(True)
+
+    try:
+        await component.wait_closing()
+    finally:
+        await aio.uncancellable(monitor.async_close())
+
+
+async def run_monitor_component(_, conf, monitor):
+    if 'event_server_group' not in conf['hat']:
+        mlog.info('running without hat event compatibility')
+        return await run(conf)
+    run_conf = partial(run, conf)
+    return await hat.event.client.run_client(
+        monitor_client=monitor,
+        server_group=conf['hat']['event_server_group'],
+        async_run_cb=run_conf,
+        subscriptions=list(_get_subscriptions(conf)))
+
+
+async def run(conf, client=None):
+    group = aio.Group()
+
+    try:
+        proxies = []
+
+        backend, proxy = await _create_backend(
+            conf['backend'], group.create_subgroup(), client)
+        if proxy:
+            proxies.append(proxy)
+
+        engine = await aimm.server.engine.create(
+            conf['engine'], backend, group.create_subgroup())
+
+        control_group = group.create_subgroup()
+        controls = []
+        for control_conf in conf['control']:
+            subgroup = control_group.create_subgroup()
+            subgroup.spawn(aio.call_on_cancel, control_group.close)
+            control, proxy = await _create_control(control_conf, engine,
+                                                   subgroup, client)
+            controls.append(control)
+            if proxy:
+                proxies.append(proxy)
+
+        if proxies:
+            group.spawn(_recv_loop, proxies, client)
+
+        await asyncio.wait([group.spawn(backend.wait_closing),
+                            group.spawn(engine.wait_closing),
+                            group.spawn(control_group.wait_closing)],
+                           return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        await aio.uncancellable(group.async_close())
+
+
+def _get_subscriptions(conf):
+    backend_module = importlib.import_module(conf['backend']['module'])
+    if hasattr(backend_module, 'create_subscription'):
+        subscription = backend_module.create_subscription(conf['backend'])
+        yield from subscription.get_query_types()
+    for control in conf['control']:
+        control_module = importlib.import_module(control['module'])
+        if hasattr(control_module, 'create_subscription'):
+            subscription = control_module.create_subscription(control)
+            yield from subscription.get_query_types()
+
+
+async def _create_backend(conf, group, client):
+    module = importlib.import_module(conf['module'])
+    proxy = None
+    if client and hasattr(module, 'create_subscription'):
+        proxy = common.ProxyClient(client, module.create_subscription(conf))
+    return await module.create(conf, group, proxy), proxy
+
+
+async def _create_control(conf, engine, group, client):
+    module = importlib.import_module(conf['module'])
+    proxy = None
+    if client and hasattr(module, 'create_subscription'):
+        proxy = common.ProxyClient(client, module.create_subscription(conf))
+    return await module.create(conf, engine, group, proxy), proxy
+
+
+async def _recv_loop(proxies, client):
+    while True:
+        events = await client.receive()
+        for proxy in proxies:
+            proxy_events = [e for e in events
+                            if proxy.subscription.matches(e.event_type)]
+            if proxy_events:
+                proxy.notify(proxy_events)
+
+
+def _create_parser():
+    parser = argparse.ArgumentParser(prog='aimm-server',
+                                     description='Run AIMM server')
+    parser.add_argument(
+        '--conf', metavar='path', dest='conf',
+        default=default_conf_path, type=Path,
+        help="configuration defined by aimm://server/main.yaml# "
+             "(default $XDG_CONFIG_HOME/aimm/server.yaml)")
+    return parser
+
+
+if __name__ == '__main__':
+    sys.exit(main())
