@@ -78,7 +78,7 @@ Architecture
 After initialization and, optionally, Hat integration, the architecture of AIMM
 server may be represented with the following diagram:
 
-.. drawio-image:: server.drawio
+.. image:: server.svg
 
 The main components are:
 

@@ -13,7 +13,6 @@ with open(root / 'VERSION') as fh:
 
 extensions = [
     'sphinxcontrib.programoutput',
-    'sphinxcontrib.drawio',
     'sphinx.ext.autodoc',
     'sphinxcontrib.napoleon',
     'sphinx_rtd_theme'
@@ -24,5 +23,3 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = []
 
 autodoc_member_order = 'bysource'
-drawio_default_transparency = True
-drawio_headless = False
