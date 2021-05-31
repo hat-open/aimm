@@ -25,3 +25,4 @@ html_static_path = []
 
 autodoc_member_order = 'bysource'
 drawio_default_transparency = True
+drawio_headless = False
