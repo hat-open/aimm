@@ -9,7 +9,7 @@ from aimm.common import *  # NOQA
 
 CreateSubscription: typing.Type = typing.NewType(
     'CreateSubscription',
-    typing.Callable[typing.Dict, hat.event.common.Subscription])
+    typing.Callable[[typing.Dict], hat.event.common.Subscription])
 CreateSubscription.__doc__ = """
 Type of the ``create_subscription`` function that the dynamically imported
 controls and backends may implement. Receives component configuration as the
