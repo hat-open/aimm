@@ -12,13 +12,10 @@ available, solving the problem of state estimation.
 To run, first install the requirements from ``requirements.txt`` and add the
 ``src_py`` directory to the PYTHONPATH environment variable. Then, run the
 simulation script, ``./src_py/simulation.py``. Next step is running the Hat
-SCADA, which can be done using the ``./run.sh`` script. The GUI should now be
-available at ``localhost:23023``. Lastly, run the AIMM server with the
-following command::
-
-    aimm-server --conf conf/aimm.yaml
-
-After running the AIMM server, its estimations will also be visible in the GUI.
+SCADA, which can be done using the ``./hat.sh`` script. The GUI should now be
+available at ``localhost:23023``. Lastly, run the AIMM server by running the
+``./aimm.sh`` script. After running the AIMM server, its estimations will also
+be visible in the GUI.
 
 When prompted for login, the username is ``user`` and the password is an empty
 string.
