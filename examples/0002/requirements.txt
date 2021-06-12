@@ -52,5 +52,3 @@ typing-extensions==3.10.0.0
 xlrd==2.0.1
 XlsxWriter==1.4.3
 yarl==1.6.3
-
-../..
