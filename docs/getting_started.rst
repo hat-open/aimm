@@ -48,5 +48,5 @@ snippet shows how the library may be used:
 The code would connect to the server, create an SVC instance, remotely fit it
 with Iris data and use it to perform classification.
 
-This example and another one, showcasing Hat integration are available `here
-<https://github.com/zlatsic/aimm/tree/master/examples>`_.
+Example of Hat integration is available in the `examples directory
+<https://github.com/hat-open/aimm/tree/master/examples/0002>`_.
