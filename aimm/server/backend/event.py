@@ -16,11 +16,6 @@ async def create(conf, group, event_client):
     backend = EventBackend()
 
     backend._model_prefix = conf['model_prefix']
-    events = await event_client.query(hat.event.common.QueryData(
-        event_types=[[*backend._model_prefix, '*']], unique_type=True))
-
-    backend._events = {e.event_type[len(backend._model_prefix)]: e
-                       for e in events}
     backend._executor = aio.create_executor()
     backend._group = group
     backend._client = event_client
@@ -36,7 +31,9 @@ class EventBackend(common.Backend, aio.Resource):
         return self._group
 
     async def get_models(self):
-        return [await self._event_to_model(ev) for ev in self._events.values()]
+        events = await self._client.query(hat.event.common.QueryData(
+            event_types=[(*self._model_prefix, '*')], unique_type=True))
+        return [await self._event_to_model(e) for e in events]
 
     async def create_model(self, model):
         await self._register_model(model)
@@ -47,14 +44,13 @@ class EventBackend(common.Backend, aio.Resource):
     async def _register_model(self, model):
         ev = await self._client.register_with_response(
             [await self._model_to_event(model)])
-        self._events[model.instance_id] = ev
 
     async def _model_to_event(self, model):
         instance_b64 = base64.b64encode(await self._executor(
             plugins.exec_serialize, model.model_type,
             model.instance)).decode('utf-8')
         return hat.event.common.RegisterEvent(
-            event_type=[*self._model_prefix, str(model.instance_id)],
+            event_type=(*self._model_prefix, str(model.instance_id)),
             source_timestamp=None,
             payload=hat.event.common.EventPayload(
                 type=hat.event.common.EventPayloadType.JSON,
