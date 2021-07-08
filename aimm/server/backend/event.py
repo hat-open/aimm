@@ -42,7 +42,7 @@ class EventBackend(common.Backend, aio.Resource):
         await self._register_model(model)
 
     async def _register_model(self, model):
-        ev = await self._client.register_with_response(
+        await self._client.register_with_response(
             [await self._model_to_event(model)])
 
     async def _model_to_event(self, model):
