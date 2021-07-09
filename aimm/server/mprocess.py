@@ -2,15 +2,15 @@
 :class:`ProcessManager` object, that is used to create :class:`ProcessHandler`
 objects, wrappers for the process calls."""
 
+from hat import aio
+from typing import Callable, Any
 import asyncio
 import contextlib
 import enum
-from hat import aio
 import logging
 import multiprocessing
 import psutil
 import signal
-from typing import Callable, Any
 
 
 mlog = logging.getLogger(__name__)

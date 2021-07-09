@@ -1,16 +1,16 @@
+from functools import partial
+from hat import aio
+from hat import json
+from pathlib import Path
 import appdirs
 import argparse
 import asyncio
 import contextlib
-from functools import partial
 import importlib
-from hat import aio
-from hat import json
 import hat.monitor.client
 import hat.event.client
 import hat.event.common
 import logging.config
-from pathlib import Path
 import sys
 
 from aimm import plugins

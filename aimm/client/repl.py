@@ -1,11 +1,11 @@
 """REPL client module. Provides a minimal interface that follows the protocol
 specified by the REPL control."""
 
-import base64
 from getpass import getpass
-import hashlib
 from hat import juggler
 from hat import aio
+import base64
+import hashlib
 import numpy
 import pandas
 import typing

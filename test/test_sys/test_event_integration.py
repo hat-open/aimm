@@ -1,13 +1,13 @@
-import asyncio
-import contextlib
 from hat import aio
 from hat import json
+import asyncio
+import contextlib
 import hat.event.client
 import psutil
 import pytest
 
-import aimm.server.main
 from aimm import plugins
+import aimm.server.main
 
 pytestmark = pytest.mark.asyncio
 

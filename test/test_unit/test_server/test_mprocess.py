@@ -1,8 +1,8 @@
+from hat import aio
+from pytest_cov.embed import cleanup_on_signal
 import asyncio
 import contextlib
-from hat import aio
 import pytest
-from pytest_cov.embed import cleanup_on_signal
 import signal
 import time
 

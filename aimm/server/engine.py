@@ -1,15 +1,14 @@
-import asyncio
 from functools import partial
-import itertools
 from hat import aio
 from hat import util
+from typing import Dict, Callable, Any
+import asyncio
+import itertools
 import logging
 
 from aimm import plugins
 from aimm.server import common
 from aimm.server import mprocess
-
-from typing import Dict, Callable, Any
 
 
 mlog = logging.getLogger(__name__)

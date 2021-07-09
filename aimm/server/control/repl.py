@@ -1,8 +1,8 @@
+from hat import juggler
+from hat import aio
 import asyncio
 import base64
 import contextlib
-from hat import juggler
-from hat import aio
 import logging
 import numpy
 import pandas

@@ -1,6 +1,6 @@
+from hat import aio
 import asyncio
 import base64
-from hat import aio
 import hat.event.common
 import pytest
 

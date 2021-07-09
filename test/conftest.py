@@ -1,5 +1,5 @@
-import asyncio
 from hat import aio
+import asyncio
 import pytest
 
 from aimm import plugins

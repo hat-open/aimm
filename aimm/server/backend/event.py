@@ -1,5 +1,5 @@
-import base64
 from hat import aio
+import base64
 import hat.event.common
 
 from aimm.server import common

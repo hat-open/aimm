@@ -1,6 +1,6 @@
+from aimm import plugins
 import sklearn.svm
 import sklearn.datasets
-from aimm import plugins
 import pickle
 
 

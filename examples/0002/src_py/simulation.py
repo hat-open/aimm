@@ -1,6 +1,6 @@
-import asyncio
 from hat import aio
 from hat.drivers import iec104
+import asyncio
 import pandapower.networks
 import random
 import sys

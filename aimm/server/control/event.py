@@ -1,9 +1,9 @@
+from hat import aio
 import asyncio
 import base64
 import contextlib
 import logging
 import hat.event.common
-from hat import aio
 
 from aimm.server import common
 from aimm import plugins

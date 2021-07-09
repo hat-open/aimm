@@ -1,7 +1,7 @@
-import asyncio
 from hat import aio
 from hat import json
 from hat.event.server import common
+import asyncio
 import itertools
 import logging
 
