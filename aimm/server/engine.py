@@ -136,6 +136,7 @@ class Engine(aio.Resource):
         Args:
             model: model"""
         self._set_model(model)
+        self._group.spawn(self._backend.update_model, model)
 
     async def fit(self,
                   instance_id: int,
@@ -245,23 +246,23 @@ class Engine(aio.Resource):
 
 async def _create_instance(pool, model_type, instance_id, args, kwargs,
                            state_cb):
-    composite = _CompositeState({'meta': {'call': 'create_instance',
-                                          'model_type': model_type,
-                                          'args': args,
-                                          'kwargs': kwargs}})
-    composite.register_state_change_cb(lambda: state_cb(composite.state))
+    reactive = _ReactiveState({'meta': {'call': 'create_instance',
+                                        'model_type': model_type,
+                                        'args': args,
+                                        'kwargs': kwargs}})
+    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
-    composite.update(dict(composite.state, progress='accessing_data'))
+    reactive.update(dict(reactive.state, progress='accessing_data'))
     args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, composite.register_substate('data_access'))
+        pool, args, kwargs, reactive.register_substate('data_access'))
 
-    composite.update(dict(composite.state, progress='executing'))
-    handler = pool.create_handler(composite.register_substate('action').update)
+    reactive.update(dict(reactive.state, progress='executing'))
+    handler = pool.create_handler(reactive.register_substate('action').update)
     handler.run(
         plugins.exec_instantiate,
         model_type, handler.proc_notify_state_change, *args, **kwargs)
     instance = await handler.result
-    composite.update(dict(composite.state, progress='complete'))
+    reactive.update(dict(reactive.state, progress='complete'))
 
     return common.Model(instance=instance,
                         model_type=model_type,
@@ -269,60 +270,60 @@ async def _create_instance(pool, model_type, instance_id, args, kwargs,
 
 
 async def _fit(pool, model, args, kwargs, state_cb):
-    composite = _CompositeState({'meta': {'call': 'fit',
-                                          'model': model.instance_id,
-                                          'args': args,
-                                          'kwargs': kwargs}})
-    composite.register_state_change_cb(lambda: state_cb(composite.state))
+    reactive = _ReactiveState({'meta': {'call': 'fit',
+                                        'model': model.instance_id,
+                                        'args': args,
+                                        'kwargs': kwargs}})
+    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
-    composite.update(dict(composite.state, progress='accessing_data'))
+    reactive.update(dict(reactive.state, progress='accessing_data'))
     args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, composite.register_substate('data_access'))
+        pool, args, kwargs, reactive.register_substate('data_access'))
 
-    composite.update(dict(composite.state, progress='executing'))
-    handler = pool.create_handler(composite.register_substate('action').update)
+    reactive.update(dict(reactive.state, progress='executing'))
+    handler = pool.create_handler(reactive.register_substate('action').update)
     handler.run(
         plugins.exec_fit,
         model.model_type, model.instance, handler.proc_notify_state_change,
         *args, **kwargs)
     instance = await handler.result
-    composite.update(dict(composite.state, progress='complete'))
+    reactive.update(dict(reactive.state, progress='complete'))
 
     return model._replace(instance=instance)
 
 
 async def _predict(pool, model, args, kwargs, state_cb):
-    composite = _CompositeState({'meta': {'call': 'predict',
-                                          'model': model.instance_id,
-                                          'args': args,
-                                          'kwargs': kwargs}})
-    composite.register_state_change_cb(lambda: state_cb(composite.state))
+    reactive = _ReactiveState({'meta': {'call': 'predict',
+                                        'model': model.instance_id,
+                                        'args': args,
+                                        'kwargs': kwargs}})
+    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
-    composite.update(dict(composite.state, progress='accessing_data'))
+    reactive.update(dict(reactive.state, progress='accessing_data'))
     args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, composite.register_substate('data_access'))
+        pool, args, kwargs, reactive.register_substate('data_access'))
 
-    handler = pool.create_handler(composite.register_substate('action').update)
+    handler = pool.create_handler(reactive.register_substate('action').update)
     handler.run(
         plugins.exec_predict,
         model.model_type, model.instance, handler.proc_notify_state_change,
         *args, **kwargs)
     prediction = await handler.result
     mlog.warning(prediction)
-    composite.update(dict(composite.state, progress='complete'))
+    reactive.update(dict(reactive.state, progress='complete'))
     return prediction
 
 
-async def _derive_data_access_args(pool, args, kwargs, composite_state):
+async def _derive_data_access_args(pool, args, kwargs, reactive_state):
     actions = {}
     for i, arg in enumerate(args):
         if not isinstance(arg, common.DataAccess):
             continue
-        actions[i] = _get_data_access_action(pool, composite_state, i, arg)
+        actions[i] = _get_data_access_action(pool, reactive_state, i, arg)
     for key, value in kwargs.items():
         if not isinstance(value, common.DataAccess):
             continue
-        actions[key] = _get_data_access_action(pool, composite_state, key,
+        actions[key] = _get_data_access_action(pool, reactive_state, key,
                                                value)
 
     if actions:
@@ -337,9 +338,9 @@ async def _derive_data_access_args(pool, args, kwargs, composite_state):
     return args, kwargs
 
 
-def _get_data_access_action(pool, composite_state, key, data_access):
+def _get_data_access_action(pool, reactive_state, key, data_access):
     handler = pool.create_handler(
-        composite_state.register_substate(key).update)
+        reactive_state.register_substate(key).update)
     handler.run(
         plugins.exec_data_access,
         data_access.name, handler.proc_notify_state_change,
@@ -347,7 +348,7 @@ def _get_data_access_action(pool, composite_state, key, data_access):
     return handler
 
 
-class _CompositeState:
+class _ReactiveState:
     def __init__(self, state):
         self._state = state
         self._substates = {}
@@ -365,11 +366,11 @@ class _CompositeState:
         self._cb_registry.notify()
 
     def register_substate(self, key):
-        composite = _CompositeState(self._state.get(key, {}))
-        composite.register_state_change_cb(
+        reactive = _ReactiveState(self._state.get(key, {}))
+        reactive.register_state_change_cb(
             partial(self._on_substate_change, key))
-        self._substates[key] = composite
-        return composite
+        self._substates[key] = reactive
+        return reactive
 
     def _on_substate_change(self, key):
         self._state = {**self._state, **{key: self._substates[key].state}}

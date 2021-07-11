@@ -89,7 +89,7 @@ async def test_state():
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': []},
+             'action_state_event_type': []},
             engine, group, client)
         events = await client._register_queue.get()
         assert len(events) == 1
@@ -117,18 +117,19 @@ async def test_create_instance():
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': ['response']},
+             'action_state_event_type': ['action_state']},
             engine, group, client)
 
         events = await client._register_queue.get()  # state
 
         args = ['a1', 'a2']
         kwargs = {'k1': '1'}
-        client._receive_queue.put_nowait([_event(('create_instance', ),
-                                                 {'model_type': 'Model1',
-                                                  'args': args,
-                                                  'kwargs': kwargs,
-                                                  'request_id': '1'})])
+        req_event = _event(('create_instance', ),
+                           {'model_type': 'Model1',
+                            'args': args,
+                            'kwargs': kwargs,
+                            'request_id': '1'})
+        client._receive_queue.put_nowait([req_event])
         call = await create_queue.get()
         assert call['model_type'] == 'Model1'
         assert call['args'] == tuple(args)
@@ -140,8 +141,20 @@ async def test_create_instance():
         events = await client._register_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('response',)
-        assert event.payload.data == {'request_id': '1', 'result': 1}
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'IN_PROGRESS',
+            'result': None}
+
+        events = await client._register_queue.get()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'DONE',
+            'result': 1}
 
         await control.async_close()
 
@@ -167,17 +180,16 @@ async def test_add_instance(plugin_teardown):
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': ['response']},
+             'action_state_event_type': ['action_state']},
             engine, group, client)
 
         events = await client._register_queue.get()  # state
 
-        client._receive_queue.put_nowait([
-            _event(('add_instance', ),
-                   {'model_type': 'Model1',
-                    'instance': base64.b64encode(
-                        'xyz'.encode('utf-8')).decode('utf-8'),
-                    'request_id': '1'})])
+        req_event = _event(('add_instance', ),
+                           {'model_type': 'Model1',
+                            'instance': base64.b64encode(
+                                'xyz'.encode('utf-8')).decode('utf-8')})
+        client._receive_queue.put_nowait([req_event])
 
         call = await add_queue.get()
         assert call['model_type'] == 'Model1'
@@ -186,8 +198,11 @@ async def test_add_instance(plugin_teardown):
         events = await client._register_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('response',)
-        assert event.payload.data == {'request_id': '1', 'result': 2}
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'DONE',
+            'result': 2}
 
         await control.async_close()
 
@@ -211,17 +226,16 @@ async def test_update_instance(plugin_teardown):
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': ['response']},
+             'action_state_event_type': ['action_state']},
             engine, group, client)
 
         events = await client._register_queue.get()  # state
 
-        client._receive_queue.put_nowait([
-            _event(('update_instance', '10'),
-                   {'model_type': 'Model1',
-                    'instance': base64.b64encode(
-                        'xyz'.encode('utf-8')).decode('utf-8'),
-                    'request_id': '1'})])
+        req_event = _event(('update_instance', '10'),
+                           {'model_type': 'Model1',
+                            'instance': base64.b64encode(
+                                'xyz'.encode('utf-8')).decode('utf-8')})
+        client._receive_queue.put_nowait([req_event])
 
         model = await update_queue.get()
         assert model == common.Model(model_type='Model1',
@@ -231,8 +245,11 @@ async def test_update_instance(plugin_teardown):
         events = await client._register_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('response',)
-        assert event.payload.data == {'request_id': '1', 'result': True}
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'DONE',
+            'result': None}
 
         await control.async_close()
 
@@ -258,16 +275,24 @@ async def test_fit():
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': ['response']},
+             'action_state_event_type': ['action_state']},
             engine, group, client)
 
         events = await client._register_queue.get()  # state
 
-        client._receive_queue.put_nowait([
-            _event(('fit', '11'),
-                   {'args': ['a', 'b'],
-                    'kwargs': {'c': 'd', 'e': 'f'},
-                    'request_id': '1'})])
+        req_event = _event(('fit', '11'),
+                           {'args': ['a', 'b'],
+                            'kwargs': {'c': 'd', 'e': 'f'}})
+        client._receive_queue.put_nowait([req_event])
+
+        events = await client._register_queue.get()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'IN_PROGRESS',
+            'result': None}
 
         call = await fit_queue.get()
         assert call['model_id'] == 11
@@ -279,8 +304,11 @@ async def test_fit():
         events = await client._register_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('response',)
-        assert event.payload.data == {'request_id': '1', 'result': True}
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'DONE',
+            'result': None}
 
         await control.async_close()
 
@@ -306,16 +334,24 @@ async def test_predict():
         control = await aimm.server.control.event.create(
             {'event_prefixes': _prefixes(),
              'state_event_type': ['state'],
-             'response_event_type': ['response']},
+             'action_state_event_type': ['action_state']},
             engine, group, client)
 
         events = await client._register_queue.get()  # state
 
-        client._receive_queue.put_nowait([
-            _event(('predict', '12'),
-                   {'args': ['a', 'b'],
-                    'kwargs': {'c': 'd', 'e': 'f'},
-                    'request_id': '1'})])
+        req_event = _event(('predict', '12'),
+                           {'args': ['a', 'b'],
+                            'kwargs': {'c': 'd', 'e': 'f'}})
+        client._receive_queue.put_nowait([req_event])
+
+        events = await client._register_queue.get()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'IN_PROGRESS',
+            'result': None}
 
         call = await predict_queue.get()
         assert call['model_id'] == 12
@@ -327,9 +363,66 @@ async def test_predict():
         events = await client._register_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('response',)
-        assert event.payload.data == {'request_id': '1',
-                                      'result': 'prediction'}
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'DONE',
+            'result': 'prediction'}
+
+        await control.async_close()
+
+
+@pytest.mark.timeout(1)
+async def test_cancel():
+
+    future_queue = aio.Queue()
+
+    async def predict_cb(model_id, *args, **kwargs):
+        done_future = asyncio.Future()
+        future_queue.put_nowait(done_future)
+        return done_future
+
+    client = MockClient()
+    engine = MockEngine({'models': {12: common.Model('M', None, 12)},
+                         'actions': {}},
+                        predict_cb=predict_cb)
+    async with aio.Group() as group:
+        control = await aimm.server.control.event.create(
+            {'event_prefixes': _prefixes(),
+             'state_event_type': ['state'],
+             'action_state_event_type': ['action_state']},
+            engine, group, client)
+
+        events = await client._register_queue.get()  # state
+
+        req_event = _event(('predict', '12'), {'args': [], 'kwargs': {}})
+        client._receive_queue.put_nowait([req_event])
+
+        events = await client._register_queue.get()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'IN_PROGRESS',
+            'result': None}
+
+        future = await future_queue.get()
+
+        client._receive_queue.put_nowait([
+            _event(('cancel',), req_event.event_id._asdict())])
+
+        with pytest.raises(asyncio.CancelledError):
+            await future
+
+        events = await client._register_queue.get()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('action_state',)
+        assert event.payload.data == {
+            'request_id': req_event.event_id._asdict(),
+            'status': 'CANCELLED',
+            'result': None}
 
         await control.async_close()
 
@@ -360,4 +453,5 @@ def _prefixes():
             'add_instance': ['add_instance'],
             'update_instance': ['update_instance'],
             'fit': ['fit'],
-            'predict': ['predict']}
+            'predict': ['predict'],
+            'cancel': ['cancel']}

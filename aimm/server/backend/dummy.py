@@ -9,7 +9,7 @@ def create(conf, group, _):
     return backend
 
 
-class DummyBackend(common.Backend, aio.Resource):
+class DummyBackend(common.Backend):
 
     @property
     def async_group(self) -> aio.Group:

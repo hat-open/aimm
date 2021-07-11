@@ -1,4 +1,5 @@
 from hat import aio
+from hat import util
 import base64
 import hat.event.common
 
@@ -10,25 +11,27 @@ def create_subscription(conf):
     return hat.event.common.Subscription([tuple([*conf['model_prefix'], '*'])])
 
 
-async def create(conf, group, event_client):
+async def create(conf, async_group, event_client):
     common.json_schema_repo.validate('aimm://server/backend/event.yaml#',
                                      conf)
     backend = EventBackend()
 
     backend._model_prefix = conf['model_prefix']
     backend._executor = aio.create_executor()
-    backend._group = group
+    backend._cbs = util.CallbackRegistry()
+    backend._async_group = async_group
     backend._client = event_client
+    backend._async_group.spawn(backend._event_loop)
 
     return backend
 
 
-class EventBackend(common.Backend, aio.Resource):
+class EventBackend(common.Backend):
 
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
-        return self._group
+        return self._async_group
 
     async def get_models(self):
         events = await self._client.query(hat.event.common.QueryData(
@@ -40,6 +43,15 @@ class EventBackend(common.Backend, aio.Resource):
 
     async def update_model(self, model):
         await self._register_model(model)
+
+    def register_model_change_cb(self, cb):
+        self._cbs.register(cb)
+
+    async def _event_loop(self):
+        while True:
+            events = await self._client.receive()
+            for event in events:
+                self._cbs.notify(self._event_to_model(event))
 
     async def _register_model(self, model):
         await self._client.register_with_response(

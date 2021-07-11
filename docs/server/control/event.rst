@@ -37,8 +37,8 @@ following structure:
                 description: copied as-is from engine's state
         ...
 
-Request-response
-----------------
+Action requests and states
+--------------------------
 
 Engine's functions are used as reactions to received events. Control receives
 events with types that match one of the ``[<prefix>, '*']`` query types and
@@ -78,10 +78,11 @@ request event's payload should have the following structure:
                         '$ref': '#object_arg'
     ...
 
-The results of functions are registered as response events, with the following
-structure, regardless of the exact engine function that is called:
+The control registers events that refer directly to the request that started
+the action and that contain information on the actions state, and, if an action
+returns it, its result. The event has the following structure:
 
-  * type: ``[<response_type>]``
+  * type: ``[<action_state_type>]``
   * source_timestamp is None
   * payload: JSON with the following schema:
 
@@ -94,9 +95,15 @@ structure, regardless of the exact engine function that is called:
             - result
         properties:
             request_id:
-                type: string
+                type: object
                 description: |
-                    matches request_id property received from request messages
+                    event id that started the execution
+            status:
+                enum:
+                    - IN_PROGRESS
+                    - DONE
+                    - FAILED
+                    - CANCELLED
             result: {}
         ...
 
@@ -116,7 +123,6 @@ Incoming event structure:
             - model_type
             - args
             - kwargs
-            - request_id
         properties:
             model_type:
                 type: string
@@ -128,8 +134,6 @@ Incoming event structure:
                 patternProperties:
                     '(.)+':
                         '$ref': '#object_arg'
-            request_id:
-                type: string
         ...
 
 Result passed in the response is either an integer, representing ID of the
@@ -151,15 +155,12 @@ Incoming event structure:
         required:
             - model_type
             - instance
-            - request_id
         properties:
             model_type:
                 type: string
             instance:
                 type: string
                 description: base64 encoded instance
-            request_id:
-                type: string
         ...
 
 Result passed in the response is either an integer, representing ID of the
@@ -180,15 +181,12 @@ Incoming event structure:
         required:
             - model_type
             - instance
-            - request_id
         properties:
             model_type:
                 type: string
             instance:
                 type: string
                 description: base64 encoded instance
-            request_id:
-                type: string
         ...
 
 Result is a boolean, ``true`` if update was performed successfully.
@@ -208,7 +206,6 @@ Incoming event structure:
         required:
             - args
             - kwargs
-            - request_id
         properties:
             args:
                 type: array
@@ -219,8 +216,6 @@ Incoming event structure:
                 patternProperties:
                     '(.)+':
                         '$ref': '#object_arg'
-            request_id:
-                type: string
         ...
 
 Result is a boolean, ``true`` if update was performed successfully.
@@ -240,7 +235,6 @@ Incoming event structure:
         required:
             - args
             - kwargs
-            - request_id
         properties:
             args:
                 type: array
@@ -251,9 +245,17 @@ Incoming event structure:
                 patternProperties:
                     '(.)+':
                         '$ref': '#object_arg'
-            request_id:
-                type: string
         ...
 
 Result is the prediction, exact value returned by the call to the predict
 plugin.
+
+Cancel
+''''''
+
+Any action that can have the state ``IN_PROGRESS`` may be canceled. This is
+done by registering a cancel event, with the following structure:
+
+  * type ``[<cancel_prefix>, '*']``
+  * JSON payload that is a dictionary representation of the id of the event
+    that started the action

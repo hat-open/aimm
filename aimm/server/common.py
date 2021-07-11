@@ -1,4 +1,5 @@
 from hat import aio
+from hat import util
 import abc
 import hat.event.client
 import hat.event.common
@@ -176,6 +177,13 @@ class Backend(aio.Resource, abc.ABC):
 
         Args:
             model: instance and metadata of the new model"""
+
+    def register_model_change_cb(self,
+                                 cb: typing.Callable[[Model], None]
+                                 ) -> util.RegisterCallbackHandle:
+        """Register callback for backend-side model changes. Implementation
+        optional, defaults to ignoring the callback."""
+        return util.RegisterCallbackHandle(cancel=lambda: None)
 
 
 def control_create(conf: typing.Dict,

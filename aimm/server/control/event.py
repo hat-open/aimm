@@ -17,7 +17,7 @@ def create_subscription(conf):
         [tuple([*p, '*']) for p in conf['event_prefixes'].values()])
 
 
-async def create(conf, engine, group, event_client):
+async def create(conf, engine, async_group, event_client):
     common.json_schema_repo.validate('aimm://server/control/event.yaml#', conf)
     if event_client is None:
         raise ValueError('attempting to create event control without hat '
@@ -27,14 +27,15 @@ async def create(conf, engine, group, event_client):
 
     control._client = event_client
     control._engine = engine
-    control._group = group
+    control._async_group = async_group
     control._event_prefixes = conf['event_prefixes']
     control._state_event_type = conf['state_event_type']
-    control._response_event_type = conf['response_event_type']
+    control._action_state_event_type = conf['action_state_event_type']
     control._executor = aio.create_executor()
     control._notified_state = {}
+    control._in_progress = {}
 
-    control._group.spawn(control._main_loop)
+    control._async_group.spawn(control._main_loop)
 
     control._notify_state()
     control._engine.subscribe_to_state_change(control._notify_state)
@@ -47,7 +48,7 @@ class EventControl(common.Control, aio.Resource):
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
-        return self._group
+        return self._async_group
 
     def _notify_state(self):
         state_json = _state_to_json(self._engine)
@@ -79,92 +80,121 @@ class EventControl(common.Control, aio.Resource):
                         self.async_group.spawn(self._fit, event)
                     if prefix_match('predict', event):
                         self.async_group.spawn(self._predict, event)
+                    if prefix_match('cancel', event):
+                        self.async_group.spawn(self._cancel, event)
 
     async def _create_instance(self, event):
-        data = event.payload.data
-        model_type = data['model_type']
-        args = [await self._process_arg(arg) for arg in data['args']]
-        kwargs = {k: await self._process_arg(v) for k, v
-                  in data['kwargs'].items()}
-        task = self._engine.create_instance(model_type, *args, **kwargs)
-        result = None
         try:
-            await task
-            result = task.result().instance_id
+            data = event.payload.data
+            model_type = data['model_type']
+            args = [await self._process_arg(arg) for arg in data['args']]
+            kwargs = {k: await self._process_arg(v) for k, v
+                      in data['kwargs'].items()}
+            task = self._engine.create_instance(model_type, *args, **kwargs)
+            self._register_action_state(event, 'IN_PROGRESS')
+            self._in_progress[event.event_id] = task
+            try:
+                model = await task
+                self._register_action_state(event, 'DONE', model.instance_id)
+            except asyncio.CancelledError:
+                self._register_action_state(event, 'CANCELLED')
+            finally:
+                del self._in_progress[event.event_id]
         except Exception as e:
             mlog.warning('instance creation failed with exception %s', e,
                          exc_info=e)
-        self._client.register([_register_event(
-            self._response_event_type,
-            {'request_id': data['request_id'],
-             'result': result})])
+            self._register_action_state(event, 'FAILED')
 
     async def _add_instance(self, event):
-        data = event.payload.data
-        instance = await self._instance_from_json(data['instance'],
-                                                  data['model_type'])
-        model = self._engine.add_instance(instance, data['model_type'])
-        self._client.register([_register_event(
-            self._response_event_type,
-            {'request_id': data['request_id'],
-             'result': model.instance_id})])
+        try:
+            data = event.payload.data
+            instance = await self._instance_from_json(data['instance'],
+                                                      data['model_type'])
+            model = self._engine.add_instance(instance, data['model_type'])
+            self._register_action_state(event, 'DONE', model.instance_id)
+        except Exception as e:
+            mlog.warning('add instance failed with exception %s', e,
+                         exc_info=e)
+            self._register_action_state(event, 'FAILED')
 
     async def _update_instance(self, event):
-        event_prefix = self._event_prefixes.get('update_instance')
-        instance_id = int(event.event_type[len(event_prefix)])
-        data = event.payload.data
-        model_type = data['model_type']
-        model = common.Model(
-            model_type=data['model_type'],
-            instance_id=instance_id,
-            instance=await self._instance_from_json(data['instance'],
-                                                    model_type))
-        await self._engine.update_instance(model)
-        self._client.register([_register_event(
-            self._response_event_type,
-            {'request_id': data['request_id'], 'result': True})])
+        try:
+            event_prefix = self._event_prefixes.get('update_instance')
+            instance_id = int(event.event_type[len(event_prefix)])
+            data = event.payload.data
+            model_type = data['model_type']
+            model = common.Model(
+                model_type=data['model_type'],
+                instance_id=instance_id,
+                instance=await self._instance_from_json(data['instance'],
+                                                        model_type))
+            await self._engine.update_instance(model)
+            self._register_action_state(event, 'DONE')
+        except Exception as e:
+            mlog.warning('update instance failed with exception %s', e,
+                         exc_info=e)
+            self._register_action_state(event, 'FAILED')
 
     async def _fit(self, event):
-        event_prefix = self._event_prefixes.get('fit')
-        if event_prefix is None:
-            return
-        data = event.payload.data
-        instance_id = int(event.event_type[len(event_prefix)])
-        if instance_id not in self._engine.state['models']:
-            return
-        args = [await self._process_arg(a) for a in data['args']]
-        kwargs = {k: await self._process_arg(v) for k, v
-                  in data['kwargs'].items()}
-
-        task = await self._engine.fit(instance_id, *args, **kwargs)
         try:
-            await task
+            event_prefix = self._event_prefixes['fit']
+            data = event.payload.data
+            instance_id = int(event.event_type[len(event_prefix)])
+            if instance_id not in self._engine.state['models']:
+                raise ValueError('instance {instance_id} not in state')
+            args = [await self._process_arg(a) for a in data['args']]
+            kwargs = {k: await self._process_arg(v) for k, v
+                      in data['kwargs'].items()}
+
+            task = await self._engine.fit(instance_id, *args, **kwargs)
+            self._register_action_state(event, 'IN_PROGRESS')
+            self._in_progress[event.event_id] = task
+            try:
+                await task
+                self._register_action_state(event, 'DONE')
+            except asyncio.CancelledError:
+                self._register_action_state(event, 'CANCELLED')
+            finally:
+                del self._in_progress[event.event_id]
         except Exception as e:
             mlog.warning('fitting failed with exception %s', e, exc_info=e)
-        self._client.register([_register_event(
-            self._response_event_type,
-            {'request_id': data['request_id'], 'result': True})])
+            self._register_action_state(event, 'FAILED')
 
     async def _predict(self, event):
-        event_prefix = self._event_prefixes.get('predict')
-        data = event.payload.data
-        instance_id = int(event.event_type[len(event_prefix)])
-        if instance_id not in self._engine.state['models']:
-            return
-        args = [await self._process_arg(a) for a in data['args']]
-        kwargs = {k: await self._process_arg(v) for k, v
-                  in data['kwargs'].items()}
-
-        task = await self._engine.predict(instance_id, *args, **kwargs)
         try:
-            prediction = await task
+            event_prefix = self._event_prefixes['predict']
+            data = event.payload.data
+            instance_id = int(event.event_type[len(event_prefix)])
+            if instance_id not in self._engine.state['models']:
+                raise ValueError('instance {instance_id} not in state')
+            args = [await self._process_arg(a) for a in data['args']]
+            kwargs = {k: await self._process_arg(v) for k, v
+                      in data['kwargs'].items()}
+
+            task = await self._engine.predict(instance_id, *args, **kwargs)
+            self._register_action_state(event, 'IN_PROGRESS')
+            self._in_progress[event.event_id] = task
+            try:
+                prediction = await task
+                self._register_action_state(event, 'DONE', prediction)
+            except asyncio.CancelledError:
+                self._register_action_state(event, 'CANCELLED')
+            finally:
+                del self._in_progress[event.event_id]
         except Exception as e:
             mlog.warning('prediction failed with exception %s', e, exc_info=e)
-        else:
-            self._client.register([_register_event(
-                self._response_event_type,
-                {'request_id': data['request_id'],
-                 'result': prediction})])
+
+    def _cancel(self, event):
+        request_event_id = hat.event.common.EventId(**event.payload.data)
+        if request_event_id in self._in_progress:
+            self._in_progress[request_event_id].cancel()
+
+    def _register_action_state(self, request_event, status, result=None):
+        return self._client.register([
+            _register_event(self._action_state_event_type,
+                            {'request_id': request_event.event_id._asdict(),
+                             'status': status,
+                             'result': result})])
 
     async def _process_arg(self, arg):
         if not (isinstance(arg, dict) and arg.get('type') == 'data_access'):

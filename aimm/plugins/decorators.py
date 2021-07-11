@@ -197,26 +197,39 @@ def model(cls: ClassVar) -> ClassVar:
 
 
 def get_instantiate(model_type: str) -> Callable:
+    if model_type not in _declarations['instantiate']:
+        raise ValueError(
+            f'no instantiation plugin for model type {model_type}')
     return _declarations['instantiate'][model_type]
 
 
 def get_data_access(name: str) -> Callable:
+    if name not in _declarations['data_access']:
+        raise ValueError(f'no data access plugin for name {name}')
     return _declarations['data_access'][name]
 
 
 def get_fit(model_type: str) -> Callable:
+    if model_type not in _declarations['fit']:
+        raise ValueError(f'no fit plugin for model type {model_type}')
     return _declarations['fit'][model_type]
 
 
 def get_predict(model_type: str) -> Callable:
+    if model_type not in _declarations['predict']:
+        raise ValueError(f'no predict plugin for model type {model_type}')
     return _declarations['predict'][model_type]
 
 
 def get_serialize(model_type: str) -> Callable:
+    if model_type not in _declarations['serialize']:
+        raise ValueError(f'no serialize plugin for model type {model_type}')
     return _declarations['serialize'][model_type]
 
 
 def get_deserialize(model_type: str) -> Callable:
+    if model_type not in _declarations['deserialize']:
+        raise ValueError(f'no deserialize plugin for model type {model_type}')
     return _declarations['deserialize'][model_type]
 
 

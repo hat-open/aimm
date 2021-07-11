@@ -11,6 +11,7 @@ import logging
 import multiprocessing
 import psutil
 import signal
+import typing
 
 
 mlog = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class ProcessManager(aio.Resource):
 
     Args:
         max_children: maximum number of child processes that may be created
-        group: asyncio group
+        async_group: async group
         check_children_period: number of seconds waited before checking if a
             child process may be created and notifying pending handlers
         sigterm_timeout: number of seconds waited before sending SIGKILL if a
@@ -33,21 +34,21 @@ class ProcessManager(aio.Resource):
 
     def __init__(self,
                  max_children: int,
-                 group: aio.Group,
+                 async_group: aio.Group,
                  check_children_period: float,
                  sigterm_timeout: float):
         self._max_children = max_children
-        self._group = group
+        self._async_group = async_group
         self._check_children_period = check_children_period
         self._sigterm_timeout = sigterm_timeout
 
         self._condition = asyncio.Condition()
 
-        self._group.spawn(self._condition_loop)
+        self._async_group.spawn(self._condition_loop)
 
     @property
     def async_group(self) -> aio.Group:
-        return self._group
+        return self._async_group
 
     def create_handler(self, state_cb: StateCallback) -> 'ProcessHandler':
         """Creates a ProcessHandler
@@ -58,7 +59,7 @@ class ProcessManager(aio.Resource):
 
         Returns:
             ProcessHandler"""
-        return ProcessHandler(self._group.create_subgroup(),
+        return ProcessHandler(self._async_group.create_subgroup(),
                               self._sigterm_timeout, state_cb,
                               self._condition)
 
@@ -80,7 +81,7 @@ class ProcessHandler(aio.Resource):
     :meth:`ProcessManager.create`.
 
     Args:
-        group (hat.aio.Group): async group
+        async_group (hat.aio.Group): async group
         sigterm_timeout (float): time waited until process handles SIGTERM
             before sending SIGKILL during forced shutdown
         state_cb (Optional[Callable[Any]]): state change cb
@@ -89,11 +90,11 @@ class ProcessHandler(aio.Resource):
     """
 
     def __init__(self,
-                 group: aio.Group,
+                 async_group: aio.Group,
                  sigterm_timeout: float,
                  state_cb: StateCallback,
                  cond: asyncio.Condition):
-        self._group = group
+        self._async_group = async_group
         self._sigterm_timeout = sigterm_timeout
         self._state_cb = state_cb
         self._cond = cond
@@ -105,12 +106,12 @@ class ProcessHandler(aio.Resource):
         self._executor = aio.create_executor()
         self._result_future = asyncio.Future()
 
-        self._group.spawn(self._state_loop)
-        self._group.spawn(aio.call_on_cancel, self._cleanup)
+        self._async_group.spawn(self._state_loop)
+        self._async_group.spawn(aio.call_on_cancel, self._cleanup)
 
     @property
     def async_group(self) -> aio.Group:
-        return self._group
+        return self._async_group
 
     @property
     def result(self) -> asyncio.Future:
@@ -137,7 +138,7 @@ class ProcessHandler(aio.Resource):
             **kwargs: keyword arguments, need to be pickleable
 
         """
-        self._group.spawn(self._run, self._cond, fn, *args, **kwargs)
+        self._async_group.spawn(self._run, self._cond, fn, *args, **kwargs)
 
     async def _run(self, cond, fn, *args, **kwargs):
         await cond.acquire()
@@ -153,18 +154,18 @@ class ProcessHandler(aio.Resource):
                 try:
                     result = await self._executor(_ext_closeable_recv,
                                                   self._result_pipe)
-                    if result['success']:
-                        self._result_future.set_result(result['result'])
+                    if result.success:
+                        self._result_future.set_result(result.result)
                     else:
-                        self._result_future.set_exception(result['exception'])
-                except ValueError:
+                        self._result_future.set_exception(result.exception)
+                except _ProcessTerminatedException:
                     self._result_future.set_exception(
-                        Exception('process killed'))
+                        Exception('process terminated'))
 
             await aio.uncancellable(wait_result())
         finally:
             cond.release()
-            self._group.close()
+            self._async_group.close()
 
     async def _state_loop(self):
         with contextlib.suppress(asyncio.CancelledError, ValueError):
@@ -180,6 +181,16 @@ class ProcessHandler(aio.Resource):
                                  self._sigterm_timeout)
         await self._executor(_ext_close_pipe, self._result_pipe)
         await self._executor(_ext_close_pipe, self._state_pipe)
+
+
+class _Result(typing.NamedTuple):
+    success: bool
+    result: typing.Optional[Any] = None
+    exception: typing.Optional[Exception] = None
+
+
+class _ProcessTerminatedException(Exception):
+    pass
 
 
 def _plugin_sigterm_handler(frame, signum):
@@ -198,10 +209,9 @@ def _sigterm_override():
 def _proc_run_fn(pipe, fn, *args, **kwargs):
     try:
         with _sigterm_override():
-            result = {'success': True,
-                      'result': fn(*args, **kwargs)}
+            result = _Result(success=True, result=fn(*args, **kwargs))
     except Exception as e:
-        result = {'success': False, 'exception': e}
+        result = _Result(success=False, exception=e)
     pipe[1].send(result)
 
 
@@ -215,19 +225,19 @@ def _ext_end_process(process, sigterm_timeout):
     process.close()
 
 
-class _PipeSentinels(enum.Enum):
+class _PipeSentinel(enum.Enum):
     CLOSE = enum.auto
 
 
 def _ext_close_pipe(pipe):
     _, send_conn = pipe
-    send_conn.send(_PipeSentinels.CLOSE)
+    send_conn.send(_PipeSentinel.CLOSE)
     send_conn.close()
 
 
 def _ext_closeable_recv(pipe):
     recv_conn, _ = pipe
     value = recv_conn.recv()
-    if value == _PipeSentinels.CLOSE:
-        raise ValueError('pipe closed')
+    if value == _PipeSentinel.CLOSE:
+        raise _ProcessTerminatedException('pipe closed')
     return value

@@ -25,7 +25,7 @@ async def create(conf, group, _):
     return backend
 
 
-class SQLiteBackend(common.Backend, aio.Resource):
+class SQLiteBackend(common.Backend):
 
     @property
     def async_group(self) -> aio.Group:

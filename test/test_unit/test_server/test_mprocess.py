@@ -105,7 +105,7 @@ async def test_process_sigkill():
     await asyncio.sleep(0.2)
     await process_action.async_close()
 
-    with pytest.raises(Exception, match='process killed'):
+    with pytest.raises(Exception, match='process terminated'):
         await process_action.result
 
     await pa_pool.async_close()
