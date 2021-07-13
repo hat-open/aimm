@@ -1,8 +1,6 @@
 from hat import juggler
 from hat import aio
-import asyncio
 import base64
-import contextlib
 import logging
 import numpy
 import pandas
@@ -15,7 +13,7 @@ from aimm import plugins
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf, engine, group, _):
+async def create(conf, engine, async_group, _):
     common.json_schema_repo.validate('aimm://server/control/repl.yaml#', conf)
     control = REPLControl()
 
@@ -28,128 +26,107 @@ async def create(conf, engine, group, _):
 
     control._conf = conf
     control._engine = engine
-    control._group = group
+    control._async_group = async_group
     control._server = server
-    control._connections = []
-
-    control._group.spawn(aio.call_on_cancel, control._cleanup)
 
     return control
 
 
-class REPLControl(common.Control, aio.Resource):
+class REPLControl(common.Control):
 
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
-        return self._group
+        return self._async_group
 
     def _connection_cb(self, connection):
-        self._connections.append(connection)
-        self._group.spawn(self._connection_loop, connection)
-        self._group.spawn(connection.wait_closed).add_done_callback(
-            lambda _: self._connections.remove(connection))
+        session = Session(connection, self._engine, self._conf)
+        self._async_group.spawn(aio.call_on_cancel, session.async_close)
 
-    async def _connection_loop(self, connection):
-        with contextlib.suppress(ConnectionError, asyncio.CancelledError):
-            msg = await connection.receive()
-            if (msg['type'] != 'login'
-                    or msg['data'] not in self._conf['users']):
-                await connection.async_close()
-                return
 
-            await connection.send({'type': 'login_success'})
+class Session(aio.Resource):
 
-            await self._set_state(connection)
-            with self._engine.subscribe_to_state_change(
-                    lambda: self._group.spawn(self._set_state, connection)):
-                while True:
-                    await self._handle_msg(await connection.receive(),
-                                           connection)
+    def __init__(self, connection, engine, conf):
+        self._engine = engine
+        self._user = None
+        self._conf = conf
 
-    async def _set_state(self, connection):
-        connection.set_local_data(await _state_to_json(self._engine.state))
+        self._connection = juggler.RpcConnection(connection, {
+            'login': self._login,
+            'logout': self._logout,
+            'create_instance': self._create_instance,
+            'add_instance': self._add_instance,
+            'update_instance': self._update_instance,
+            'fit': self._fit,
+            'predict': self._predict})
 
-    async def _handle_msg(self, msg, connection):
-        if msg['type'] == 'create_instance':
-            await self._create_instance(msg['data'], connection)
-        elif msg['type'] == 'add_instance':
-            await self._add_instance(msg['data'], connection)
-        elif msg['type'] == 'update_instance':
-            await self._update_instance(msg['data'], connection)
-        elif msg['type'] == 'fit':
-            await self._fit(msg['data'], connection)
-        elif msg['type'] == 'predict':
-            await self._predict(msg['data'], connection)
+        self.async_group.spawn(self._run)
 
-    async def _cleanup(self):
-        if self._connections:
-            await asyncio.wait([c.async_close() for c in self._connections],
-                               return_when=asyncio.ALL_COMPLETED)
-        await self._server.async_close()
+    @property
+    def async_group(self):
+        return self._connection.async_group
 
-    async def _create_instance(self, data, connection):
-        model_type = data['model_type']
-        args = [_arg_from_json(a) for a in data['args']]
-        kwargs = {k: _arg_from_json(v) for k, v in data['kwargs'].items()}
+    async def _run(self):
+        with self._engine.subscribe_to_state_change(
+                lambda: self.async_group.spawn(self._on_state_change)):
+            await self.async_group.wait_closing()
+
+    async def _on_state_change(self):
+        self._connection.set_local_data(
+            await _state_to_json(self._engine.state))
+
+    def _login(self, username, password):
+        if {'username': username, 'password': password} in self._conf['users']:
+            self._user = username
+        else:
+            self.async_group.close()
+            raise Exception('login failed')
+
+    def _logout(self):
+        self._user = None
+
+    async def _create_instance(self, model_type, args, kwargs):
+        self._check_authorization()
+        args = [_arg_from_json(a) for a in args]
+        kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
         task = self._engine.create_instance(model_type, *args, **kwargs)
-        try:
-            result = await task
-        except Exception as e:
-            await connection.send(_exc_msg(e))
-        else:
-            await connection.send({'type': 'result',
-                                   'success': True,
-                                   'model': await _model_to_json(result)})
+        return await _model_to_json(await task)
 
-    async def _add_instance(self, data, connection):
-        instance = await _instance_from_json(data['instance'],
-                                             data['model_type'])
-        model = self._engine.add_instance(instance, data['model_type'])
-        await connection.send({'success': True,
-                               'model': await _model_to_json(model)})
+    async def _add_instance(self, model_type, instance):
+        self._check_authorization()
+        instance = await _instance_from_json(instance, model_type)
+        model = self._engine.add_instance(instance, model_type)
+        return _model_to_json(model)
 
-    async def _update_instance(self, data, connection):
-        model_type = data['model_type']
+    async def _update_instance(self, model_type, instance_id, instance):
+        self._check_authorization()
         model = common.Model(
             model_type=model_type,
-            instance_id=data['instance_id'],
-            instance=await _instance_from_json(data['instance'], model_type))
+            instance_id=instance_id,
+            instance=await _instance_from_json(instance, model_type))
         await self._engine.update_instance(model)
-        await connection.send({'type': 'result',
-                               'success': True,
-                               'model': await _model_to_json(model)})
+        return await _model_to_json(model)
 
-    async def _fit(self, data, connection):
-        instance_id = data['instance_id']
-        args = [_arg_from_json(a) for a in data['args']]
-        kwargs = {k: _arg_from_json(v) for k, v in data['kwargs'].items()}
+    async def _fit(self, instance_id, args, kwargs):
+        self._check_authorization()
+        args = [_arg_from_json(a) for a in args]
+        kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
         task = await self._engine.fit(instance_id, *args, **kwargs)
-        try:
-            result = await task
-        except Exception as e:
-            await connection.send(_exc_msg(e))
-        else:
-            await connection.send({'type': 'result',
-                                   'success': True,
-                                   'model': await _model_to_json(result)})
+        return await _model_to_json(await task)
 
-    async def _predict(self, data, connection):
-        instance_id = data['instance_id']
-        args = [_arg_from_json(a) for a in data['args']]
-        kwargs = {k: _arg_from_json(v) for k, v in data['kwargs'].items()}
+    async def _predict(self, instance_id, args, kwargs):
+        self._check_authorization()
+        args = [_arg_from_json(a) for a in args]
+        kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
         task = await self._engine.predict(instance_id, *args, **kwargs)
-        try:
-            result = await task
-        except Exception as e:
-            await connection.send(_exc_msg(e))
-        else:
-            await connection.send({'type': 'result',
-                                   'success': True,
-                                   'result': _prediction_to_json(result)})
+        return _prediction_to_json(await task)
+
+    def _check_authorization(self):
+        if self._user is None:
+            raise Exception('unauthorized action')
 
 
 async def _state_to_json(state):

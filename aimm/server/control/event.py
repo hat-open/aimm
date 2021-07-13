@@ -43,7 +43,7 @@ async def create(conf, engine, async_group, event_client):
     return control
 
 
-class EventControl(common.Control, aio.Resource):
+class EventControl(common.Control):
 
     @property
     def async_group(self) -> aio.Group:

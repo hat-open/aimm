@@ -12,7 +12,7 @@ async def create(conf, group, _):
                                      conf)
     backend = SQLiteBackend()
 
-    executor = aio.create_executor()
+    executor = aio.create_executor(1)
     connection = await executor(_ext_db_connect, Path(conf['path']))
     connection.row_factory = sqlite3.Row
 

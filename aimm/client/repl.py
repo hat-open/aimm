@@ -42,26 +42,16 @@ class AIMM(aio.Resource):
     async def connect(self, address: str, autoflush_delay: float = 0.2):
         """Connects to the specified remote address. Login data is received
         from a user prompt. Passwords are hashed with SHA-256 before sending
-        login request.
-
-        Args:
-            address: remote server address"""
+        login request."""
         connection = await juggler.connect(
             address, autoflush_delay=autoflush_delay)
+        connection = juggler.RpcConnection(connection, {})
         self._address = address
 
         username = input('Username: ')
         password_hash = hashlib.sha256()
         password_hash.update(getpass('Password: ').encode('utf-8'))
-        await connection.send({'type': 'login',
-                               'data': {
-                                   'username': username,
-                                   'password': password_hash.hexdigest()}})
-        msg = await connection.receive()
-
-        if msg != {'type': 'login_success'}:
-            print('Login failed')
-            return
+        await connection.call('login', username, password_hash.hexdigest())
 
         self._connection = connection
         self._group.spawn(connection.wait_closed).add_done_callback(
@@ -73,82 +63,41 @@ class AIMM(aio.Resource):
                               *args: 'PluginArg',
                               **kwargs: 'PluginArg'
                               ) -> 'JSON':
-        """Creates a model instance on the remote server
-
-        Args:
-            model_type: model type
-            args: instance creation parameters
-            kwargs: instance creation parameters
-
-        Returns:
-            response msg"""
+        """Creates a model instance on the remote server"""
         args = [_arg_to_json(a) for a in args]
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
-        await self._connection.send({'type': 'create_instance',
-                                     'data': {'model_type': model_type,
-                                              'args': args,
-                                              'kwargs': kwargs}})
-        msg = await self._connection.receive()
-        model_data = msg['model']
-        return Model(self, model_data['instance_id'], model_data['model_type'])
+        model_json = await self._connection.call('create_instance', model_type,
+                                                 args, kwargs)
+        return Model(self, model_json['instance_id'], model_json['model_type'])
 
     async def add_instance(self,
                            model_type: str,
                            instance: typing.Any) -> 'JSON':
-        """Adds an existing instance on the remote server
-
-        Args:
-            model_type: model type
-            instance: concrete instance
-
-        Returns:
-            response msg"""
-        await self._connection.send(
-            {'type': 'add_instance',
-             'data': {'model_type': model_type,
-                      'instance': _instance_to_b64(instance, model_type)}})
-        return await self._connection.receive()
+        """Adds an existing instance on the remote server"""
+        model_json = await self._connection.call(
+            'add_instance', model_type, _instance_to_b64(instance, model_type))
+        return Model(self, model_json['instance_id'], model_json['model_type'])
 
     async def update_instance(self,
                               model_type: str,
                               instance_id: int,
                               instance: typing.Any) -> 'JSON':
-        """Replaces an existing instance with a new one
-
-        Args:
-            model_type: model type
-            instance_id: ID of the instance that is being updated
-            instance: new instance
-
-        Returns:
-            response msg"""
-        await self._connection.send(
-            {'type': 'update_instance',
-             'data': {'instance_id': instance_id,
-                      'model_type': model_type,
-                      'instance': _instance_to_b64(instance, model_type)}})
-        return await self._connection.receive()
+        """Replaces an existing instance with a new one"""
+        model_json = await self._connection.call(
+            'update_instance', model_type, instance_id,
+            _instance_to_b64(instance, model_type))
+        return Model(self, model_json['instance_id'], model_json['model_type'])
 
     async def fit(self,
                   instance_id: int,
                   *args: 'PluginArg',
                   **kwargs: 'PluginArg') -> 'JSON':
-        """Fits an instance on the remote server
-
-        Args:
-            instance_id: ID of the instance being fitted
-            args: plugin-specific parameters for the fitting process
-            kwargs: plugin-specific parameters for the fitting process
-
-        Returns:
-            response msg"""
+        """Fits an instance on the remote server"""
         args = [_arg_to_json(a) for a in args]
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
-        await self._connection.send({'type': 'fit',
-                                     'data': {'instance_id': instance_id,
-                                              'args': args,
-                                              'kwargs': kwargs}})
-        await self._connection.receive()
+        model_json = await self._connection.call('fit', instance_id, args,
+                                                 kwargs)
+        return Model(self, model_json['instance_id'], model_json['model_type'])
 
     async def predict(self,
                       instance_id: int,
@@ -165,14 +114,9 @@ class AIMM(aio.Resource):
             response msg"""
         args = [_arg_to_json(a) for a in args]
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
-        await self._connection.send({'type': 'predict',
-                                     'data': {'instance_id': instance_id,
-                                              'args': args,
-                                              'kwargs': kwargs}})
-        result = await self._connection.receive()
-        if result['success']:
-            return _result_from_json(result['result'])
-        return result
+        result = await self._connection.call('predict', instance_id, args,
+                                             kwargs)
+        return _result_from_json(result)
 
     def _clear_connection(self):
         self._connection = None
