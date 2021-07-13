@@ -103,15 +103,7 @@ class AIMM(aio.Resource):
                       instance_id: int,
                       *args: 'PluginArg',
                       **kwargs: 'PluginArg') -> 'JSON':
-        """Uses an instance on the remote server for a prediction
-
-        Args:
-            instance_id: ID of the instance used
-            args: plugin-specific parameters for the prediction process
-            kwargs: plugin-specific parameters for the prediction process
-
-        Returns:
-            response msg"""
+        """Uses an instance on the remote server for a prediction"""
         args = [_arg_to_json(a) for a in args]
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
         result = await self._connection.call('predict', instance_id, args,
@@ -132,13 +124,7 @@ class AIMM(aio.Resource):
 
 class Model:
     """Represents an AIMM model instance and provides a simplified interface
-    for using or changing it remotely.
-
-    Args:
-        aimm: AIMM connection instance
-        instance_id: model instance id
-        model_type: model type
-        """
+    for using or changing it remotely."""
 
     def __init__(self, aimm: AIMM, instance_id: int, model_type: str):
         self._aimm = aimm
@@ -146,22 +132,12 @@ class Model:
         self._model_type = model_type
 
     async def fit(self, *args: 'PluginArg', **kwargs: 'PluginArg'):
-        """
-        Fits the model
-
-        Args:
-            *args: positional arguments for fitting
-            **kwargs: named arguments for fitting"""
+        """Fits the model"""
         await self._aimm.fit(self._instance_id, *args, **kwargs)
 
     async def predict(self, *args: 'PluginArg',
                       **kwargs: 'PluginArg') -> typing.Any:
-        """
-        Uses the model to generate a prediction
-
-        Args:
-            *args: positional arguments for predicting
-            **kwargs: named arguments for predicting"""
+        """Uses the model to generate a prediction"""
         return await self._aimm.predict(self._instance_id, *args, **kwargs)
 
     def __repr__(self):

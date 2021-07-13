@@ -117,16 +117,7 @@ def exec_data_access(name: str,
                      state_cb: typing.Optional[StateCallback] = None,
                      *args: typing.Any,
                      **kwargs: typing.Any) -> typing.Any:
-    """Uses a loaded plugin to access data
-
-    Args:
-        name: data access name
-        state_cb: state callback function
-        *args: additional positional arguments
-        **kwargs: additional keyword arguments
-
-    Returns:
-        Accessed data"""
+    """Uses a loaded plugin to access data"""
     if state_cb is None:
         state_cb = default_state_cb
     plugin = decorators.get_data_access(name)
@@ -138,16 +129,7 @@ def exec_instantiate(model_type: str,
                      state_cb: typing.Optional[StateCallback] = None,
                      *args: typing.Any,
                      **kwargs: typing.Any) -> typing.Any:
-    """Uses a loaded plugin to create a model instance
-
-    Args:
-        model_type: model type
-        state_cb: state callback function
-        *args: additional positional arguments
-        **kwargs: additional keyword arguments
-
-    Returns:
-        instance"""
+    """Uses a loaded plugin to create a model instance"""
     if state_cb is None:
         state_cb = default_state_cb
     plugin = decorators.get_instantiate(model_type)
@@ -160,17 +142,7 @@ def exec_fit(model_type: str,
              state_cb: typing.Optional[StateCallback] = None,
              *args: typing.Any,
              **kwargs: typing.Any) -> typing.Any:
-    """Uses a loaded plugin to fit a model instance
-
-    Args:
-        model_type: model type
-        instance: model instance
-        state_cb: state callback function
-        *args: additional positional arguments
-        **kwargs: additional keyword arguments
-
-    Returns:
-        updated model instance"""
+    """Uses a loaded plugin to fit a model instance"""
     if state_cb is None:
         state_cb = default_state_cb
     plugin = decorators.get_fit(model_type)
@@ -186,17 +158,7 @@ def exec_predict(model_type: str,
                  *args: typing.Any,
                  **kwargs: typing.Any) -> typing.Any:
     """Uses a loaded plugin to perform a prediction with a given model
-    instance
-
-    Args:
-        model_type: model type
-        instance: model instance
-        state_cb: state callback function
-        *args: additional positional arguments
-        **kwargs: additional keyword arguments
-
-    Returns:
-        prediction"""
+    instance"""
     if state_cb is None:
         state_cb = default_state_cb
     plugin = decorators.get_predict(model_type)
@@ -208,28 +170,14 @@ def exec_predict(model_type: str,
 
 def exec_serialize(model_type: str,
                    instance: typing.Any) -> typing.ByteString:
-    """Uses a loaded plugin to convert model into bytes
-
-    Args:
-        model_type (str): model type
-        instance (typing.Any): model instance
-
-    Returns:
-        instance bytes"""
+    """Uses a loaded plugin to convert model into bytes"""
     plugin = decorators.get_serialize(model_type)
     return plugin.function(instance)
 
 
 def exec_deserialize(model_type: str,
                      instance_bytes: typing.ByteString) -> typing.Any:
-    """Uses a loaded plugin to convert bytes into a model instance
-
-    Args:
-        model_type: model type
-        instance_bytes: model instance bytes
-
-    Returns:
-        instance"""
+    """Uses a loaded plugin to convert bytes into a model instance"""
     plugin = decorators.get_deserialize(model_type)
     return plugin.function(instance_bytes)
 

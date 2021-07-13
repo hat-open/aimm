@@ -26,7 +26,7 @@ async def create(conf: Dict,
         group: async group
 
     Returns:
-        Engine
+        engine
     """
     engine = Engine()
 
@@ -68,14 +68,8 @@ class Engine(aio.Resource):
 
     def subscribe_to_state_change(
             self,
-            cb: Callable[[], None]) -> util.CallbackRegistry:
-        """Subscribes to any changes to the engine state
-
-        Args:
-            cb: callback, called when state changes
-
-        Returns:
-            Handle for cancelling subscription"""
+            cb: Callable[[], None]) -> util.RegisterCallbackHandle:
+        """Subscribes to any changes to the engine state"""
         return self._callback_registry.register(cb)
 
     def create_instance(self,
@@ -115,14 +109,7 @@ class Engine(aio.Resource):
     def add_instance(self,
                      instance: Any,
                      model_type: str) -> common.Model:
-        """Adds existing instance to the state
-
-        Args:
-            instance: model instance
-            model_type: model type
-
-        Returns:
-            Created model"""
+        """Adds existing instance to the state"""
         model = common.Model(instance=instance,
                              model_type=model_type,
                              instance_id=next(self._instance_id_gen))
@@ -131,10 +118,7 @@ class Engine(aio.Resource):
         return model
 
     async def update_instance(self, model: common.Model):
-        """Update existing instance in the state
-
-        Args:
-            model: model"""
+        """Update existing instance in the state"""
         self._set_model(model)
         self._group.spawn(self._backend.update_model, model)
 

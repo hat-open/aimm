@@ -37,25 +37,16 @@ class ProxyClient:
         return self._subscription
 
     def notify(self, events: typing.List[hat.event.common.Event]):
-        """Informs proxy of newly received events.
-
-        Args:
-            events: incoming events"""
+        """Informs proxy of newly received events."""
         self._queue.put_nowait(events)
 
     async def receive(self) -> typing.List[hat.event.common.Event]:
-        """Receives notified events.
-
-        Returns:
-            received events"""
+        """Receives notified events."""
         return await self._queue.get()
 
     def register(self, events: typing.List[hat.event.common.RegisterEvent]):
         """Bulk-registers a group of new events without waiting for the
-        registration to complete.
-
-        Args:
-            events: outgoing events"""
+        registration to complete."""
         self._client.register(events)
 
     async def register_with_response(
@@ -63,25 +54,13 @@ class ProxyClient:
             events: typing.List[hat.event.common.RegisterEvent]
             ) -> typing.List[hat.event.common.Event]:
         """Bulk-registers a group of new events and awaits until the
-        registration is complete.
-
-        Args:
-            events: outgoing events
-
-        Returns:
-            registered events"""
+        registration is complete."""
         return await self._client.register_with_response(events)
 
     async def query(self,
                     query_data: hat.event.common.QueryData
                     ) -> typing.List[hat.event.common.Event]:
-        """Queries events with given query_data
-
-        Args:
-            query_data: query data
-
-        Returns:
-            registered events"""
+        """Queries events with given query_data"""
         return await self._client.query(query_data)
 
 
@@ -117,27 +96,13 @@ def backend_create(conf: typing.Dict,
                    event_client: typing.Optional['ProxyClient'] = None
                    ) -> 'Backend':
     """Placeholder of the backend's create function, needs to satisfy the given
-    signature
-
-    Args:
-        conf: backend configuration
-        group: async group
-        event_client: event client
-
-    Returns:
-        backend instance"""
+    signature"""
 
 
 def backend_create_subscription(
         conf: typing.Any) -> hat.event.common.Subscription:
     """Placeholder of the backends optional create subscription function, needs
-    to satisfy the given signature
-
-    Args:
-        conf: backend configuration
-
-    Returns:
-        hat-event subscription"""
+    to satisfy the given signature"""
 
 
 class Backend(aio.Resource, abc.ABC):
@@ -173,10 +138,7 @@ class Backend(aio.Resource, abc.ABC):
     @abc.abstractmethod
     async def update_model(self, model: Model):
         """Replaces the old stored model with the new one, requires that a
-        serialization is defined for the model type
-
-        Args:
-            model: instance and metadata of the new model"""
+        serialization is defined for the model type"""
 
     def register_model_change_cb(self,
                                  cb: typing.Callable[[Model], None]
@@ -192,28 +154,13 @@ def control_create(conf: typing.Dict,
                    event_client: typing.Optional['ProxyClient'] = None
                    ) -> 'Control':
     """Placeholder of the control's create function, needs to satisfy the given
-    signature
-
-    Args:
-        conf: control configuration
-        engine: aimm engine
-        group: async group
-        event_client: event client
-
-    Returns:
-        control instance"""
+    signature"""
 
 
 def control_create_subscription(
         conf: typing.Any) -> hat.event.common.Subscription:
     """Placeholder of the controls optional create subscription function, needs
-    to satisfy the given signature
-
-    Args:
-        conf: control configuration
-
-    Returns:
-        hat-event subscriptions"""
+    to satisfy the given signature"""
 
 
 class Control(aio.Resource):
