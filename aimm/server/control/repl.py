@@ -1,5 +1,6 @@
 from hat import juggler
 from hat import aio
+import asyncio
 import base64
 import logging
 import numpy
@@ -60,13 +61,12 @@ class Session(aio.Resource):
             'fit': self._fit,
             'predict': self._predict})
 
-        self.async_group.spawn(self._run)
-
     @property
     def async_group(self):
         return self._connection.async_group
 
     async def _run(self):
+        await self._on_state_change()
         with self._engine.subscribe_to_state_change(
                 lambda: self.async_group.spawn(self._on_state_change)):
             await self.async_group.wait_closing()
@@ -78,8 +78,9 @@ class Session(aio.Resource):
     def _login(self, username, password):
         if {'username': username, 'password': password} in self._conf['users']:
             self._user = username
+            self.async_group.spawn(self._run)
         else:
-            self.async_group.close()
+            asyncio.get_event_loop().call_later(1, self.close)
             raise Exception('login failed')
 
     def _logout(self):

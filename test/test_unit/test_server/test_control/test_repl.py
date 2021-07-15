@@ -1,12 +1,14 @@
 from hat import aio
 import asyncio
-import hashlib
 import pytest
 import aimm.client.repl
 import aimm.server.control.repl
 
 
 pytestmark = pytest.mark.asyncio
+
+
+_password_hash = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"  # NOQA
 
 
 class MockEngine:
@@ -63,12 +65,11 @@ async def test_login(unused_tcp_port, monkeypatch):
     engine = MockEngine()
     engine.state = {'models': {}, 'actions': {}}
     async with aio.Group() as group:
-        password = hashlib.sha256('password'.encode('utf-8')).hexdigest()
         control = await aimm.server.control.repl.create(
             {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
              'users': [{
                  'username': 'user',
-                 'password': _password_hash('password')}]},
+                 'password': _password_hash}]},
             engine, group, None)
         client = aimm.client.repl.AIMM()
         with monkeypatch.context() as ctx:
@@ -102,11 +103,8 @@ async def test_create_instance(unused_tcp_port, monkeypatch):
             {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
              'users': [{
                  'username': 'user',
-                 'password': _password_hash('password')}]},
+                 'password': _password_hash}]},
             engine, group, None)
-        client = await _connect('username', 'password', unused_tcp_port,
+        client = await _connect('user', 'password', unused_tcp_port,
                                 monkeypatch)
-
-
-def _password_hash(password):
-    return hashlib.sha256('password'.encode('utf-8')).hexdigest()
+        await control.async_close()
