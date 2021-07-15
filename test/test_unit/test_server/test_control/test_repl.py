@@ -61,14 +61,14 @@ class MockEngine:
 
 async def test_login(unused_tcp_port, monkeypatch):
     engine = MockEngine()
-    engine.state = 'state'
+    engine.state = {'models': {}, 'actions': {}}
     async with aio.Group() as group:
         password = hashlib.sha256('password'.encode('utf-8')).hexdigest()
         control = await aimm.server.control.repl.create(
             {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
              'users': [{
                  'username': 'user',
-                 'password': password}]},
+                 'password': _password_hash('password')}]},
             engine, group, None)
         client = aimm.client.repl.AIMM()
         with monkeypatch.context() as ctx:
@@ -76,7 +76,37 @@ async def test_login(unused_tcp_port, monkeypatch):
             ctx.setattr(aimm.client.repl, 'input', lambda _: 'user')
             ctx.setattr(aimm.client.repl, 'getpass', lambda _: 'password')
             await client.connect(f'ws://127.0.0.1:{unused_tcp_port}/ws')
-        await asyncio.sleep(0.1)
-        assert client.state == 'state'
+        await asyncio.sleep(0.3)
+        assert client.state == {'models': {}, 'actions': {}}
 
         await control.async_close()
+
+
+async def _connect(username, password, port, monkeypatch):
+    client = aimm.client.repl.AIMM()
+    with monkeypatch.context() as ctx:
+        aimm.client.repl.input = input
+        ctx.setattr(aimm.client.repl, 'input', lambda _: username)
+        ctx.setattr(aimm.client.repl, 'getpass', lambda _: password)
+        await client.connect(f'ws://127.0.0.1:{port}/ws')
+    await asyncio.sleep(0.3)
+    assert client.state is not None
+    return client
+
+
+async def test_create_instance(unused_tcp_port, monkeypatch):
+    engine = MockEngine()
+    engine.state = {'models': {}, 'actions': {}}
+    async with aio.Group() as group:
+        control = await aimm.server.control.repl.create(
+            {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
+             'users': [{
+                 'username': 'user',
+                 'password': _password_hash('password')}]},
+            engine, group, None)
+        client = await _connect('username', 'password', unused_tcp_port,
+                                monkeypatch)
+
+
+def _password_hash(password):
+    return hashlib.sha256('password'.encode('utf-8')).hexdigest()
