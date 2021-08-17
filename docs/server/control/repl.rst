@@ -9,47 +9,21 @@ the following schema:
 
 REPL control works as a Websocket server, using the hat-juggler protocol. It
 translates engine's state into JSON serializable data and transfers it to its
-clients over local-remote data synchronization. The clients may also send
-messages, which cause the server to call engine's functions and report their
-results.
+clients over local-remote data synchronization. It also provides its clients an
+RPC interface, which allows them to send messages causing calls to engine's
+functions and receive their results.
 
 The server listens at the address ``ws://<host>:<port>/ws``, where ``host`` and
-``port`` are configuration parameters. After connecting, the clients send and
-receive messages, causing the server to execute calls to the engine's
-functions. First message must be sent by the client and needs to have the
-following structure:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - type
-        - data
-    properties:
-        type:
-            const: login
-        data:
-            type: object
-            required:
-                - username
-                - password
-    ...
-
-REPL control will then try to authenticate the given login data. If the
-authentication fails, the connection is closed, otherwise the following JSON
-message is sent to the client: ``{"type": "login_success"}``. Afterwards,
-different kinds of messages may be exchanged between the control and its
-clients may be exchanged.
-
-.. note:: Login procedure here is added pro forma and might not provide optimal
-   level of security for some use cases. If this is the case, it is advised to
-   develop a separate control that implements a more appropriate procedure.
+``port`` are configuration parameters. After connecting, the clients have
+access to the initial state and RPC actions.
 
 State
 -----
 
-Engine's state is translated into JSON with the following schema:
+Before accessing the state, clients need to be authorized (described in the
+Actions section). The initial state, before login is just an empty JSON object.
+After successful login, engine's state is translated into JSON with the
+following schema:
 
 .. code-block:: yaml
 
@@ -84,39 +58,155 @@ Engine's state is translated into JSON with the following schema:
                             description: base64 encoded instance
     ...
 
-Messages
---------
+RPC interface
+-------------
 
-REPL control receives and sends juggler messages to its clients. Messages from
-clients represent requests that correspond engine's interface, and messages in
-the opposite direction are responses containing results. All messages have the
-following outer structure:
+RPC interface provides several actions its clients may call. These actions are
+documented in this section, along with some additional considerations about
+result JSON representations and advanced argument passing.
+
+
+Actions
+"""""""
+
+``login``
+'''''''''
+
+Authorizes the user with given username and password. Successful authorization
+gives access to other actions and full state.
+
+Arguments:
+  * `username` (``str``)
+  * `password` (``str``)
+
+.. note:: Login procedure here is added pro forma and might not provide optimal
+   level of security for some use cases. If this is the case, it is advised to
+   develop a separate control that implements a more appropriate procedure.
+
+``logout``
+''''''''''
+
+Logs the user out.
+
+``create_instance``
+'''''''''''''''''''
+
+Connects to engine's ``create_instance`` method. Argument preprocessing is
+supported.
+
+Arguments:
+  * `model_type` (``str``): model type as defined in plugins
+  * `args` (``List[Any]``): positional arguments passed to the plugin method
+  * `kwargs` (``Dict[str: Any]``): keyword arguments passed to the plugin
+    method
+
+Returns JSON representation of the model.
+
+``add_instance``
+''''''''''''''''
+
+Connects to engine's ``add_instance`` method.
+
+Arguments:
+  * `model_type` (``str``): model type as defined in plugins
+  * `instance` (``str``): base64 encoded serialized model instance
+
+Returns JSON representation of the model.
+
+``update_instance``
+'''''''''''''''''''
+
+Connects to engine's ``update_instance`` method.
+
+Arguments:
+  * `model_type` (``str``): model type as defined in plugins
+  * `instance_id` (``int``): ID of the instance that is being updated
+  * `instance` (``str``): base64 encoded serialized model instance
+
+Returns JSON representation of the model.
+
+``fit``
+'''''''
+
+Connects to engine's ``fit`` method. Argument preprocessing is supported.
+
+Arguments:
+  * `instance_id` (``int``): ID of the instance that is being fitted
+  * `args` (``List[Any]``): positional arguments for the fitting method
+  * `kwargs` (``Dict[str, Any]``): keyword arguments for the fitting method
+
+Returns JSON representation of the model.
+
+``predict``
+'''''''''''
+
+Connects to engine's ``predict`` method. Argument preprocessing is supported.
+
+Arguments:
+  * `instance_id` (``int``): ID of the instance that is being fitted
+  * `args` (``List[Any]``): positional arguments for the fitting method
+  * `kwargs` (``Dict[str, Any]``): keyword arguments for the fitting method
+
+Returns prediction converted to JSON.
+
+JSON representations
+""""""""""""""""""""
+
+Some data structures mentioned in the sections above are, by the default, not
+JSON serializable and JSON schema of the structure they take is described in
+this section.
+
+Models schema:
+
+.. code-block:: yaml
+   
+    ---
+    type: object
+    required:
+        - instance_id
+        - model_type
+        - instance
+    properties:
+        instance_id:
+            type: integer
+        model_type:
+            type: string
+        instance:
+            type: string
+            description: base64 encoded serialized model instance
+    ...
+
+
+Prediction schema:
+
 
 .. code-block:: yaml
 
     ---
-    type: object
-    required:
-        - type
-        - data
-    properties:
-        type:
-            enum:
-                - create_instance
-                - add_instance
-                - update_instance
-                - fit
-                - predict
-        data:
-            type: object
-            description: type-specific
+        oneOf:
+          - {}
+          - type: object
+            required:
+                - type
+                - data
+            properties:
+                type:
+                    enum:
+                        - numpy_array
+                        - pandas_dataframe
+                        - pandas_series
+                data:
+                    type: object
+                    description: |
+                        prediction result serialized as json, for numpy
+                        arrays and pandas Series, tolist methods are used
+                        and for dataframe, its to_dict method is used
     ...
 
-
 Argument preprocessing
-''''''''''''''''''''''
+""""""""""""""""""""""
 
-Messages correspond to engine's interface, and that interface provides support
+Actions correspond to engine's interface, and that interface provides support
 for passing :class:`aimm.server.common.DataAccess` objects, to signify that an
 engine action needs to execute a data access plugin before calling the main
 action. Control allows sections of messages that contain arguments to take a
@@ -179,209 +269,4 @@ structure:
             data:
                 type: object
                 descirption: result of pandas.Series.tolist function
-    ...
-
-Data structures, depending on their ``type``, are described hereafter.
-
-``result``
-''''''''''
-
-Since ``create_instance``, ``add_instance``, ``update_instance`` and ``fit``
-all revolve around creation or alteration of model instances they have the same
-response structure:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - type
-        - success
-    properties:
-        type:
-            const: result
-        success:
-            type: boolean
-        model:
-            type: object
-            required:
-                - model_type
-                - instance_id
-                - instance
-            properties:
-                model_type:
-                    type: string
-                instance_id:
-                    type: integer
-                instance:
-                    type: string
-                    description: base64 serialized instance
-        exception:
-            type: string
-        traceback:
-            type: array
-            items:
-                type: string
-    ...
-
-``create_instance``
-'''''''''''''''''''
-
-Request:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - model_type
-        - args
-        - kwargs
-    properties:
-        model_type:
-            type: string
-        args:
-            type: array
-            items:
-                '$ref': '#object_arg'
-        kwargs:
-            patternProperties:
-                "(.)+":
-                    '$ref': '#object_arg'
-    ...
-
-``add_instance``
-''''''''''''''''
-
-Request:
-
-.. code-block:: yaml
-
-    ---
-    required:
-        - model_type
-        - instance
-    properties:
-        model_type:
-            type: string
-        instance:
-            type: string
-            description: base64 serialized instance
-    ...
-
-``update_instance``
-'''''''''''''''''''
-
-Request:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - model_type
-        - instance_id
-        - instance
-    properties:
-        model_type:
-            type: string
-        instance_id:
-            type: integer
-        instance:
-            type: string
-            description: base64 serialized instance
-    ...
-
-``fit``
-'''''''
-
-Request:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - instance_id
-        - args
-        - kwargs
-    properties:
-        instance_id:
-            type: integer
-        args:
-            type: array
-            items:
-                '$ref': '#object_arg'
-        kwargs:
-            patternProperties:
-                '(.)+':
-                    '$ref': '#object_arg'
-    ...
-
-``predict``
-'''''''''''
-
-Request:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - instance_id
-        - args
-        - kwargs
-    properties:
-        instance_id:
-            type: integer
-        args:
-            type: array
-            items:
-                '$ref': '#object_arg'
-        kwargs:
-            patternProperties:
-                '(.)+':
-                    '$ref': '#object_arg'
-    ...
-
-Response:
-
-.. code-block:: yaml
-
-    ---
-    type: object
-    required:
-        - type
-        - success
-        - result
-    properties:
-        type:
-            const: result
-        success:
-            type: boolean
-        result:
-            oneOf:
-              - {}
-              - type: object
-                required:
-                    - type
-                    - data
-                properties:
-                    type:
-                        enum:
-                            - numpy_array
-                            - pandas_dataframe
-                            - pandas_series
-                    data:
-                        type: object
-                        description: |
-                            prediction result serialized as json, for numpy
-                            arrays and pandas Series, tolist methods are used
-                            and for dataframe, its to_dict method is used
-        exception:
-            type: string
-        traceback:
-            type: array
-            items:
-                type: string
     ...

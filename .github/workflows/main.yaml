@@ -1,16 +1,16 @@
 name: CI
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'VERSION'
+    push:
+        branches: [ main ]
+        paths:
+            - 'VERSION'
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install requirements
-        run: pip install -r requirements.txt
-      - name: Create dist
-        run: doit dist
-      - name: Push to PyPI
-        run: echo "twine"
+    build:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Install requirements
+            run: pip install -r requirements.txt
+          - name: Create dist
+            run: doit dist
+          - name: Push to PyPI
+            run: echo "twine"

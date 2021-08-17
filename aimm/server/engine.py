@@ -1,10 +1,10 @@
 from functools import partial
 from hat import aio
 from hat import util
-from typing import Dict, Callable, Any
 import asyncio
 import itertools
 import logging
+import typing
 
 from aimm import plugins
 from aimm.server import common
@@ -14,9 +14,9 @@ from aimm.server import mprocess
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf: Dict,
+async def create(conf: typing.Dict,
                  backend: common.Backend,
-                 group: aio.Group) -> 'Engine':
+                 group: aio.Group) -> common.Engine:
     """Create engine
 
     Args:
@@ -28,7 +28,7 @@ async def create(conf: Dict,
     Returns:
         engine
     """
-    engine = Engine()
+    engine = _Engine()
 
     models = await backend.get_models()
 
@@ -52,40 +52,21 @@ async def create(conf: Dict,
     return engine
 
 
-class Engine(aio.Resource):
-    """Engine class, use :func:`create` to instantiate"""
+class _Engine(common.Engine):
+    """Engine implementation, use :func:`create` to instantiate"""
 
     @property
-    def async_group(self) -> aio.Group:
+    def async_group(self):
         return self._group
 
     @property
-    def state(self) -> Dict:
-        """Engine state, contains references to all models and actions. It's
-        never modified in-place, instead :meth:`subscribe_to_state_change`
-        should be used"""
+    def state(self):
         return self._state
 
-    def subscribe_to_state_change(
-            self,
-            cb: Callable[[], None]) -> util.RegisterCallbackHandle:
-        """Subscribes to any changes to the engine state"""
+    def subscribe_to_state_change(self, cb):
         return self._callback_registry.register(cb)
 
-    def create_instance(self,
-                        model_type: str,
-                        *args: Any,
-                        **kwargs: Any) -> asyncio.Task:
-        """Creates a model instance and stores it in state
-
-        Args:
-            model_type: model type
-            *args: instantiation arguments
-            **kwargs: instantiation keyword arguments
-
-        Returns
-            Reference to the action in charge of the managable call. Result of
-            the task is model instance"""
+    def create_instance(self, model_type, *args, **kwargs):
         action_id = next(self._action_id_gen)
         instance_id = next(self._instance_id_gen)
         state_cb = partial(self._update_action, action_id)
@@ -106,10 +87,7 @@ class Engine(aio.Resource):
 
         return task
 
-    def add_instance(self,
-                     instance: Any,
-                     model_type: str) -> common.Model:
-        """Adds existing instance to the state"""
+    def add_instance(self, instance, model_type):
         model = common.Model(instance=instance,
                              model_type=model_type,
                              instance_id=next(self._instance_id_gen))
@@ -122,28 +100,7 @@ class Engine(aio.Resource):
         self._set_model(model)
         self._group.spawn(self._backend.update_model, model)
 
-    async def fit(self,
-                  instance_id: int,
-                  *args: Any,
-                  **kwargs: Any) -> asyncio.Task:
-        """Fits an existing model instance. The used fitting function is the
-        one assigned to the model type. The instance, while it is being fitted,
-        is not accessable by any of the other functions that would use it
-        (other calls to fit, predictions, etc.).
-
-        Args:
-            instance_id: id of model instance that will be fitted
-            *args: arguments to pass to the fitting function - if of type
-                :class:`aimm.server.common.DataAccess`, the value passed to the
-                fitting function is the result of the call to that plugin,
-                other arguments are passed directly
-            **kwargs: keyword arguments, work the same as the positional
-                arguments
-
-        Returns:
-            Reference to the task calling the fitting function, result of the
-            task is updated model instance
-        """
+    async def fit(self, instance_id, *args, **kwargs):
         instance_lock = self._locks[instance_id]
         await instance_lock.acquire()
         model = self.state['models'][instance_id]
@@ -170,30 +127,7 @@ class Engine(aio.Resource):
 
         return task
 
-    async def predict(self,
-                      instance_id: int,
-                      *args: Any,
-                      **kwargs: Any) -> asyncio.Task:
-        """Uses an existing model instance to perform a prediction. The used
-        prediction function is the one assigned to model's type. The instance,
-        while prediction is called, is not accessable by any of the other
-        functions that would use it (other calls to predict, fittings, etc.).
-        If instance has changed while predicting, it is updated in the state
-        and database.
-
-        Args:
-            instance_id: id of the model instance used for prediction
-            *args: arguments to pass to the predict function - if of type
-                :class:`aimm.server.common.DataAccess`, the value passed to the
-                predict function is the result of the call to that plugin,
-                other arguments are passed directly
-            **kwargs: keyword arguments, work the same as the positional
-                arguments
-
-        Returns:
-            Reference to task of the managable predict call, result of it is
-            the model's prediction
-        """
+    async def predict(self, instance_id, *args, **kwargs):
         instance_lock = self._locks[instance_id]
         await instance_lock.acquire()
         model = self.state['models'][instance_id]

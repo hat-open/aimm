@@ -44,8 +44,7 @@ async def monitor_server(monitor_address, monitor_port,
     monitor_conf_path = conf_path / 'monitor.yaml'
     json.encode_file(conf, monitor_conf_path)
     proc = psutil.Popen(['python', '-m', 'hat.monitor.server',
-                         '--conf', str(monitor_conf_path),
-                         '--ui-path', str(conf_path)])
+                         '--conf', str(monitor_conf_path)])
     try:
         while not _listens_on(proc, monitor_port):
             await asyncio.sleep(0.1)
@@ -126,7 +125,7 @@ def simple_conf(monitor_address):
                 'fit': ['fit'],
                 'predict': ['predict']},
             'state_event_type': ['aimm', 'state'],
-            'response_event_type': ['aimm', 'response']}],
+            'action_state_event_type': ['aimm', 'action_state']}],
         'plugins': {'names': ['test_sys.plugins.basic']},
         'hat': {
             'monitor': {
@@ -138,12 +137,12 @@ def simple_conf(monitor_address):
 
 
 @pytest.fixture
-async def seer_server_proc(event_server, monitor_address, conf_path):
+async def aimm_server_proc(event_server, monitor_address, conf_path):
     conf = simple_conf(monitor_address)
-    seer_conf_path = conf_path / 'aimm.yaml'
-    json.encode_file(conf, seer_conf_path)
+    aimm_conf_path = conf_path / 'aimm.yaml'
+    json.encode_file(conf, aimm_conf_path)
     proc = psutil.Popen(['python', '-m', 'aimm.server',
-                         '--conf', str(seer_conf_path)])
+                         '--conf', str(aimm_conf_path)])
     try:
         yield proc
     finally:
@@ -152,7 +151,7 @@ async def seer_server_proc(event_server, monitor_address, conf_path):
 
 
 @pytest.fixture
-async def seer_server_aio(event_server, monitor_address):
+async def aimm_server_aio(event_server, monitor_address):
     conf = simple_conf(monitor_address)
     plugins.initialize(conf['plugins'])
     async with aio.Group() as group:
@@ -177,17 +176,17 @@ def assert_event(event, event_type, payload, source_timestamp=None):
     assert event.payload.data == payload
 
 
-async def test_connects(seer_server_proc, monitor_port, event_port):
-    while not _connected_to(seer_server_proc, monitor_port):
+async def test_connects(aimm_server_proc, monitor_port, event_port):
+    while not _connected_to(aimm_server_proc, monitor_port):
         await asyncio.sleep(0.1)
-    while not _connected_to(seer_server_proc, event_port):
+    while not _connected_to(aimm_server_proc, event_port):
         await asyncio.sleep(0.1)
 
 
-async def test_workflow(seer_server_aio, event_client_factory):
+async def test_workflow(aimm_server_aio, event_client_factory):
     model_type = 'test_sys.plugins.basic.Model1'
 
-    async with event_client_factory([('aimm', 'response'),
+    async with event_client_factory([('aimm', 'action_state'),
                                      ('aimm', 'model', '*')]) as client:
 
         args = ['a1', 'a2']
@@ -202,7 +201,7 @@ async def test_workflow(seer_server_aio, event_client_factory):
         events = await client.receive()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('aimm', 'response')
+        assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
         assert event.payload.data == {
             'request_id': '1',
@@ -229,7 +228,7 @@ async def test_workflow(seer_server_aio, event_client_factory):
         events = await client.receive()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('aimm', 'response')
+        assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
         assert event.payload.data == {
             'request_id': '2',
@@ -254,7 +253,7 @@ async def test_workflow(seer_server_aio, event_client_factory):
         events = await client.receive()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ('aimm', 'response')
+        assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
         assert event.payload.data == {
             'request_id': '3',

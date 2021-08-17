@@ -1,11 +1,5 @@
 from aimm.plugins.common import (Model,
                                  initialize,
-                                 exec_data_access,
-                                 exec_instantiate,
-                                 exec_fit,
-                                 exec_predict,
-                                 exec_serialize,
-                                 exec_deserialize,
                                  StateCallback)
 from aimm.plugins.decorators import (data_access,
                                      instantiate,
@@ -15,6 +9,12 @@ from aimm.plugins.decorators import (data_access,
                                      deserialize,
                                      model,
                                      unload_all)
+from aimm.plugins.execute import (exec_data_access,
+                                  exec_instantiate,
+                                  exec_fit,
+                                  exec_predict,
+                                  exec_serialize,
+                                  exec_deserialize)
 
 
 __all__ = ['Model',

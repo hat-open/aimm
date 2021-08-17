@@ -115,7 +115,7 @@ class ProcessHandler(aio.Resource):
 
     @property
     def result(self) -> asyncio.Future:
-        """asyncio.Future: contains return value of the call as result"""
+        """contains return value of the call as result"""
         return self._result_future
 
     def proc_notify_state_change(self, state: Any):

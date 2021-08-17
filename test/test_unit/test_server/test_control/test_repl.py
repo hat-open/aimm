@@ -65,7 +65,7 @@ async def test_login(unused_tcp_port, monkeypatch):
     engine = MockEngine()
     engine.state = {'models': {}, 'actions': {}}
     async with aio.Group() as group:
-        control = await aimm.server.control.repl.create(
+        await aimm.server.control.repl.create(
             {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
              'users': [{
                  'username': 'user',
@@ -79,8 +79,7 @@ async def test_login(unused_tcp_port, monkeypatch):
             await client.connect(f'ws://127.0.0.1:{unused_tcp_port}/ws')
         await asyncio.sleep(0.3)
         assert client.state == {'models': {}, 'actions': {}}
-
-        await control.async_close()
+        await client.async_close()
 
 
 async def _connect(username, password, port, monkeypatch):
@@ -99,12 +98,10 @@ async def test_create_instance(unused_tcp_port, monkeypatch):
     engine = MockEngine()
     engine.state = {'models': {}, 'actions': {}}
     async with aio.Group() as group:
-        control = await aimm.server.control.repl.create(
+        await aimm.server.control.repl.create(
             {'server': {'host': '127.0.0.1', 'port': unused_tcp_port},
              'users': [{
                  'username': 'user',
                  'password': _password_hash}]},
             engine, group, None)
-        client = await _connect('user', 'password', unused_tcp_port,
-                                monkeypatch)
-        await control.async_close()
+        await _connect('user', 'password', unused_tcp_port, monkeypatch)

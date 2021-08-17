@@ -6,7 +6,7 @@ required:
     - monitor
 properties:
     monitor:
-        '$ref': 'hat://monitor/client.yaml#'
+        '$ref': 'hat-monitor://client.yaml#'
     event_server_group:
         type: string
 ...

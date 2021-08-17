@@ -29,7 +29,9 @@ def task_test():
             ['python', '-m', 'pytest', '-s', '-p', 'no:cacheprovider', *args],
             cwd='test', check=True)
 
-    return {'actions': [run], 'pos_arg': 'args'}
+    return {'actions': [run],
+            'pos_arg': 'args',
+            'task_dep': ['schemas_json']}
 
 
 def task_lint():
@@ -51,7 +53,7 @@ def task_docs():
     def run(args):
         args = args or []
         subprocess.run(
-            ['sphinx-build', 'docs', 'build/docs', *args])
+            ['sphinx-build', 'docs', 'build/docs', '-q', *args])
     return {'actions': [run], 'pos_arg': 'args'}
 
 

@@ -73,11 +73,13 @@ async def run(conf, client=None):
 
         backend, proxy = await _create_backend(
             conf['backend'], group.create_subgroup(), client)
+        _bind_resource(group, backend)
         if proxy:
             proxies.append(proxy)
 
         engine = await aimm.server.engine.create(
             conf['engine'], backend, group.create_subgroup())
+        _bind_resource(group, engine)
 
         control_group = group.create_subgroup()
         controls = []
@@ -86,6 +88,7 @@ async def run(conf, client=None):
             subgroup.spawn(aio.call_on_cancel, control_group.close)
             control, proxy = await _create_control(control_conf, engine,
                                                    subgroup, client)
+            _bind_resource(group, control)
             controls.append(control)
             if proxy:
                 proxies.append(proxy)
@@ -93,10 +96,7 @@ async def run(conf, client=None):
         if proxies:
             group.spawn(_recv_loop, proxies, client)
 
-        await asyncio.wait([group.spawn(backend.wait_closing),
-                            group.spawn(engine.wait_closing),
-                            group.spawn(control_group.wait_closing)],
-                           return_when=asyncio.FIRST_COMPLETED)
+        await group.wait_closing()
     finally:
         await aio.uncancellable(group.async_close())
 
@@ -148,6 +148,12 @@ def _create_parser():
         help="configuration defined by aimm://server/main.yaml# "
              "(default $XDG_CONFIG_HOME/aimm/server.yaml)")
     return parser
+
+
+def _bind_resource(async_group, resource):
+    async_group.spawn(aio.call_on_cancel, resource.async_close)
+    async_group.spawn(aio.call_on_done, resource.wait_closing(),
+                      async_group.close)
 
 
 if __name__ == '__main__':

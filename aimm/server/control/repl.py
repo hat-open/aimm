@@ -25,6 +25,8 @@ async def create(conf, engine, async_group, _):
         autoflush_delay=srv_conf.get('autoflush_delay', 0.2),
         shutdown_timeout=srv_conf.get('shutdown_timeout', 0.1))
 
+    _bind_resource(async_group, server)
+
     control._conf = conf
     control._engine = engine
     control._async_group = async_group
@@ -185,3 +187,9 @@ def _arg_from_json(arg):
 def _exc_msg(e):
     return {'type': 'result', 'success': False, 'exception': str(e),
             'traceback': traceback.format_exc()}
+
+
+def _bind_resource(async_group, resource):
+    async_group.spawn(aio.call_on_cancel, resource.async_close)
+    async_group.spawn(aio.call_on_done, resource.wait_closing(),
+                      async_group.close)

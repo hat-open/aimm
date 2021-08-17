@@ -2,15 +2,18 @@
 specified by the REPL control."""
 
 from getpass import getpass
-from hat import juggler
 from hat import aio
+from hat import juggler
+from hat import util
 import base64
 import hashlib
 import numpy
+import numpy.typing
 import pandas
 import typing
 
 from aimm import plugins
+from aimm.common import JSON
 
 
 class AIMM(aio.Resource):
@@ -62,9 +65,9 @@ class AIMM(aio.Resource):
                               model_type: str,
                               *args: 'PluginArg',
                               **kwargs: 'PluginArg'
-                              ) -> 'JSON':
+                              ) -> 'Model':
         """Creates a model instance on the remote server"""
-        args = [_arg_to_json(a) for a in args]
+        args = tuple(_arg_to_json(a) for a in args)
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
         model_json = await self._connection.call('create_instance', model_type,
                                                  args, kwargs)
@@ -72,7 +75,7 @@ class AIMM(aio.Resource):
 
     async def add_instance(self,
                            model_type: str,
-                           instance: typing.Any) -> 'JSON':
+                           instance: typing.Any) -> 'Model':
         """Adds an existing instance on the remote server"""
         model_json = await self._connection.call(
             'add_instance', model_type, _instance_to_b64(instance, model_type))
@@ -81,7 +84,7 @@ class AIMM(aio.Resource):
     async def update_instance(self,
                               model_type: str,
                               instance_id: int,
-                              instance: typing.Any) -> 'JSON':
+                              instance: typing.Any) -> 'Model':
         """Replaces an existing instance with a new one"""
         model_json = await self._connection.call(
             'update_instance', model_type, instance_id,
@@ -91,9 +94,9 @@ class AIMM(aio.Resource):
     async def fit(self,
                   instance_id: int,
                   *args: 'PluginArg',
-                  **kwargs: 'PluginArg') -> 'JSON':
+                  **kwargs: 'PluginArg') -> 'Model':
         """Fits an instance on the remote server"""
-        args = [_arg_to_json(a) for a in args]
+        args = tuple(_arg_to_json(a) for a in args)
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
         model_json = await self._connection.call('fit', instance_id, args,
                                                  kwargs)
@@ -102,9 +105,9 @@ class AIMM(aio.Resource):
     async def predict(self,
                       instance_id: int,
                       *args: 'PluginArg',
-                      **kwargs: 'PluginArg') -> 'JSON':
+                      **kwargs: 'PluginArg') -> typing.Any:
         """Uses an instance on the remote server for a prediction"""
-        args = [_arg_to_json(a) for a in args]
+        args = tuple(_arg_to_json(a) for a in args)
         kwargs = {k: _arg_to_json(v) for k, v in kwargs.items()}
         result = await self._connection.call('predict', instance_id, args,
                                              kwargs)
@@ -157,15 +160,10 @@ class DataAccessArg(typing.NamedTuple):
     """keyword arguments for the data access plugin call"""
 
 
-JSON: typing.Type = typing.NewType(
-    'JSON', typing.Union[None, bool, int, float, str, typing.List['JSON'],
-                         typing.Dict[str, 'JSON']])
-"""JSON serializable data"""
-
-PluginArg: typing.Type = typing.NewType(
-    'PluginArg', typing.Union['DataAccessArg', numpy.array, pandas.DataFrame,
-                              pandas.Series, JSON])
+PluginArg = typing.Union['DataAccessArg', numpy.typing.ArrayLike,
+                         pandas.DataFrame, pandas.Series, JSON]
 """Represents a generic, plugin-specific argument"""
+util.register_type_alias('PluginArg')
 
 
 def _arg_to_json(arg):

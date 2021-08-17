@@ -41,7 +41,7 @@ since all of the options refer to different timeouts and limitations:
 
 Engine module provides the following interface:
 
-.. automodule:: aimm.server.engine
+.. autoclass:: aimm.server.common.Engine
     :members:
 
 Since there are no strict limitations on the arguments that may be passed to
