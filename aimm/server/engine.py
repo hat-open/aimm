@@ -227,7 +227,6 @@ async def _predict(pool, model, args, kwargs, state_cb):
         model.model_type, model.instance, handler.proc_notify_state_change,
         *args, **kwargs)
     prediction = await handler.result
-    mlog.warning(prediction)
     reactive.update(dict(reactive.state, progress='complete'))
     return prediction
 
