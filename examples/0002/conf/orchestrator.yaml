@@ -7,6 +7,10 @@ components:
     delay: 0
     name: syslog
     revive: false
+    start_delay: 1
+    create_timeout: 5
+    sigint_timeout: 2
+    sigkill_timeout: 3
 -   args:
     - hat-monitor
     - --conf
@@ -14,6 +18,10 @@ components:
     delay: 0
     name: monitor
     revive: false
+    start_delay: 1
+    create_timeout: 5
+    sigint_timeout: 2
+    sigkill_timeout: 3
 -   args:
     - hat-event
     - --conf
@@ -21,6 +29,10 @@ components:
     delay: 1
     name: event
     revive: false
+    start_delay: 1
+    create_timeout: 5
+    sigint_timeout: 2
+    sigkill_timeout: 3
 -   args:
     - hat-gateway
     - --conf
@@ -28,6 +40,10 @@ components:
     delay: 2
     name: gateway
     revive: false
+    start_delay: 1
+    create_timeout: 5
+    sigint_timeout: 2
+    sigkill_timeout: 3
 -   args:
     - hat-gui
     - --conf
@@ -35,6 +51,10 @@ components:
     delay: 3
     name: gui
     revive: false
+    start_delay: 1
+    create_timeout: 5
+    sigint_timeout: 2
+    sigkill_timeout: 3
 log:
     disable_existing_loggers: false
     formatters:

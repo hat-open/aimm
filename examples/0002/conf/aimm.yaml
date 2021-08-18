@@ -30,7 +30,7 @@ control:
         create_instance: ['aimm', 'create_instance']
         predict: ['aimm', 'predict']
     state_event_type: ['aimm', 'state']
-    response_event_type: ['aimm', 'response']
+    action_state_event_type: ['aimm', 'response']
 plugins:
     names:
         - aimm_plugins.power

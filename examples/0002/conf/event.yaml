@@ -1,7 +1,9 @@
 ---
 backend_engine:
     backend:
-        module: hat.event.server.backends.dummy
+        module: hat.event.server.backends.sqlite
+        db_path: data/event.db
+        query_pool_size: 1
     server_id: 1
 communication:
     address: tcp+sbs://127.0.0.1:23012

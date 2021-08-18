@@ -32,5 +32,5 @@ class StateEstimator(plugins.Model):
         return bytes()
 
     @classmethod
-    def deserialize(cls):
+    def deserialize(cls, instance_bytes):
         return StateEstimator()
