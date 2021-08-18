@@ -51,7 +51,7 @@ class EventBackend(common.Backend):
         while True:
             events = await self._client.receive()
             for event in events:
-                self._cbs.notify(self._event_to_model(event))
+                self._cbs.notify(await self._event_to_model(event))
 
     async def _register_model(self, model):
         await self._client.register_with_response(

@@ -1,13 +1,9 @@
-from hat import aio
 from hat import json
 import asyncio
 import contextlib
 import hat.event.client
 import psutil
 import pytest
-
-from aimm import plugins
-import aimm.server.main
 
 pytestmark = pytest.mark.asyncio
 
@@ -143,19 +139,10 @@ async def aimm_server_proc(event_server, monitor_address, conf_path):
     json.encode_file(conf, aimm_conf_path)
     proc = psutil.Popen(['python', '-m', 'aimm.server',
                          '--conf', str(aimm_conf_path)])
-    try:
-        yield proc
-    finally:
-        proc.kill()
-        proc.wait()
-
-
-@pytest.fixture
-async def aimm_server_aio(event_server, monitor_address):
-    conf = simple_conf(monitor_address)
-    plugins.initialize(conf['plugins'])
-    async with aio.Group() as group:
-        yield group.spawn(aimm.server.main.async_main, conf)
+    await asyncio.sleep(0.5)
+    yield proc
+    proc.kill()
+    proc.wait()
 
 
 @pytest.fixture
@@ -183,7 +170,7 @@ async def test_connects(aimm_server_proc, monitor_port, event_port):
         await asyncio.sleep(0.1)
 
 
-async def test_workflow(aimm_server_aio, event_client_factory):
+async def test_workflow(aimm_server_proc, event_client_factory):
     model_type = 'test_sys.plugins.basic.Model1'
 
     async with event_client_factory([('aimm', 'action_state'),
@@ -203,9 +190,20 @@ async def test_workflow(aimm_server_aio, event_client_factory):
         event = events[0]
         assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
-        assert event.payload.data == {
-            'request_id': '1',
-            'result': 1}
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'IN_PROGRESS'
+        assert payload['result'] is None
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('aimm', 'action_state')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'DONE'
+        assert payload['result'] == 1
 
         model_id = event.payload.data['result']
 
@@ -230,9 +228,20 @@ async def test_workflow(aimm_server_aio, event_client_factory):
         event = events[0]
         assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
-        assert event.payload.data == {
-            'request_id': '2',
-            'result': True}
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'IN_PROGRESS'
+        assert payload['result'] is None
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('aimm', 'action_state')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'DONE'
+        assert payload['result'] is None
 
         events = await client.receive()
         assert len(events) == 1
@@ -255,9 +264,20 @@ async def test_workflow(aimm_server_aio, event_client_factory):
         event = events[0]
         assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
-        assert event.payload.data == {
-            'request_id': '3',
-            'result': [args, kwargs]}
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'IN_PROGRESS'
+        assert payload['result'] is None
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('aimm', 'action_state')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'DONE'
+        assert payload['result'] == [args, kwargs]
 
 
 def _listens_on(proc, port):
