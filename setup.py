@@ -19,7 +19,7 @@ setuptools.setup(
     name='AIMM',
     packages=setuptools.find_packages(repo_root),
     version=version,
-    url='https://github.com/ZlatSic/aimm',
+    url='https://github.com/hat-open/aimm',
     author='Zlatan Sičanica',
     author_email='zlatan.sicanica@koncar-ket.hr',
     description='Artificial intelligence model manager',
