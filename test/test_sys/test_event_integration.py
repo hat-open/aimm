@@ -279,6 +279,45 @@ async def test_workflow(aimm_server_proc, event_client_factory):
         assert payload['status'] == 'DONE'
         assert payload['result'] == [args, kwargs]
 
+        request = await client.register_with_response([
+            _register_event(('predict', str(model_id)),
+                            {'args': [10],  # sleep 10 seconds
+                             'kwargs': {}})])
+        request = request[0]
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('aimm', 'action_state')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'IN_PROGRESS'
+        assert payload['result'] is None
+
+        event_queue = aio.Queue()
+
+        async def wait_events():
+            event_queue.put_nowait(await client.receive())
+
+        async with aio.Group() as group:
+            group.spawn(wait_events)
+            await asyncio.sleep(2)
+            assert event_queue.empty()
+
+        await client.register_with_response([
+            _register_event(('cancel', ), request.event_id._asdict())])
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
+        assert event.event_type == ('aimm', 'action_state')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'request_id', 'status', 'result'}
+        assert payload['status'] == 'CANCELLED'
+        assert payload['result'] is None
+
 
 def _listens_on(proc, port):
     return port in (conn.laddr.port for conn in proc.connections()
