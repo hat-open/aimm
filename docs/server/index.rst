@@ -35,13 +35,9 @@ Hat
 
 AIMM server configuration contains options that allow it to work as a part of
 `Hat`_ infrastructure. The optional ``hat`` property of the configuration
-contains the options that allow this integration. Object under the property
-should follow the schema:
+contains the options that allow this integration.
 
-.. literalinclude:: ../../schemas_json/server/hat.yaml
-   :language: yaml
-
-.. _hat: https://core.hat-open.com/
+.. _hat: https://hat-open.com/
 
 Connection to monitor is the minimal requirement in order to integrate to the
 Hat network and the configuration parameters are as specified by the `monitor
@@ -49,6 +45,8 @@ client documentation`_. Additionally, if ``event_server_group`` field is set,
 AIMM server will also attempt to connect to event server with in the given
 group. If these properties are configured but the server cannot connect to
 Hat components, it will halt and wait until it manages to connect.
+
+.. _monitor client documentation: https://hat-monitor.hat-open.com/py_api/hat/monitor/client.html
 
 Since AIMM server supports dynamic imports of different backend and control
 implementations that may use the event server connection to receive and
@@ -69,8 +67,6 @@ has the following signature:
 
 .. autoclass:: aimm.server.common.ProxyClient
     :members:
-
-.. _monitor client documentation: https://core.hat-open.com/docs/pyhat/hat/monitor/client.html
 
 Architecture
 ------------
