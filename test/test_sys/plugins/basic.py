@@ -1,4 +1,5 @@
 from hat import json
+import time
 
 from aimm import plugins
 
@@ -14,6 +15,8 @@ class Model1(plugins.Model):
         return self
 
     def predict(self, *args, **kwargs):
+        if isinstance(args[0], int):
+            time.sleep(args[0])
         return [args, kwargs]
 
     def serialize(self):

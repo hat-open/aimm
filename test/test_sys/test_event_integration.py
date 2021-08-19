@@ -1,4 +1,5 @@
 from hat import json
+from hat import aio
 import asyncio
 import contextlib
 import hat.event.client
@@ -119,7 +120,8 @@ def simple_conf(monitor_address):
                 'add_instance': ['add_instance'],
                 'update_instance': ['update_instance'],
                 'fit': ['fit'],
-                'predict': ['predict']},
+                'predict': ['predict'],
+                'cancel': ['cancel']},
             'state_event_type': ['aimm', 'state'],
             'action_state_event_type': ['aimm', 'action_state']}],
         'plugins': {'names': ['test_sys.plugins.basic']},
@@ -170,7 +172,7 @@ async def test_connects(aimm_server_proc, monitor_port, event_port):
         await asyncio.sleep(0.1)
 
 
-async def test_workflow(aimm_server_proc, event_client_factory):
+async def test_create_instance(aimm_server_proc, event_client_factory):
     model_type = 'test_sys.plugins.basic.Model1'
 
     async with event_client_factory([('aimm', 'action_state'),
@@ -182,8 +184,7 @@ async def test_workflow(aimm_server_proc, event_client_factory):
             _register_event(('create_instance', ),
                             {'model_type': model_type,
                              'args': args,
-                             'kwargs': kwargs,
-                             'request_id': '1'})])
+                             'kwargs': kwargs})])
 
         events = await client.receive()
         assert len(events) == 1
@@ -205,23 +206,46 @@ async def test_workflow(aimm_server_proc, event_client_factory):
         assert payload['status'] == 'DONE'
         assert payload['result'] == 1
 
-        model_id = event.payload.data['result']
 
-        events = await client.receive()
-        assert len(events) == 1
-        event = events[0]
-        assert event.event_type == ('aimm', 'model', str(model_id))
-        assert event.source_timestamp is None
-        assert event.payload.data['type'] == model_type
-        assert event.payload.data['instance'] is not None
+async def _create_instance(client, model_type):
+    args = ['a1', 'a2']
+    kwargs = {'k1': '1', 'k2': '2'}
+    await client.register_with_response([
+        _register_event(('create_instance', ),
+                        {'model_type': model_type,
+                         'args': args,
+                         'kwargs': kwargs})])
+
+    events = await client.receive()
+    event = events[0]
+    assert event.payload.data['status'] == 'IN_PROGRESS'
+
+    events = await client.receive()
+    event = events[0]
+    payload = event.payload.data
+    assert payload['status'] == 'DONE'
+    model_id = payload['result']
+
+    events = await client.receive()
+    event = events[0]
+    assert event.event_type == ('aimm', 'model', str(model_id))
+
+    return model_id
+
+
+async def test_fit(aimm_server_proc, event_client_factory):
+    model_type = 'test_sys.plugins.basic.Model1'
+
+    async with event_client_factory([('aimm', 'action_state'),
+                                     ('aimm', 'model', '*')]) as client:
+        model_id = await _create_instance(client, model_type)
 
         args = ['a3', 'a4']
         kwargs = {'k3': '3', 'k4': '4'}
         await client.register_with_response([
             _register_event(('fit', str(model_id)),
                             {'args': args,
-                             'kwargs': kwargs,
-                             'request_id': '2'})])
+                             'kwargs': kwargs})])
 
         events = await client.receive()
         assert len(events) == 1
@@ -251,13 +275,20 @@ async def test_workflow(aimm_server_proc, event_client_factory):
         assert event.payload.data['type'] == model_type
         assert event.payload.data['instance'] is not None
 
+
+async def test_predict(aimm_server_proc, event_client_factory):
+    model_type = 'test_sys.plugins.basic.Model1'
+
+    async with event_client_factory([('aimm', 'action_state'),
+                                     ('aimm', 'model', '*')]) as client:
+        model_id = await _create_instance(client, model_type)
+
         args = ['a3', 'a4']
         kwargs = {'k3': '3', 'k4': '4'}
         await client.register_with_response([
             _register_event(('predict', str(model_id)),
                             {'args': args,
-                             'kwargs': kwargs,
-                             'request_id': '3'})])
+                             'kwargs': kwargs})])
 
         events = await client.receive()
         assert len(events) == 1
@@ -279,6 +310,13 @@ async def test_workflow(aimm_server_proc, event_client_factory):
         assert payload['status'] == 'DONE'
         assert payload['result'] == [args, kwargs]
 
+
+async def test_cancel(aimm_server_proc, event_client_factory):
+    model_type = 'test_sys.plugins.basic.Model1'
+
+    async with event_client_factory([('aimm', 'action_state'),
+                                     ('aimm', 'model', '*')]) as client:
+        model_id = await _create_instance(client, model_type)
         request = await client.register_with_response([
             _register_event(('predict', str(model_id)),
                             {'args': [10],  # sleep 10 seconds
