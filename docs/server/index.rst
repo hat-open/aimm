@@ -61,7 +61,7 @@ A combined list of all these subscriptions is then used as the global
 subscription of the entire server. If the ``get_subscriptions`` function is
 provided, the component implementation will receive an instance of a
 :class:`aimm.server.common.ProxyClient`, which is an object with an interface
-similar to the regular Hat event client, but is actually notified of the new
+similar to the regular `Hat event client`_, but is actually notified of the new
 events by the real event client when events it subscribes to are received. It
 has the following signature:
 
