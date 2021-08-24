@@ -65,6 +65,8 @@ similar to the regular Hat event client, but is actually notified of the new
 events by the real event client when events it subscribes to are received. It
 has the following signature:
 
+.. _Hat event client: https://hat-event.hat-open.com/py_api/hat/event/client.html#hat.event.client.Client
+
 .. autoclass:: aimm.server.common.ProxyClient
     :members:
 
