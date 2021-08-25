@@ -37,10 +37,9 @@ async def test_process_regular(disable_sigterm_handler):
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 2)
     process_action = pa_pool.create_handler(lambda: None)
-    process_action.run(fn, *args, **kwargs)
-    await asyncio.sleep(0.1)
+    result = await process_action.run(fn, *args, **kwargs)
 
-    assert await process_action.result == (args, kwargs)
+    assert result == (args, kwargs)
     await process_action.wait_closed()
 
     await pa_pool.async_close()
@@ -55,11 +54,9 @@ async def test_process_exception(disable_sigterm_handler):
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 2)
     process_action = pa_pool.create_handler(lambda: None)
-    process_action.run(fn)
-    await asyncio.sleep(0.1)
 
     with pytest.raises(Exception, match=exception_text):
-        await process_action.result
+        await process_action.run(fn)
     await process_action.wait_closed()
 
     await pa_pool.async_close()
@@ -77,11 +74,12 @@ async def test_process_sigterm(disable_sigterm_handler):
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 5)
     process_action = pa_pool.create_handler(lambda: None)
-    process_action.run(fn)
-    await asyncio.sleep(0.2)
-    await process_action.async_close()
-    with pytest.raises(Exception, match='process terminated'):
-        await process_action.result
+    async with aio.Group() as group:
+        task = group.spawn(process_action.run, fn)
+        await asyncio.sleep(0.2)
+        await process_action.async_close()
+        with pytest.raises(Exception, match='process terminated'):
+            await task
 
     await pa_pool.async_close()
 
@@ -101,11 +99,12 @@ async def test_process_sigkill():
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 0.2)
     process_action = pa_pool.create_handler(lambda: None)
-    process_action.run(fn)
-    await asyncio.sleep(0.2)
-    await process_action.async_close()
+    async with aio.Group() as group:
+        task = group.spawn(process_action.run, fn)
+        await asyncio.sleep(0.2)
+        await process_action.async_close()
 
-    with pytest.raises(Exception, match='process terminated'):
-        await process_action.result
+        with pytest.raises(Exception, match='process terminated'):
+            await task
 
     await pa_pool.async_close()

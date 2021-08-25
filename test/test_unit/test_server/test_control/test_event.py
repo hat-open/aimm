@@ -5,6 +5,7 @@ import hat.event.common
 import pytest
 
 import aimm.server.control.event
+import aimm.server.engine
 from aimm.server import common
 from aimm import plugins
 
@@ -25,7 +26,7 @@ class MockClient:
         return await self._receive_queue.get()
 
 
-class MockEngine:
+class MockEngine(common.Engine):
     def __init__(self, state={'models': {}, 'actions': {}},
                  create_instance_cb=None, add_instance_cb=None,
                  update_instance_cb=None, fit_cb=None, predict_cb=None):
@@ -36,6 +37,12 @@ class MockEngine:
         self._update_instance_cb = update_instance_cb
         self._fit_cb = fit_cb
         self._predict_cb = predict_cb
+
+        self._group = aio.Group()
+
+    @property
+    def async_group(self):
+        return self._group
 
     @property
     def state(self):
@@ -51,27 +58,33 @@ class MockEngine:
 
     def create_instance(self, *args, **kwargs):
         if self._create_instance_cb:
-            return self._create_instance_cb(*args, **kwargs)
+            return aimm.server.engine._Action(
+                self._group.create_subgroup(), aio.call,
+                self._create_instance_cb, *args, **kwargs)
         raise NotImplementedError()
 
-    def add_instance(self, *args, **kwargs):
+    async def add_instance(self, *args, **kwargs):
         if self._add_instance_cb:
-            return self._add_instance_cb(*args, **kwargs)
+            return await aio.call(self._add_instance_cb, *args, **kwargs)
         raise NotImplementedError()
 
-    def update_instance(self, *args, **kwargs):
+    async def update_instance(self, *args, **kwargs):
         if self._update_instance_cb:
-            return self._update_instance_cb(*args, **kwargs)
+            return await aio.call(self._update_instance_cb, *args, **kwargs)
         raise NotImplementedError()
 
     def fit(self, *args, **kwargs):
         if self._fit_cb:
-            return self._fit_cb(*args, **kwargs)
+            return aimm.server.engine._Action(
+                self._group.create_subgroup(), aio.call,
+                self._fit_cb, *args, **kwargs)
         raise NotImplementedError()
 
     def predict(self, *args, **kwargs):
         if self._predict_cb:
-            return self._predict_cb(*args, **kwargs)
+            return aimm.server.engine._Action(
+                self._group.create_subgroup(), aio.call,
+                self._predict_cb, *args, **kwargs)
         raise NotImplementedError()
 
 
@@ -81,16 +94,26 @@ def assert_event(event, event_type, payload, source_timestamp=None):
     assert event.payload.data == payload
 
 
+def conf():
+    return {
+        'event_prefixes': {
+            'create_instance': ['create_instance'],
+            'add_instance': ['add_instance'],
+            'update_instance': ['update_instance'],
+            'fit': ['fit'],
+            'predict': ['predict'],
+            'cancel': ['cancel']},
+        'state_event_type': ['state'],
+        'action_state_event_type': ['action_state']}
+
+
 @pytest.mark.timeout(1)
 async def test_state():
     client = MockClient()
     engine = MockEngine()
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': []},
-            engine, group, client)
+        control = await aimm.server.control.event.create(conf(), engine,
+                                                         group, client)
         events = await client._register_queue.get()
         assert len(events) == 1
         assert_event(events[0], ('state', ), {'models': {}, 'actions': {}})
@@ -103,23 +126,18 @@ async def test_create_instance():
 
     create_queue = aio.Queue()
 
-    def create_instance_cb(model_type, *args, **kwargs):
+    async def create_instance_cb(model_type, *args, **kwargs):
         complete_future = asyncio.Future()
         create_queue.put_nowait({'model_type': model_type,
                                  'args': args,
                                  'kwargs': kwargs,
                                  'complete_future': complete_future})
-        return complete_future
+        return await complete_future
 
     client = MockClient()
     engine = MockEngine(create_instance_cb=create_instance_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
-
+        await aimm.server.control.event.create(conf(), engine, group, client)
         events = await client._register_queue.get()  # state
 
         args = ['a1', 'a2']
@@ -127,8 +145,7 @@ async def test_create_instance():
         req_event = _event(('create_instance', ),
                            {'model_type': 'Model1',
                             'args': args,
-                            'kwargs': kwargs,
-                            'request_id': '1'})
+                            'kwargs': kwargs})
         client._receive_queue.put_nowait([req_event])
         call = await create_queue.get()
         assert call['model_type'] == 'Model1'
@@ -156,8 +173,6 @@ async def test_create_instance():
             'status': 'DONE',
             'result': 1}
 
-        await control.async_close()
-
 
 @pytest.mark.timeout(10)
 async def test_add_instance(plugin_teardown):
@@ -168,21 +183,18 @@ async def test_add_instance(plugin_teardown):
 
     add_queue = aio.Queue()
 
-    def add_instance_cb(instance, model_type):
-        add_queue.put_nowait({'instance': instance, 'model_type': model_type})
-        return common.Model(instance=instance,
-                            instance_id=2,
-                            model_type=model_type)
+    async def add_instance_cb(instance, model_type):
+        complete_future = asyncio.Future()
+        add_queue.put_nowait({'instance': instance,
+                              'model_type': model_type,
+                              'complete_future': complete_future})
+        return await complete_future
 
     client = MockClient()
     engine = MockEngine(add_instance_cb=add_instance_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
-
+        control = await aimm.server.control.event.create(conf(), engine,
+                                                         group, client)
         events = await client._register_queue.get()  # state
 
         req_event = _event(('add_instance', ),
@@ -194,6 +206,9 @@ async def test_add_instance(plugin_teardown):
         call = await add_queue.get()
         assert call['model_type'] == 'Model1'
         assert call['instance'] == 'xyz'
+        call['complete_future'].set_result(common.Model(instance='xyz',
+                                                        instance_id=2,
+                                                        model_type='Model1'))
 
         events = await client._register_queue.get()
         assert len(events) == 1
@@ -217,18 +232,15 @@ async def test_update_instance(plugin_teardown):
     update_queue = aio.Queue()
 
     async def update_instance_cb(model):
-        update_queue.put_nowait(model)
-        return model
+        complete_future = asyncio.Future()
+        update_queue.put_nowait({'model': model,
+                                 'complete_future': complete_future})
+        return await complete_future
 
     client = MockClient()
     engine = MockEngine(update_instance_cb=update_instance_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
-
+        await aimm.server.control.event.create(conf(), engine, group, client)
         events = await client._register_queue.get()  # state
 
         req_event = _event(('update_instance', '10'),
@@ -237,10 +249,11 @@ async def test_update_instance(plugin_teardown):
                                 'xyz'.encode('utf-8')).decode('utf-8')})
         client._receive_queue.put_nowait([req_event])
 
-        model = await update_queue.get()
-        assert model == common.Model(model_type='Model1',
-                                     instance='xyz',
-                                     instance_id=10)
+        call = await update_queue.get()
+        assert call['model'] == common.Model(model_type='Model1',
+                                             instance='xyz',
+                                             instance_id=10)
+        call['complete_future'].set_result(call['model'])
 
         events = await client._register_queue.get()
         assert len(events) == 1
@@ -250,8 +263,6 @@ async def test_update_instance(plugin_teardown):
             'request_id': req_event.event_id._asdict(),
             'status': 'DONE',
             'result': None}
-
-        await control.async_close()
 
 
 @pytest.mark.timeout(1)
@@ -265,18 +276,14 @@ async def test_fit():
                               'args': args,
                               'kwargs': kwargs,
                               'model_id': model_id})
-        return done_future
+        return await done_future
 
     client = MockClient()
     engine = MockEngine({'models': {11: common.Model('M', None, 11)},
                          'actions': {}},
                         fit_cb=fit_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
+        await aimm.server.control.event.create(conf(), engine, group, client)
 
         events = await client._register_queue.get()  # state
 
@@ -310,8 +317,6 @@ async def test_fit():
             'status': 'DONE',
             'result': None}
 
-        await control.async_close()
-
 
 @pytest.mark.timeout(1)
 async def test_predict():
@@ -324,18 +329,14 @@ async def test_predict():
                                   'args': args,
                                   'kwargs': kwargs,
                                   'model_id': model_id})
-        return done_future
+        return await done_future
 
     client = MockClient()
     engine = MockEngine({'models': {12: common.Model('M', None, 12)},
                          'actions': {}},
                         predict_cb=predict_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
+        await aimm.server.control.event.create(conf(), engine, group, client)
 
         events = await client._register_queue.get()  # state
 
@@ -369,8 +370,6 @@ async def test_predict():
             'status': 'DONE',
             'result': 'prediction'}
 
-        await control.async_close()
-
 
 @pytest.mark.timeout(1)
 async def test_cancel():
@@ -380,18 +379,14 @@ async def test_cancel():
     async def predict_cb(model_id, *args, **kwargs):
         done_future = asyncio.Future()
         future_queue.put_nowait(done_future)
-        return done_future
+        return await done_future
 
     client = MockClient()
     engine = MockEngine({'models': {12: common.Model('M', None, 12)},
                          'actions': {}},
                         predict_cb=predict_cb)
     async with aio.Group() as group:
-        control = await aimm.server.control.event.create(
-            {'event_prefixes': _prefixes(),
-             'state_event_type': ['state'],
-             'action_state_event_type': ['action_state']},
-            engine, group, client)
+        await aimm.server.control.event.create(conf(), engine, group, client)
 
         events = await client._register_queue.get()  # state
 
@@ -424,8 +419,6 @@ async def test_cancel():
             'status': 'CANCELLED',
             'result': None}
 
-        await control.async_close()
-
 
 def _register_event(event_type, payload, source_timestamp=None):
     return hat.event.common.RegisterEvent(
@@ -446,12 +439,3 @@ def _event(event_type, payload, source_timestamp=None,
         payload=hat.event.common.EventPayload(
             type=hat.event.common.EventPayloadType.JSON,
             data=payload))
-
-
-def _prefixes():
-    return {'create_instance': ['create_instance'],
-            'add_instance': ['add_instance'],
-            'update_instance': ['update_instance'],
-            'fit': ['fit'],
-            'predict': ['predict'],
-            'cancel': ['cancel']}

@@ -93,21 +93,22 @@ class Session(aio.Resource):
         args = [_arg_from_json(a) for a in args]
         kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
-        task = self._engine.create_instance(model_type, *args, **kwargs)
-        return await _model_to_json(await task)
+        action = self._engine.create_instance(model_type, *args, **kwargs)
+        model = await action.wait_result()
+        return await _model_to_json(model)
 
     async def _add_instance(self, model_type, instance):
         self._check_authorization()
-        instance = await _instance_from_json(instance, model_type)
-        model = self._engine.add_instance(instance, model_type)
-        return _model_to_json(model)
+        instance = await _model_from_json(instance, model_type)
+        model = await self._engine.add_instance(instance, model_type)
+        return await _model_to_json(model)
 
     async def _update_instance(self, model_type, instance_id, instance):
         self._check_authorization()
         model = common.Model(
             model_type=model_type,
             instance_id=instance_id,
-            instance=await _instance_from_json(instance, model_type))
+            instance=await _model_from_json(instance, model_type))
         await self._engine.update_instance(model)
         return await _model_to_json(model)
 
@@ -116,16 +117,18 @@ class Session(aio.Resource):
         args = [_arg_from_json(a) for a in args]
         kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
-        task = await self._engine.fit(instance_id, *args, **kwargs)
-        return await _model_to_json(await task)
+        action = self._engine.fit(instance_id, *args, **kwargs)
+        model = await action.wait_result()
+        return await _model_to_json(model)
 
     async def _predict(self, instance_id, args, kwargs):
         self._check_authorization()
         args = [_arg_from_json(a) for a in args]
         kwargs = {k: _arg_from_json(v) for k, v in kwargs.items()}
 
-        task = await self._engine.predict(instance_id, *args, **kwargs)
-        return _prediction_to_json(await task)
+        action = self._engine.predict(instance_id, *args, **kwargs)
+        prediction = await action.wait_result()
+        return _prediction_to_json(prediction)
 
     def _check_authorization(self):
         if self._user is None:
@@ -162,7 +165,7 @@ def _prediction_to_json(prediction):
     return prediction
 
 
-async def _instance_from_json(instance_b64, model_type):
+async def _model_from_json(instance_b64, model_type):
     executor = aio.create_executor()
     return await executor(plugins.exec_deserialize, model_type,
                           base64.b64decode(instance_b64))

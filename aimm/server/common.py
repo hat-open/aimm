@@ -2,7 +2,6 @@ from hat import aio
 from hat import util
 from typing import Any, Dict, Callable, Iterable, List, NamedTuple, Optional
 import abc
-import asyncio
 import hat.event.client
 import hat.event.common
 
@@ -110,22 +109,19 @@ class Engine(aio.Resource, abc.ABC):
     def create_instance(self,
                         model_type: str,
                         *args: Any,
-                        **kwargs: Any) -> asyncio.Task:
-        """Creates a model instance and stores it in state
+                        **kwargs: Any) -> 'Action':
+        """Starts an action that creates a model instance and stores it in
+        state.
 
         Args:
             model_type: model type
             *args: instantiation arguments
-            **kwargs: instantiation keyword arguments
-
-        Returns
-            Reference to the action in charge of the managable call. Result of
-            the task is model instance"""
+            **kwargs: instantiation keyword arguments"""
 
     @abc.abstractmethod
-    def add_instance(self,
-                     instance: Any,
-                     model_type: str) -> Model:
+    async def add_instance(self,
+                           instance: Any,
+                           model_type: str) -> Model:
         """Adds existing instance to the state"""
 
     @abc.abstractmethod
@@ -136,11 +132,11 @@ class Engine(aio.Resource, abc.ABC):
     async def fit(self,
                   instance_id: int,
                   *args: Any,
-                  **kwargs: Any) -> asyncio.Task:
-        """Fits an existing model instance. The used fitting function is the
-        one assigned to the model type. The instance, while it is being fitted,
-        is not accessable by any of the other functions that would use it
-        (other calls to fit, predictions, etc.).
+                  **kwargs: Any) -> 'Action':
+        """Starts an action that fits an existing model instance. The used
+        fitting function is the one assigned to the model type. The instance,
+        while it is being fitted, is not accessable by any of the other
+        functions that would use it (other calls to fit, predictions, etc.).
 
         Args:
             instance_id: id of model instance that will be fitted
@@ -149,24 +145,19 @@ class Engine(aio.Resource, abc.ABC):
                 fitting function is the result of the call to that plugin,
                 other arguments are passed directly
             **kwargs: keyword arguments, work the same as the positional
-                arguments
-
-        Returns:
-            Reference to the task calling the fitting function, result of the
-            task is updated model instance
-        """
+                arguments"""
 
     @abc.abstractmethod
     async def predict(self,
                       instance_id: int,
                       *args: Any,
-                      **kwargs: Any) -> asyncio.Task:
-        """Uses an existing model instance to perform a prediction. The used
-        prediction function is the one assigned to model's type. The instance,
-        while prediction is called, is not accessable by any of the other
-        functions that would use it (other calls to predict, fittings, etc.).
-        If instance has changed while predicting, it is updated in the state
-        and database.
+                      **kwargs: Any) -> 'Action':
+        """Starts an action that uses an existing model instance to perform a
+        prediction. The used prediction function is the one assigned to model's
+        type. The instance, while prediction is called, is not accessable by
+        any of the other functions that would use it (other calls to predict,
+        fittings, etc.).  If instance has changed while predicting, it is
+        updated in the state and database.
 
         Args:
             instance_id: id of the model instance used for prediction
@@ -179,8 +170,17 @@ class Engine(aio.Resource, abc.ABC):
 
         Returns:
             Reference to task of the managable predict call, result of it is
-            the model's prediction
-        """
+            the model's prediction"""
+
+
+class Action(aio.Resource, abc.ABC):
+    """Represents a manageable call. Is an :class:`aio.Resource` so call can be
+    cancelled using ``async_close``."""
+
+    @abc.abstractmethod
+    async def wait_result(self) -> Any:
+        """Wait until call returns a result. May raise
+        :class:`asyncio.CancelledError` in case the call was cancelled."""
 
 
 def create_backend(conf: Dict,

@@ -141,7 +141,7 @@ async def aimm_server_proc(event_server, monitor_address, conf_path):
     json.encode_file(conf, aimm_conf_path)
     proc = psutil.Popen(['python', '-m', 'aimm.server',
                          '--conf', str(aimm_conf_path)])
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1)
     yield proc
     proc.kill()
     proc.wait()
@@ -199,6 +199,15 @@ async def test_create_instance(aimm_server_proc, event_client_factory):
         events = await client.receive()
         assert len(events) == 1
         event = events[0]
+        assert event.event_type == ('aimm', 'model', '1')
+        assert event.source_timestamp is None
+        payload = event.payload.data
+        assert set(payload.keys()) == {'type', 'instance'}
+        assert payload['type'] == model_type
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
         assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
         payload = event.payload.data
@@ -223,12 +232,13 @@ async def _create_instance(client, model_type):
     events = await client.receive()
     event = events[0]
     payload = event.payload.data
-    assert payload['status'] == 'DONE'
-    model_id = payload['result']
+    assert event.event_type == ('aimm', 'model', '1')
 
     events = await client.receive()
     event = events[0]
-    assert event.event_type == ('aimm', 'model', str(model_id))
+    payload = event.payload.data
+    assert payload['status'] == 'DONE'
+    model_id = payload['result']
 
     return model_id
 
@@ -260,20 +270,20 @@ async def test_fit(aimm_server_proc, event_client_factory):
         events = await client.receive()
         assert len(events) == 1
         event = events[0]
+        assert event.event_type == ('aimm', 'model', str(model_id))
+        assert event.source_timestamp is None
+        assert event.payload.data['type'] == model_type
+        assert event.payload.data['instance'] is not None
+
+        events = await client.receive()
+        assert len(events) == 1
+        event = events[0]
         assert event.event_type == ('aimm', 'action_state')
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {'request_id', 'status', 'result'}
         assert payload['status'] == 'DONE'
         assert payload['result'] is None
-
-        events = await client.receive()
-        assert len(events) == 1
-        event = events[0]
-        assert event.event_type == ('aimm', 'model', str(model_id))
-        assert event.source_timestamp is None
-        assert event.payload.data['type'] == model_type
-        assert event.payload.data['instance'] is not None
 
 
 async def test_predict(aimm_server_proc, event_client_factory):

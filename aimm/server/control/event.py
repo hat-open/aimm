@@ -2,8 +2,8 @@ from hat import aio
 import asyncio
 import base64
 import contextlib
-import logging
 import hat.event.common
+import logging
 
 from aimm.server import common
 from aimm import plugins
@@ -81,7 +81,7 @@ class EventControl(common.Control):
                     if prefix_match('predict', event):
                         self.async_group.spawn(self._predict, event)
                     if prefix_match('cancel', event):
-                        self.async_group.spawn(self._cancel, event)
+                        self._cancel(event)
 
     async def _create_instance(self, event):
         try:
@@ -90,11 +90,11 @@ class EventControl(common.Control):
             args = [await self._process_arg(arg) for arg in data['args']]
             kwargs = {k: await self._process_arg(v) for k, v
                       in data['kwargs'].items()}
-            task = self._engine.create_instance(model_type, *args, **kwargs)
+            action = self._engine.create_instance(model_type, *args, **kwargs)
             self._register_action_state(event, 'IN_PROGRESS')
-            self._in_progress[event.event_id] = task
+            self._in_progress[event.event_id] = action
             try:
-                model = await task
+                model = await action.wait_result()
                 self._register_action_state(event, 'DONE', model.instance_id)
             except asyncio.CancelledError:
                 self._register_action_state(event, 'CANCELLED')
@@ -110,7 +110,8 @@ class EventControl(common.Control):
             data = event.payload.data
             instance = await self._instance_from_json(data['instance'],
                                                       data['model_type'])
-            model = self._engine.add_instance(instance, data['model_type'])
+            model = await self._engine.add_instance(instance,
+                                                    data['model_type'])
             self._register_action_state(event, 'DONE', model.instance_id)
         except Exception as e:
             mlog.warning('add instance failed with exception %s', e,
@@ -146,11 +147,11 @@ class EventControl(common.Control):
             kwargs = {k: await self._process_arg(v) for k, v
                       in data['kwargs'].items()}
 
-            task = await self._engine.fit(instance_id, *args, **kwargs)
+            action = self._engine.fit(instance_id, *args, **kwargs)
             self._register_action_state(event, 'IN_PROGRESS')
-            self._in_progress[event.event_id] = task
+            self._in_progress[event.event_id] = action
             try:
-                await task
+                await action.wait_result()
                 self._register_action_state(event, 'DONE')
             except asyncio.CancelledError:
                 self._register_action_state(event, 'CANCELLED')
@@ -171,11 +172,11 @@ class EventControl(common.Control):
             kwargs = {k: await self._process_arg(v) for k, v
                       in data['kwargs'].items()}
 
-            task = await self._engine.predict(instance_id, *args, **kwargs)
+            action = self._engine.predict(instance_id, *args, **kwargs)
             self._register_action_state(event, 'IN_PROGRESS')
-            self._in_progress[event.event_id] = task
+            self._in_progress[event.event_id] = action
             try:
-                prediction = await task
+                prediction = await action.wait_result()
                 self._register_action_state(event, 'DONE', prediction)
             except asyncio.CancelledError:
                 self._register_action_state(event, 'CANCELLED')
@@ -187,7 +188,7 @@ class EventControl(common.Control):
     def _cancel(self, event):
         request_event_id = hat.event.common.EventId(**event.payload.data)
         if request_event_id in self._in_progress:
-            self._in_progress[request_event_id].cancel()
+            self._in_progress[request_event_id].close()
 
     def _register_action_state(self, request_event, status, result=None):
         return self._client.register([

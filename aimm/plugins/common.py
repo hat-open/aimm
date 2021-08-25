@@ -103,7 +103,7 @@ def initialize(conf: Dict):
 
     Args:
         conf: configuration that follows schema under id
-            ``aimm://plugins.yaml#``"""
+            ``aimm://plugins/schema.yaml#``"""
     for name in conf['names']:
         importlib.import_module(name)
 

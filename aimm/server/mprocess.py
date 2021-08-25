@@ -3,7 +3,7 @@
 objects, wrappers for the process calls."""
 
 from hat import aio
-from typing import Callable, Any
+from typing import Any, Callable, NamedTuple, Optional
 import asyncio
 import contextlib
 import enum
@@ -11,7 +11,6 @@ import logging
 import multiprocessing
 import psutil
 import signal
-import typing
 
 
 mlog = logging.getLogger(__name__)
@@ -64,15 +63,15 @@ class ProcessManager(aio.Resource):
                               self._condition)
 
     async def _condition_loop(self):
-        cond = self._condition
+        condition = self._condition
         process = psutil.Process()
         with contextlib.suppress(asyncio.CancelledError):
             while True:
-                async with cond:
+                async with condition:
                     available_processes = (self._max_children
                                            - len(process.children()))
                     if available_processes > 0:
-                        cond.notify(available_processes)
+                        condition.notify(available_processes)
                 await asyncio.sleep(self._check_children_period)
 
 
@@ -85,26 +84,25 @@ class ProcessHandler(aio.Resource):
         sigterm_timeout (float): time waited until process handles SIGTERM
             before sending SIGKILL during forced shutdown
         state_cb (Optional[Callable[Any]]): state change cb
-        cond (asyncio.Condition): condition that notifies when a new process
-            may be created
+        condition (asyncio.Condition): condition that notifies when a new
+            process may be created
     """
 
     def __init__(self,
                  async_group: aio.Group,
                  sigterm_timeout: float,
                  state_cb: StateCallback,
-                 cond: asyncio.Condition):
+                 condition: asyncio.Condition):
         self._async_group = async_group
         self._sigterm_timeout = sigterm_timeout
         self._state_cb = state_cb
-        self._cond = cond
+        self._condition = condition
 
         self._result_pipe = multiprocessing.Pipe(False)
         self._state_pipe = multiprocessing.Pipe(False)
 
         self._process = None
         self._executor = aio.create_executor()
-        self._result_future = asyncio.Future()
 
         self._async_group.spawn(self._state_loop)
         self._async_group.spawn(aio.call_on_cancel, self._cleanup)
@@ -112,11 +110,6 @@ class ProcessHandler(aio.Resource):
     @property
     def async_group(self) -> aio.Group:
         return self._async_group
-
-    @property
-    def result(self) -> asyncio.Future:
-        """contains return value of the call as result"""
-        return self._result_future
 
     def proc_notify_state_change(self, state: Any):
         """To be passed to and ran in the separate process call. Notifies the
@@ -129,7 +122,7 @@ class ProcessHandler(aio.Resource):
         """
         self._state_pipe[1].send(state)
 
-    def run(self, fn: Callable, *args: Any, **kwargs: Any):
+    async def run(self, fn: Callable, *args: Any, **kwargs: Any):
         """Requests the start of function execution in the separate process.
 
         Args:
@@ -138,12 +131,9 @@ class ProcessHandler(aio.Resource):
             **kwargs: keyword arguments, need to be pickleable
 
         """
-        self._async_group.spawn(self._run, self._cond, fn, *args, **kwargs)
-
-    async def _run(self, cond, fn, *args, **kwargs):
-        await cond.acquire()
+        await self._condition.acquire()
         try:
-            await cond.wait()
+            await self._condition.wait()
             self._process = multiprocessing.Process(
                 target=_proc_run_fn,
                 args=(self._result_pipe, fn, *args),
@@ -155,16 +145,15 @@ class ProcessHandler(aio.Resource):
                     result = await self._executor(_ext_closeable_recv,
                                                   self._result_pipe)
                     if result.success:
-                        self._result_future.set_result(result.result)
+                        return result.result
                     else:
-                        self._result_future.set_exception(result.exception)
+                        raise result.exception
                 except _ProcessTerminatedException:
-                    self._result_future.set_exception(
-                        Exception('process terminated'))
+                    raise Exception('process terminated')
 
-            await aio.uncancellable(wait_result())
+            return await aio.uncancellable(wait_result())
         finally:
-            cond.release()
+            self._condition.release()
             self._async_group.close()
 
     async def _state_loop(self):
@@ -183,10 +172,10 @@ class ProcessHandler(aio.Resource):
         await self._executor(_ext_close_pipe, self._state_pipe)
 
 
-class _Result(typing.NamedTuple):
+class _Result(NamedTuple):
     success: bool
-    result: typing.Optional[Any] = None
-    exception: typing.Optional[Exception] = None
+    result: Optional[Any] = None
+    exception: Optional[Exception] = None
 
 
 class _ProcessTerminatedException(Exception):

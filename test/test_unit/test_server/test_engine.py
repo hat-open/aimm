@@ -78,7 +78,7 @@ async def test_create_instance(plugin_teardown):
 
     args = (1, 2, 3)
     kwargs = {'p1': 4, 'p2': 5}
-    task = eng.create_instance('test', *args, **kwargs)
+    action = eng.create_instance('test', *args, **kwargs)
     model_id = 1
     model = common.Model(instance=('test', args, kwargs),
                          instance_id=model_id,
@@ -89,7 +89,7 @@ async def test_create_instance(plugin_teardown):
         if model_id in state['models']:
             break
     assert state['models'][model_id] == model
-    assert await task == model
+    assert await action.wait_result() == model
     await backend.queue.get() == ('create', model)
     await eng.async_close()
 
@@ -107,7 +107,7 @@ async def test_add_instance(plugin_teardown):
         queue.put_nowait(True)
     eng.subscribe_to_state_change(state_change_cb)
 
-    eng.add_instance(None, 'test')
+    await eng.add_instance(None, 'test')
     await queue.get()
 
     instance_id = 1
@@ -133,7 +133,7 @@ async def test_fit(plugin_teardown):
         queue.put_nowait(eng.state)
     eng.subscribe_to_state_change(state_change_cb)
 
-    eng.add_instance('instance', 'test')
+    await eng.add_instance('instance', 'test')
     await queue.get()
     await backend.queue.get()
 
@@ -144,17 +144,16 @@ async def test_fit(plugin_teardown):
     args = (1, 2)
     kwargs = {'p1': 3, 'p2': 4}
 
-    task = await eng.fit(1, *args, **kwargs)
+    action = eng.fit(1, *args, **kwargs)
     expected_instance = common.Model(
         instance=('instance_fitted', ('instance', *args), kwargs),
         model_type='test',
         instance_id=1)
-    await queue.get() == {'actions': [task],
-                          'models': {1: common.Model(
+    await queue.get() == {'models': {1: common.Model(
                               instance=expected_instance,
                               model_type='test',
                               instance_id=1)}}
-    model = await task
+    model = await action.wait_result()
     assert model == expected_instance
     await backend.queue.get() == ('update',
                                   common.Model(instance=expected_instance,
@@ -176,7 +175,7 @@ async def test_predict(plugin_teardown):
         queue.put_nowait(eng.state)
     eng.subscribe_to_state_change(state_change_cb)
 
-    eng.add_instance(['instance'], 'test')
+    await eng.add_instance(['instance'], 'test')
     await queue.get()
     await backend.queue.get()
 
@@ -188,14 +187,13 @@ async def test_predict(plugin_teardown):
     args = (1, 2)
     kwargs = {'p1': 3, 'p2': 4}
 
-    task = await eng.predict(1, *args, **kwargs)
+    action = eng.predict(1, *args, **kwargs)
     expected_instance = (['instance', 1], args, kwargs)
-    await queue.get() == {'actions': [task],
-                          'models': {1: common.Model(
+    await queue.get() == {'models': {1: common.Model(
                               instance=expected_instance,
                               model_type='test',
                               instance_id=1)}}
-    result = await task
+    result = await action.wait_result()
     assert result == expected_instance
 
     await eng.async_close()

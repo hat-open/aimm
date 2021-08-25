@@ -21,7 +21,7 @@ async def create(conf: typing.Dict,
 
     Args:
         conf: configuration that follows schema with id
-            ``aimm://server/main.yaml#/definitions/engine``
+            ``aimm://server/schema.yaml#/definitions/engine``
         backend: backend
         group: async group
 
@@ -68,82 +68,38 @@ class _Engine(common.Engine):
 
     def create_instance(self, model_type, *args, **kwargs):
         action_id = next(self._action_id_gen)
-        instance_id = next(self._instance_id_gen)
         state_cb = partial(self._update_action, action_id)
-        state_cb(None)
-        task = self.async_group.spawn(_create_instance, self._pool, model_type,
-                                      instance_id, args, kwargs, state_cb)
+        return _Action(
+            self._group.create_subgroup(), self._create_instance,
+            model_type, args, kwargs, state_cb)
 
-        def on_complete(result_future):
-            try:
-                model = result_future.result()
-            except asyncio.CancelledError:
-                return
-            except Exception:
-                return
-            self._set_model(model)
-            self._group.spawn(self._backend.create_model, model)
-        task.add_done_callback(on_complete)
-
-        return task
-
-    def add_instance(self, instance, model_type):
+    async def add_instance(self, instance, model_type):
         model = common.Model(instance=instance,
                              model_type=model_type,
                              instance_id=next(self._instance_id_gen))
         self._set_model(model)
-        self._group.spawn(self._backend.create_model, model)
+        await self._backend.create_model(model)
         return model
 
     async def update_instance(self, model: common.Model):
         """Update existing instance in the state"""
         self._set_model(model)
-        self._group.spawn(self._backend.update_model, model)
+        await self._backend.update_model(model)
 
-    async def fit(self, instance_id, *args, **kwargs):
-        instance_lock = self._locks[instance_id]
-        await instance_lock.acquire()
-        model = self.state['models'][instance_id]
+    def fit(self, instance_id, *args, **kwargs):
+        action_id = next(self._action_id_gen)
+        state_cb = partial(self._update_action, action_id)
+        return _Action(
+            self._group.create_subgroup(), self._fit,
+            instance_id, args, kwargs, state_cb)
+
+    def predict(self, instance_id, *args, **kwargs):
 
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
-        state_cb({})
-        task = self.async_group.spawn(
-            _fit, self._pool, model, args, kwargs, state_cb)
-
-        def on_complete(result_future):
-            try:
-                new_model = result_future.result()
-            except asyncio.CancelledError:
-                return
-            except Exception:
-                return
-
-            self._set_model(new_model)
-            save_task = self._group.spawn(self._backend.update_model,
-                                          new_model)
-            save_task.add_done_callback(lambda _: instance_lock.release())
-        task.add_done_callback(on_complete)
-
-        return task
-
-    async def predict(self, instance_id, *args, **kwargs):
-        instance_lock = self._locks[instance_id]
-        await instance_lock.acquire()
-        model = self.state['models'][instance_id]
-
-        action_id = next(self._action_id_gen)
-        state_cb = partial(self._update_action, action_id)
-        state_cb({})
-        task = self.async_group.spawn(
-            _predict, self._pool, model, args, kwargs, state_cb)
-
-        def on_complete(_):
-            self._update_state(self.state)  # TODO try to remove this
-            instance_lock.release()
-        task.add_done_callback(on_complete)
-
-        return task
+        return _Action(
+            self._group.create_subgroup(), self._predict,
+            instance_id, args, kwargs, state_cb)
 
     def _update_action(self, action_id, action_state):
         actions = dict(self.state['actions'])
@@ -161,101 +117,134 @@ class _Engine(common.Engine):
         self._state = new_state
         self._callback_registry.notify()
 
+    async def _create_instance(self, model_type, args, kwargs, state_cb):
+        reactive = _ReactiveState({'meta': {'call': 'create_instance',
+                                            'model_type': model_type,
+                                            'args': args,
+                                            'kwargs': kwargs}})
+        reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
-async def _create_instance(pool, model_type, instance_id, args, kwargs,
-                           state_cb):
-    reactive = _ReactiveState({'meta': {'call': 'create_instance',
-                                        'model_type': model_type,
-                                        'args': args,
-                                        'kwargs': kwargs}})
-    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
+        reactive.update(dict(reactive.state, progress='accessing_data'))
+        args, kwargs = await _derive_data_access_args(
+            self._pool, args, kwargs,
+            reactive.register_substate('data_access'))
 
-    reactive.update(dict(reactive.state, progress='accessing_data'))
-    args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, reactive.register_substate('data_access'))
+        reactive.update(dict(reactive.state, progress='executing'))
+        handler = self._pool.create_handler(
+            reactive.register_substate('action').update)
+        instance = await handler.run(
+            plugins.exec_instantiate,
+            model_type, handler.proc_notify_state_change, *args, **kwargs)
 
-    reactive.update(dict(reactive.state, progress='executing'))
-    handler = pool.create_handler(reactive.register_substate('action').update)
-    handler.run(
-        plugins.exec_instantiate,
-        model_type, handler.proc_notify_state_change, *args, **kwargs)
-    instance = await handler.result
-    reactive.update(dict(reactive.state, progress='complete'))
+        reactive.update(dict(reactive.state, progress='storing'))
+        model = common.Model(instance=instance,
+                             model_type=model_type,
+                             instance_id=next(self._instance_id_gen))
+        await self._backend.create_model(model)
+        self._set_model(model)
 
-    return common.Model(instance=instance,
-                        model_type=model_type,
-                        instance_id=instance_id)
+        reactive.update(dict(reactive.state, progress='complete'))
+
+        return model
+
+    async def _fit(self, instance_id, args, kwargs, state_cb):
+        reactive = _ReactiveState({'meta': {'call': 'fit',
+                                            'model': instance_id,
+                                            'args': args,
+                                            'kwargs': kwargs}})
+        reactive.register_state_change_cb(lambda: state_cb(reactive.state))
+
+        reactive.update(dict(reactive.state, progress='accessing_data'))
+        args, kwargs = await _derive_data_access_args(
+            self._pool, args, kwargs,
+            reactive.register_substate('data_access'))
+
+        reactive.update(dict(reactive.state, progress='executing'))
+        handler = self._pool.create_handler(
+            reactive.register_substate('action').update)
+
+        model = self.state['models'][instance_id]
+        async with self._locks[instance_id]:
+            instance = await handler.run(
+                plugins.exec_fit,
+                model.model_type, model.instance,
+                handler.proc_notify_state_change,
+                *args, **kwargs)
+        new_model = model._replace(instance=instance)
+
+        reactive.update(dict(reactive.state, progress='storing'))
+        await self._backend.update_model(new_model)
+
+        reactive.update(dict(reactive.state, progress='complete'))
+        self._set_model(new_model)
+        return new_model
+
+    async def _predict(self, instance_id, args, kwargs, state_cb):
+        reactive = _ReactiveState({'meta': {'call': 'predict',
+                                            'model': instance_id,
+                                            'args': args,
+                                            'kwargs': kwargs}})
+        reactive.register_state_change_cb(lambda: state_cb(reactive.state))
+
+        reactive.update(dict(reactive.state, progress='accessing_data'))
+        args, kwargs = await _derive_data_access_args(
+            self._pool, args, kwargs,
+            reactive.register_substate('data_access'))
+
+        handler = self._pool.create_handler(
+            reactive.register_substate('action').update)
+        async with self._locks[instance_id]:
+            model = self.state['models'][instance_id]
+            prediction = await handler.run(
+                plugins.exec_predict,
+                model.model_type, model.instance,
+                handler.proc_notify_state_change,
+                *args, **kwargs)
+        reactive.update(dict(reactive.state, progress='complete'))
+        return prediction
 
 
-async def _fit(pool, model, args, kwargs, state_cb):
-    reactive = _ReactiveState({'meta': {'call': 'fit',
-                                        'model': model.instance_id,
-                                        'args': args,
-                                        'kwargs': kwargs}})
-    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
+class _Action(common.Action):
 
-    reactive.update(dict(reactive.state, progress='accessing_data'))
-    args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, reactive.register_substate('data_access'))
+    def __init__(self, async_group, fn, *args, **kwargs):
+        self._group = async_group
+        self._task = self._group.spawn(fn, *args, **kwargs)
 
-    reactive.update(dict(reactive.state, progress='executing'))
-    handler = pool.create_handler(reactive.register_substate('action').update)
-    handler.run(
-        plugins.exec_fit,
-        model.model_type, model.instance, handler.proc_notify_state_change,
-        *args, **kwargs)
-    instance = await handler.result
-    reactive.update(dict(reactive.state, progress='complete'))
+    @property
+    def async_group(self):
+        return self._group
 
-    return model._replace(instance=instance)
-
-
-async def _predict(pool, model, args, kwargs, state_cb):
-    reactive = _ReactiveState({'meta': {'call': 'predict',
-                                        'model': model.instance_id,
-                                        'args': args,
-                                        'kwargs': kwargs}})
-    reactive.register_state_change_cb(lambda: state_cb(reactive.state))
-
-    reactive.update(dict(reactive.state, progress='accessing_data'))
-    args, kwargs = await _derive_data_access_args(
-        pool, args, kwargs, reactive.register_substate('data_access'))
-
-    handler = pool.create_handler(reactive.register_substate('action').update)
-    handler.run(
-        plugins.exec_predict,
-        model.model_type, model.instance, handler.proc_notify_state_change,
-        *args, **kwargs)
-    prediction = await handler.result
-    reactive.update(dict(reactive.state, progress='complete'))
-    return prediction
+    async def wait_result(self):
+        return await self._task
 
 
 async def _derive_data_access_args(pool, args, kwargs, reactive_state):
     actions = {}
-    for i, arg in enumerate(args):
-        if not isinstance(arg, common.DataAccess):
-            continue
-        actions[i] = _get_data_access_action(pool, reactive_state, i, arg)
-    for key, value in kwargs.items():
-        if not isinstance(value, common.DataAccess):
-            continue
-        actions[key] = _get_data_access_action(pool, reactive_state, key,
-                                               value)
+    async with aio.Group() as group:
+        for i, arg in enumerate(args):
+            if not isinstance(arg, common.DataAccess):
+                continue
+            actions[i] = group.spawn(_get_data_access_action, pool,
+                                     reactive_state, i, arg)
+        for key, value in kwargs.items():
+            if not isinstance(value, common.DataAccess):
+                continue
+            actions[key] = group.spawn(_get_data_access_action, pool,
+                                       reactive_state, i, arg)
 
-    if actions:
-        await asyncio.wait([proc.result for proc in actions.values()
-                            if not proc.result.done()])
-        args = list(args)
-        for key, proc in actions.items():
-            if isinstance(key, int):
-                args[key] = proc.result.result()
-            elif isinstance(key, str):
-                kwargs[key] = proc.result.result()
+        if actions:
+            await asyncio.wait([proc.result for proc in actions.values()
+                                if not proc.result.done()])
+            args = list(args)
+            for key, proc in actions.items():
+                if isinstance(key, int):
+                    args[key] = proc.result.result()
+                elif isinstance(key, str):
+                    kwargs[key] = proc.result.result()
     return args, kwargs
 
 
-def _get_data_access_action(pool, reactive_state, key, data_access):
+async def _get_data_access_action(pool, reactive_state, key, data_access):
     handler = pool.create_handler(
         reactive_state.register_substate(key).update)
     handler.run(

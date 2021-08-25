@@ -28,9 +28,9 @@ setuptools.setup(
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
-        'Operating System :: OS Independent',
+        'Operating System :: Unix',
         'Programming Language :: Python :: 3.8',
         'Topic :: Software Development :: Libraries',
         'Topic :: Utilities'],
@@ -42,5 +42,4 @@ setuptools.setup(
     package_data={'': ['json_schema_repo.json']},
     include_package_data=True,
     install_requires=['appdirs', 'hat-aio', 'hat-json', 'hat-monitor',
-                      'hat-event', 'psutil']
-)
+                      'hat-event', 'psutil'])

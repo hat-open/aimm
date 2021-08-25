@@ -44,6 +44,9 @@ Engine module provides the following interface:
 .. autoclass:: aimm.server.common.Engine
     :members:
 
+.. autoclass:: aimm.server.common.Action
+    :members:
+
 Since there are no strict limitations on the arguments that may be passed to
 plugins, i.e., positional and keyword arguments are mostly passed as-is,
 callers of the actions have the options of passing different special kinds of
