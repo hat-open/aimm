@@ -85,7 +85,6 @@ async def run(conf, client=None):
         controls = []
         for control_conf in conf['control']:
             subgroup = control_group.create_subgroup()
-            subgroup.spawn(aio.call_on_cancel, control_group.close)
             control, proxy = await _create_control(control_conf, engine,
                                                    subgroup, client)
             _bind_resource(group, control)

@@ -1,6 +1,5 @@
-from hat import juggler
 from hat import aio
-import asyncio
+from hat import juggler
 import base64
 import logging
 import numpy
@@ -43,16 +42,17 @@ class REPLControl(common.Control):
         return self._async_group
 
     def _connection_cb(self, connection):
-        session = Session(connection, self._engine, self._conf)
-        self._async_group.spawn(aio.call_on_cancel, session.async_close)
+        subgroup = self._async_group.create_subgroup()
+        Session(connection, self._engine, self._conf, subgroup)
 
 
 class Session(aio.Resource):
 
-    def __init__(self, connection, engine, conf):
+    def __init__(self, connection, engine, conf, async_group):
         self._engine = engine
         self._user = None
         self._conf = conf
+        self._async_group = async_group
 
         self._connection = juggler.RpcConnection(connection, {
             'login': self._login,
@@ -63,30 +63,36 @@ class Session(aio.Resource):
             'fit': self._fit,
             'predict': self._predict})
 
+        _bind_resource(self._async_group, self._connection)
+
+        self._async_group.spawn(self._run)
+
     @property
     def async_group(self):
-        return self._connection.async_group
+        return self._async_group
 
     async def _run(self):
         await self._on_state_change()
         with self._engine.subscribe_to_state_change(
                 lambda: self.async_group.spawn(self._on_state_change)):
-            await self.async_group.wait_closing()
+            await self._connection.wait_closed()
 
     async def _on_state_change(self):
-        self._connection.set_local_data(
-            await _state_to_json(self._engine.state))
+        if self._user:
+            self._connection.set_local_data(
+                await _state_to_json(self._engine.state))
 
     def _login(self, username, password):
         if {'username': username, 'password': password} in self._conf['users']:
             self._user = username
             self.async_group.spawn(self._run)
         else:
-            asyncio.get_event_loop().call_later(1, self.close)
+            self.close()
             raise Exception('login failed')
 
     def _logout(self):
         self._user = None
+        self._connection.set_local_data(None)
 
     async def _create_instance(self, model_type, args, kwargs):
         self._check_authorization()

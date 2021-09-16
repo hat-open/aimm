@@ -1,5 +1,6 @@
 from hat import aio
 import asyncio
+import hashlib
 import pytest
 
 from aimm import plugins
@@ -10,9 +11,6 @@ import aimm.server.engine
 
 
 pytestmark = pytest.mark.asyncio
-
-
-_password_hash = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"  # NOQA
 
 
 class MockEngine(common.Engine):
@@ -83,10 +81,12 @@ def juggler_port(unused_tcp_port):
 
 @pytest.fixture
 def conf(juggler_port):
+    password_hash = hashlib.sha256()
+    password_hash.update('password'.encode('utf-8'))
     return {'server': {'host': '127.0.0.1', 'port': juggler_port},
             'users': [{
                 'username': 'user',
-                'password': _password_hash}]}
+                'password': password_hash.hexdigest()}]}
 
 
 async def test_login(conf, juggler_port, monkeypatch):
