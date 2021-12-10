@@ -6,10 +6,9 @@ import subprocess
 
 repo_root = Path(__file__).parent
 os.chdir(repo_root)
-subprocess.check_call(['doit', 'schemas_json'])
 
 
-with open(repo_root / 'VERSION') as fh:
+with open(repo_root / 'VERSION', 'r') as fh:
     version = fh.read()[:-1]
 
 with open(repo_root / 'README.rst', 'r') as fh:

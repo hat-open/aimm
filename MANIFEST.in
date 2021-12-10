@@ -1,1 +1,2 @@
 include aimm/json_schema_repo.json
+include VERSION

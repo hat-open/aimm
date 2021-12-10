@@ -12,8 +12,7 @@ def create_subscription(conf):
 
 
 async def create(conf, async_group, event_client):
-    common.json_schema_repo.validate('aimm://server/backend/event.yaml#',
-                                     conf)
+    common.json_schema_repo.validate('aimm://server/backend/event.yaml#', conf)
     backend = EventBackend()
 
     backend._model_prefix = conf['model_prefix']
