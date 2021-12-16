@@ -38,19 +38,30 @@ def main():
 
 
 async def async_main(conf):
-    if 'hat' not in conf:
-        mlog.info('running without hat compatibility')
-        return await run(conf)
+    async_group = aio.Group()
+    hat_conf = conf.get('hat') or {}
+    if 'monitor' in hat_conf:
 
-    monitor = await hat.monitor.client.connect(conf['hat']['monitor'])
-    component = hat.monitor.client.Component(
-        monitor, run_monitor_component, conf, monitor)
-    component.set_enabled(True)
+        monitor = await hat.monitor.client.connect(hat_conf['monitor'])
+        _bind_resource(async_group, monitor)
 
-    try:
-        await component.wait_closing()
-    finally:
-        await aio.uncancellable(monitor.async_close())
+        component = hat.monitor.client.Component(
+            monitor, run_monitor_component, conf, monitor)
+        component.set_enabled(True)
+        _bind_resource(async_group, component)
+
+        try:
+            await async_group.wait_closing()
+        finally:
+            await aio.uncancellable(monitor.async_close())
+    elif 'event_server_address' in hat_conf:
+        client = await hat.event.client.connect(
+            hat_conf['event_server_address'], list(_get_subscriptions(conf)))
+        _bind_resource(async_group, client)
+        await async_group.spawn(run, conf, client)
+    else:
+        mlog.debug('running without hat compatibility')
+        await run(conf)
 
 
 async def run_monitor_component(_, conf, monitor):

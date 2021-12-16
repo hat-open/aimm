@@ -197,7 +197,7 @@ def create_backend_subscription(
     to satisfy the given signature"""
 
 
-class Backend(aio.Resource, abc.ABC):
+class Backend(aio.Resource):
 
     """Backend interface. In order to integrate in the aimm server, create a
     module with the implementation and function ``create`` that creates a

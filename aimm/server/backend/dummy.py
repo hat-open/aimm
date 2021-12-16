@@ -1,4 +1,5 @@
 from hat import aio
+from hat import util
 
 from aimm.server import common
 
@@ -24,3 +25,6 @@ class DummyBackend(common.Backend):
 
     async def update_model(self, model):
         return
+
+    def register_model_change_cb(self, cb):
+        return util.RegisterCallbackHandle()
