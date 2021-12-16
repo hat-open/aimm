@@ -118,10 +118,12 @@ class _Engine(common.Engine):
         self._callback_registry.notify()
 
     async def _create_instance(self, model_type, args, kwargs, state_cb):
-        reactive = _ReactiveState({'meta': {'call': 'create_instance',
-                                            'model_type': model_type,
-                                            'args': args,
-                                            'kwargs': kwargs}})
+        reactive = _ReactiveState({
+            'meta': {
+                'call': 'create_instance',
+                'model_type': model_type,
+                'args': [str(a) for a in args],
+                'kwargs': {k: str(v) for k, v in kwargs.items()}}})
         reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
         reactive.update(dict(reactive.state, progress='accessing_data'))
@@ -148,10 +150,12 @@ class _Engine(common.Engine):
         return model
 
     async def _fit(self, instance_id, args, kwargs, state_cb):
-        reactive = _ReactiveState({'meta': {'call': 'fit',
-                                            'model': instance_id,
-                                            'args': args,
-                                            'kwargs': kwargs}})
+        reactive = _ReactiveState({
+            'meta': {
+                'call': 'fit',
+                'model': instance_id,
+                'args': [str(a) for a in args],
+                'kwargs': {k: str(v) for k, v in kwargs.items()}}})
         reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
         reactive.update(dict(reactive.state, progress='accessing_data'))
@@ -180,10 +184,12 @@ class _Engine(common.Engine):
         return new_model
 
     async def _predict(self, instance_id, args, kwargs, state_cb):
-        reactive = _ReactiveState({'meta': {'call': 'predict',
-                                            'model': instance_id,
-                                            'args': args,
-                                            'kwargs': kwargs}})
+        reactive = _ReactiveState({
+            'meta': {
+                'call': 'predict',
+                'model': instance_id,
+                'args': [str(a) for a in args],
+                'kwargs': {k: str(v) for k, v in kwargs.items()}}})
         reactive.register_state_change_cb(lambda: state_cb(reactive.state))
 
         reactive.update(dict(reactive.state, progress='accessing_data'))
