@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import setuptools
-import subprocess
 
 
 repo_root = Path(__file__).parent

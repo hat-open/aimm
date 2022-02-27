@@ -239,25 +239,23 @@ async def _derive_data_access_args(pool, args, kwargs, reactive_state):
                                        reactive_state, i, arg)
 
         if actions:
-            await asyncio.wait([proc.result for proc in actions.values()
-                                if not proc.result.done()])
+            await asyncio.wait([task for task in actions.values()])
             args = list(args)
-            for key, proc in actions.items():
+            for key, task in actions.items():
                 if isinstance(key, int):
-                    args[key] = proc.result.result()
+                    args[key] = task.result()
                 elif isinstance(key, str):
-                    kwargs[key] = proc.result.result()
+                    kwargs[key] = task.result()
     return args, kwargs
 
 
 async def _get_data_access_action(pool, reactive_state, key, data_access):
     handler = pool.create_handler(
         reactive_state.register_substate(key).update)
-    handler.run(
+    return await handler.run(
         plugins.exec_data_access,
         data_access.name, handler.proc_notify_state_change,
         *data_access.args, **data_access.kwargs)
-    return handler
 
 
 class _ReactiveState:
