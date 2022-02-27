@@ -39,8 +39,8 @@ initial_view: login
 users:
   - name: user
     password:
-        hash: 7b21e2726033becd34582fe850437f52e03afde86debd8edbab58a5731ef4dbc
-        salt: b8454437a170fd8a86833a3c89ed0bc6
+        hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
+        salt: 497b53087260002cd62ffabc94267437
     roles:
         - user_role
     view: grid
