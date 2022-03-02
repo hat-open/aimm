@@ -19,7 +19,7 @@ try:
             package_path / 'json_schema_repo.json'))
     """JSON schema repository"""
 except Exception as e:
-    mlog.error('could not load JSON schema, AIMM will not work properly: %e',
+    mlog.error('could not load JSON schema, AIMM will not work properly: %s',
                e, exc_info=e)
     json_schema_repo: json.SchemaRepository({})
 
