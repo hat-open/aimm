@@ -54,7 +54,9 @@ def task_docs():
         args = args or []
         subprocess.run(
             ['sphinx-build', 'docs', 'build/docs', '-q', *args])
-    return {'actions': [run], 'pos_arg': 'args'}
+    return {'actions': [run],
+            'pos_arg': 'args',
+            'task_dep': ['schemas_json']}
 
 
 def task_build():
