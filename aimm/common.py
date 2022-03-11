@@ -21,7 +21,8 @@ try:
 except Exception as e:
     mlog.error('could not load JSON schema, AIMM will not work properly: %s',
                e, exc_info=e)
-    json_schema_repo: json.SchemaRepository = json.SchemaRepository({})
+    json_schema_repo: json.SchemaRepository = json.SchemaRepository(
+        {'id': 'placeholder'})
 
 
 JSON = typing.Union[None, bool, int, float, str, typing.List['JSON'],
