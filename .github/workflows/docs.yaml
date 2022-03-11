@@ -21,14 +21,10 @@ jobs:
                 pip install -r requirements.txt
           - name: doit docs
             run: doit docs
-          - name: create CNAME
-            if: github.repository == 'hat-open/aimm'
-            run: |
-                 echo "aimm.github.io" > build/docs/CNAME
           - name: deploy
             uses: peaceiris/actions-gh-pages@v3
             with:
                 github_token: ${{ secrets.GITHUB_TOKEN }}
-                publish_dir: ./build/docs
-                publish_branch: gh-pages
+                publish_dir: .
+                publish_branch: rtd
                 force_orphan: true
