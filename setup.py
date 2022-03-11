@@ -19,7 +19,7 @@ setuptools.setup(
     version=version,
     url='https://github.com/hat-open/aimm',
     author='Zlatan Sičanica',
-    author_email='zlatan.sicanica@koncar-ket.hr',
+    author_email='zlatan.sicanica@koncar.hr',
     description='Artificial intelligence model manager',
     long_description=long_description,
     long_description_content_type='text/markdown',
