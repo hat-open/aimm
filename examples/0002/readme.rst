@@ -17,5 +17,4 @@ available at ``localhost:23023``. Lastly, run the AIMM server by running the
 ``./aimm.sh`` script. After running the AIMM server, its estimations will also
 be visible in the GUI.
 
-When prompted for login, the username is ``user`` and the password is an empty
-string.
+When prompted for login, the username is ``user`` and the password is ``pass``.
