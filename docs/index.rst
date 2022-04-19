@@ -9,3 +9,4 @@ Content
     plugins
     server/index
     clients/index
+    cite
