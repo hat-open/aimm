@@ -1,0 +1,37 @@
+---
+devices:
+    - module: air_supervision.devices.air_readings
+      name: device
+      dataset_path: ../../dataset/sanatized.csv
+event_server_group: event
+gateway_name: gateway
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - console
+        - syslog
+        level: INFO
+    version: 1
+monitor:
+    component_address: null
+    group: gateway
+    monitor_address: tcp+sbs://127.0.0.1:23010
+    name: gateway
+type: gateway
+...

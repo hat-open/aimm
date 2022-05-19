@@ -1,0 +1,52 @@
+---
+type: gui
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - console
+        - syslog
+        level: INFO
+    version: 1
+monitor:
+    component_address: null
+    group: gui
+    monitor_address: tcp+sbs://127.0.0.1:23010
+    name: gui
+event_server_group: event
+adapters:
+  - module: air_supervision.adapters.timeseries
+    name: timeseries
+views:
+  - name: login
+    view_path: ../../build/views/login
+    conf_path: null
+  - name: main
+    view_path: ../../build/views/main
+    conf_path: null
+address: http://0.0.0.0:23023
+initial_view: login
+users:
+  - name: user1
+    password:
+        hash: 0927f26c1e200037ef44e622d39d5b7c201690c85b9aa86545d6583ecff2b02f
+        salt: 7af08c40f25d800fa3d1ab3f8199adbd
+    roles:
+        - user
+    view: main
+...

@@ -1,0 +1,106 @@
+---
+type: orchestrator
+ui:
+    address: http://0.0.0.0:23021
+components:
+-   args:
+    - hat-syslog
+    - --conf
+    - ./data/syslog.yaml
+    delay: 0
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-manager
+    - --conf
+    - ./data/manager.yaml
+    delay: 2
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-monitor
+    - --conf
+    - ./data/monitor.yaml
+    delay: 0
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-event
+    - --conf
+    - ./data/event.yaml
+    delay: 1
+    name: event
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-gateway
+    - --conf
+    - ./data/gateway.yaml
+    delay: 2
+    name: gateway
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-gui
+    - --conf
+    - ./data/gui.yaml
+    delay: 3
+    name: gui
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - aimm-server
+    - --conf
+    - ./data/aimm.yaml
+    delay: 3
+    name: aimm
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - console
+        - syslog
+        level: INFO
+    version: 1
+...

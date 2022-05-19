@@ -1,0 +1,31 @@
+---
+devices:
+    - module: hat.device
+      name: device
+event_server_group: event
+gateway_name: gateway
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+monitor:
+    component_address: null
+    group: gateway
+    monitor_address: tcp+sbs://127.0.0.1:23010
+    name: gateway
+type: gateway
+...

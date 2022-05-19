@@ -1,0 +1,57 @@
+---
+hat:
+    monitor:
+        component_address: null
+        group: aimm
+        monitor_address: tcp+sbs://127.0.0.1:23010
+        name: aimm
+    event_server_group: event
+engine:
+    sigterm_timeout: 5
+    max_children: 5
+    check_children_period: 3
+backend:
+    module: aimm.server.backend.sqlite
+    path: data/aimm.db
+control:
+  - module: aimm.server.control.repl
+    server:
+        host: 127.0.0.1
+        port: 9999
+    users:
+        - username: user
+          password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  - module: aimm.server.control.event
+    event_prefixes:
+        predict: ['aimm', 'predict']
+        create_instance: ['aimm', 'create_instance']
+        fit: ['aimm', 'fit']
+    state_event_type: ['aimm', 'state']
+    action_state_event_type: ['aimm', 'action']
+plugins:
+    names:
+        - 'air_supervision.aimm.regression_models'
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - console
+        - syslog
+        level: INFO
+    version: 1
+...

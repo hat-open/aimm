@@ -1,0 +1,6 @@
+node_modules/
+build/
+.idea/
+.venv
+__pycache__/
+
