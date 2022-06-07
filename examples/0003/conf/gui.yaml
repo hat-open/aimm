@@ -5,16 +5,21 @@ log:
     formatters:
         default: {}
     handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
-            comm_type: TCP
-            formatter: default
             host: 127.0.0.1
-            level: INFO
             port: 6514
-            queue_size: 10
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
     root:
         handlers:
+        - console
         - syslog
         level: INFO
     version: 1
@@ -25,23 +30,23 @@ monitor:
     name: gui
 event_server_group: event
 adapters:
-  - module: hat.adapter
-    name: adapter
+  - module: air_supervision.adapters.timeseries
+    name: timeseries
 views:
   - name: login
-    view_path: ./view/login
+    view_path: build/views/login
     conf_path: null
-  - name: grid
-    view_path: ./view/grid
+  - name: main
+    view_path: build/views/main
     conf_path: null
-address: http://127.0.0.1:23023
+address: http://0.0.0.0:23023
 initial_view: login
 users:
-  - name: user
+  - name: user1
     password:
-        hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
-        salt: 497b53087260002cd62ffabc94267437
+        hash: 0927f26c1e200037ef44e622d39d5b7c201690c85b9aa86545d6583ecff2b02f
+        salt: 7af08c40f25d800fa3d1ab3f8199adbd
     roles:
-        - user_role
-    view: grid
+        - user
+    view: main
 ...

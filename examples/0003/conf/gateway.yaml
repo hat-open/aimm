@@ -1,7 +1,8 @@
 ---
 devices:
-    - module: hat.device
+    - module: air_supervision.devices.air_readings
       name: device
+      dataset_path: dataset/sanatized.csv
 event_server_group: event
 gateway_name: gateway
 log:
@@ -9,16 +10,21 @@ log:
     formatters:
         default: {}
     handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
-            comm_type: TCP
-            formatter: default
             host: 127.0.0.1
-            level: INFO
             port: 6514
-            queue_size: 10
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
     root:
         handlers:
+        - console
         - syslog
         level: INFO
     version: 1

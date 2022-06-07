@@ -31,7 +31,7 @@ class GenericModel(ABC):
 
         if self._id:
 
-            df = pandas.read_csv('../../dataset/sanatized.csv')
+            df = pandas.read_csv('dataset/sanatized.csv')
             goal = 'PT08.S1(CO)'
             x, y = [], []
             for i in range(48, len(df) - 24, 24):

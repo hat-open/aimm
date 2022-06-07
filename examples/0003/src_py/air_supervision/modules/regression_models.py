@@ -3,7 +3,7 @@ import numpy
 import hat.aio
 import hat.event.server.common
 
-from src_py.air_supervision.modules.regression_model_generic import GenericModel, _register_event, RETURN_TYPE
+from air_supervision.modules.regression_model_generic import GenericModel, _register_event, RETURN_TYPE
 
 
 class MultiOutputSVR(GenericModel):

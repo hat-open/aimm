@@ -1,16 +1,30 @@
 ---
+type: orchestrator
+ui:
+    address: http://0.0.0.0:23021
 components:
 -   args:
     - hat-syslog
     - --conf
     - ./conf/syslog.yaml
     delay: 0
-    name: syslog
+    name: monitor
     revive: false
-    start_delay: 1
-    create_timeout: 5
+    start_delay: 0.5
+    create_timeout: 2
     sigint_timeout: 2
-    sigkill_timeout: 3
+    sigkill_timeout: 2
+-   args:
+    - hat-manager
+    - --conf
+    - ./conf/manager.yaml
+    delay: 2
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
 -   args:
     - hat-monitor
     - --conf
@@ -18,10 +32,10 @@ components:
     delay: 0
     name: monitor
     revive: false
-    start_delay: 1
-    create_timeout: 5
+    start_delay: 0.5
+    create_timeout: 2
     sigint_timeout: 2
-    sigkill_timeout: 3
+    sigkill_timeout: 2
 -   args:
     - hat-event
     - --conf
@@ -29,10 +43,10 @@ components:
     delay: 1
     name: event
     revive: false
-    start_delay: 1
-    create_timeout: 5
+    start_delay: 0.5
+    create_timeout: 2
     sigint_timeout: 2
-    sigkill_timeout: 3
+    sigkill_timeout: 2
 -   args:
     - hat-gateway
     - --conf
@@ -40,10 +54,10 @@ components:
     delay: 2
     name: gateway
     revive: false
-    start_delay: 1
-    create_timeout: 5
+    start_delay: 0.5
+    create_timeout: 2
     sigint_timeout: 2
-    sigkill_timeout: 3
+    sigkill_timeout: 2
 -   args:
     - hat-gui
     - --conf
@@ -51,29 +65,42 @@ components:
     delay: 3
     name: gui
     revive: false
-    start_delay: 1
-    create_timeout: 5
+    start_delay: 0.5
+    create_timeout: 2
     sigint_timeout: 2
-    sigkill_timeout: 3
+    sigkill_timeout: 2
+-   args:
+    - aimm-server
+    - --conf
+    - ./conf/aimm.yaml
+    delay: 3
+    name: aimm
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
 log:
     disable_existing_loggers: false
     formatters:
         default: {}
     handlers:
+        console:
+            class: logging.StreamHandler
+            level: INFO
+            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
-            comm_type: TCP
-            formatter: default
             host: 127.0.0.1
-            level: INFO
             port: 6514
-            queue_size: 10
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
     root:
         handlers:
+        - console
         - syslog
         level: INFO
     version: 1
-type: orchestrator
-ui:
-    address: http://127.0.0.1:23021
 ...
