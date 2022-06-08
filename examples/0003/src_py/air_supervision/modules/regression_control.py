@@ -47,6 +47,7 @@ async def create(conf, engine):
 
     module._readings_done = None
     module._readings = []
+
     module.data_tracker = 0
 
     module._request_id = None
@@ -124,8 +125,7 @@ class ReadingsModule(hat.event.server.common.Module):
                 try:
                     self._async_group.spawn(self._MODELS[model_name].fit)
                     self.send_message(model_name, 'new_current_model')
-                    hyperparameters = self._MODELS[
-                        model_name].get_default_setting()  # {'name': 'Precision', 'value': 0.02}
+                    hyperparameters = self._MODELS[model_name].get_default_setting()
                     self.send_message(hyperparameters, 'setting')
                 except:
                     pass
@@ -135,6 +135,7 @@ class ReadingsModule(hat.event.server.common.Module):
                 pass
 
             if request_type == RETURN_TYPE.PREDICT:
+
                 def _process_event(event_type, payload, source_timestamp=None):
                     return self._engine.create_process_event(
                         self._source,
@@ -200,8 +201,8 @@ class ReadingsModule(hat.event.server.common.Module):
             return
 
         self._MODELS[received_model_name] = \
-            getattr(importlib.import_module("air_supervision.modules.model_controller"), received_model_name)(self,
-                                                                                                              received_model_name)
+            getattr(importlib.import_module("air_supervision.modules.regression_models"),
+                    received_model_name)(self, received_model_name)
 
         try:
             self._async_group.spawn(self._MODELS[received_model_name].create_instance)
@@ -232,7 +233,7 @@ class ReadingsModule(hat.event.server.common.Module):
 
     def process_reading(self, event):
 
-        self.send_message(["Forest", "SVM", "Cluster"], 'supported_models')
+        self.send_message(["MultiOutputSVR", "linear", "constant"], 'supported_models')
 
         self._readings += [event.payload.data]
 
@@ -242,6 +243,7 @@ class ReadingsModule(hat.event.server.common.Module):
 
             if self._current_model_name:
                 self._async_group.spawn(self._MODELS[self._current_model_name].predict, model_input)
+
         # if self._current_model_name:
         #     d = event.payload.data['timestamp']
         #     predict_row = [float(event.payload.data['value']),

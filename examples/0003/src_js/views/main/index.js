@@ -37,40 +37,23 @@ export function plot() {
         staticPlot: true
     };
 
-    // const reading_trace = {
-    //     x: r.get('remote', 'timeseries', 'reading').keys(),
-    //     y: r.get('remote', 'timeseries', 'reading'),
-    //     line: { shape: 'spline' },
-    //     type: 'scatter',
-    //     name: 'Reading'
-    // };
     const reading_trace = {
-        // x: r.get('remote', 'timeseries','timestamps','reading'),
         x: r.get('remote', 'timeseries','values','reading').keys(),
         y: r.get('remote', 'timeseries','values','reading'),
         line: { shape: 'spline' },
         type: 'scatter',
         name: 'Reading'
     };
-    // const forecast_trace = {
-    //     x: r.get('remote', 'timeseries', 'forecast').map((_, k) => k + 47),
-    //     y: r.get('remote', 'timeseries', 'forecast'),
-    //     line: { shape: 'spline' },
-    //     type: 'scatter',
-    //     name: 'Forecast'
-    // };
-        const forecast_trace = {
-        // x: r.get('remote', 'timeseries','timestamps','forecast'),
-        x: r.get('remote', 'timeseries','values','forecast').keys(),
+
+    const forecast_trace = {
+        x: r.get('remote', 'timeseries','values','forecast').map((_, k) => k + 47),
         y: r.get('remote', 'timeseries','values','forecast'),
         line: { shape: 'spline' },
         type: 'scatter',
         name: 'Forecast'
     };
-    const data = [reading_trace, forecast_trace];
 
     const cur_model_name = r.get('remote','timeseries','info','new_current_model');
-    const setting_name = r.get('remote','timeseries','info','setting','name');
 
     function on_radio_switch(model_type){
         console.log("Picked: " + model_type);
@@ -135,6 +118,7 @@ export function plot() {
 
          return ["div",t];
     }
+    const data = [reading_trace, forecast_trace];
     return ['div',
         [
 
@@ -163,62 +147,5 @@ export function plot() {
             }
         ]
     ];
-    // return ['div',
-    //     [
-    //         ["label",{props: {for: 'input1'}},' Previous Model '],
-    //         ["input",{props: {disabled: true, id: 'input1',value:  r.get('remote','timeseries','model_before')}}],
-    //         ["label",{props: {for: 'input2'}},' Current Model '],
-    //         ["input",{props: {disabled: true, id: 'input2',value:  r.get('remote','timeseries','model_now')}}]
-    //     ],
-    //
-    //     ['div',
-    //         [["input",
-    //         {
-    //             props: {type: 'radio', id: 'id1', name: 'modelSelect', value: 'linear' },
-    //             on: { click: () => on_radio_switch("linear") }
-    //
-    //         }],
-    //         ["label",{props: {for: 'id1'}},'Linear'],
-    //         ["input",
-    //         {
-    //             props: {type: 'radio', id: 'id2', name: 'modelSelect', value: 'MultiOutputSVR' },
-    //             on: { click: () => on_radio_switch("MultiOutputSVR") }
-    //
-    //         }],
-    //         ["label",{props: {for: 'id2'}},'MultiOutputSVR'],
-    //         ["input",
-    //         {
-    //             props: {type: 'radio', id: 'id3', name: 'modelSelect', value: 'constant' },
-    //             on: { click: () => on_radio_switch("constant") }
-    //
-    //         }],
-    //         ["label",{props: {for: 'id3'}},'constant']]
-    //     ],
-    //     ["button",
-    //         {
-    //             props: {type: 'checkbox', id: 'id_checkbox', name: 'triggerNotebook', value: 'triggerNotebook' },
-    //             on: { click: () => trigger_notebook() }
-    //
-    //         },
-    //         "Run model"
-    //         ],
-    //     ["label",{props: {for: 'id_checkbox'}},''],
-    //     ['div.plot', {
-    //         plotData: data,
-    //         props: {
-    //             style: 'height: 100%'
-    //         },
-    //         hook: {
-    //             insert: vnode => plotly.newPlot(vnode.elm, data, layout, config),
-    //             update: (oldVnode, vnode) => {
-    //                 if (u.equals(oldVnode.data.plotData, vnode.data.plotData)) return;
-    //                 plotly.react(vnode.elm, data, layout, config);
-    //             },
-    //             destroy: vnode => plotly.purge(vnode.elm)
-    //         }
-    //     }
-    //     ]
-    //
-    // ];
 
 }
