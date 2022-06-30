@@ -11,14 +11,14 @@ def create_subscription(conf):
     return hat.event.common.Subscription([tuple([*conf['model_prefix'], '*'])])
 
 
-async def create(conf, async_group, event_client):
+async def create(conf, event_client):
     common.json_schema_repo.validate('aimm://server/backend/event.yaml#', conf)
     backend = EventBackend()
 
     backend._model_prefix = conf['model_prefix']
     backend._executor = aio.create_executor()
     backend._cbs = util.CallbackRegistry()
-    backend._async_group = async_group
+    backend._async_group = aio.Group()
     backend._client = event_client
     backend._async_group.spawn(backend._event_loop)
 

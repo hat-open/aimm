@@ -184,7 +184,6 @@ class Action(aio.Resource, abc.ABC):
 
 
 def create_backend(conf: Dict,
-                   group: aio.Group,
                    event_client: Optional['ProxyClient'] = None
                    ) -> 'Backend':
     """Placeholder of the backend's create function, needs to satisfy the given

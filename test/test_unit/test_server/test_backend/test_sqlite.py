@@ -1,4 +1,3 @@
-from hat import aio
 import pytest
 
 from aimm.server.backend import sqlite
@@ -8,15 +7,13 @@ from aimm import plugins
 
 @pytest.fixture
 async def backend(tmp_path):
-    backend = await sqlite.create({'path': str(tmp_path / 'backend.db')},
-                                  aio.Group(), None)
+    backend = await sqlite.create({'path': str(tmp_path / 'backend.db')}, None)
     yield backend
     await backend.async_close()
 
 
 async def test_create(tmp_path):
-    backend = await sqlite.create({'path': str(tmp_path / 'backend.db')},
-                                  aio.Group(), None)
+    backend = await sqlite.create({'path': str(tmp_path / 'backend.db')}, None)
     assert backend
     await backend.async_close()
 

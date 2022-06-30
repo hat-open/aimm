@@ -82,8 +82,7 @@ async def run(conf, client=None):
     try:
         proxies = []
 
-        backend, proxy = await _create_backend(
-            conf['backend'], group.create_subgroup(), client)
+        backend, proxy = await _create_backend(conf['backend'], client)
         _bind_resource(group, backend)
         if proxy:
             proxies.append(proxy)
@@ -121,12 +120,12 @@ def _get_subscriptions(conf):
             yield from subscription.get_query_types()
 
 
-async def _create_backend(conf, group, client):
+async def _create_backend(conf, client):
     module = importlib.import_module(conf['module'])
     proxy = None
     if client and hasattr(module, 'create_subscription'):
         proxy = common.ProxyClient(client, module.create_subscription(conf))
-    return await module.create(conf, group, proxy), proxy
+    return await module.create(conf, proxy), proxy
 
 
 async def _create_control(conf, engine, client):

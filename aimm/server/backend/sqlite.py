@@ -7,7 +7,7 @@ from aimm.server import common
 from aimm import plugins
 
 
-async def create(conf, group, _):
+async def create(conf, _):
     common.json_schema_repo.validate('aimm://server/backend/sqlite.yaml#',
                                      conf)
     backend = SQLiteBackend()
@@ -16,6 +16,7 @@ async def create(conf, group, _):
     connection = await executor(_ext_db_connect, Path(conf['path']))
     connection.row_factory = sqlite3.Row
 
+    group = aio.Group()
     group.spawn(aio.call_on_cancel, executor, _ext_db_close, connection)
 
     backend._executor = executor

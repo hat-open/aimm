@@ -4,9 +4,9 @@ from hat import util
 from aimm.server import common
 
 
-def create(conf, group, _):
+def create(conf, _):
     backend = DummyBackend()
-    backend._group = group
+    backend._group = aio.Group()
     return backend
 
 
