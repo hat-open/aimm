@@ -242,7 +242,6 @@ class Backend(aio.Resource):
 
 def create_control(conf: Dict,
                    engine: Engine,
-                   group: aio.Group,
                    event_client: Optional['ProxyClient'] = None
                    ) -> 'Control':
     """Placeholder of the control's create function, needs to satisfy the given

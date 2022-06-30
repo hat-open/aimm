@@ -13,7 +13,7 @@ from aimm import plugins
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf, engine, async_group, _):
+async def create(conf, engine, _):
     common.json_schema_repo.validate('aimm://server/control/repl.yaml#', conf)
     control = REPLControl()
 
@@ -24,6 +24,7 @@ async def create(conf, engine, async_group, _):
         autoflush_delay=srv_conf.get('autoflush_delay', 0.2),
         shutdown_timeout=srv_conf.get('shutdown_timeout', 0.1))
 
+    async_group = aio.Group()
     _bind_resource(async_group, server)
 
     control._conf = conf

@@ -92,12 +92,10 @@ async def run(conf, client=None):
             conf['engine'], backend, group.create_subgroup())
         _bind_resource(group, engine)
 
-        control_group = group.create_subgroup()
         controls = []
         for control_conf in conf['control']:
-            subgroup = control_group.create_subgroup()
             control, proxy = await _create_control(control_conf, engine,
-                                                   subgroup, client)
+                                                   client)
             _bind_resource(group, control)
             controls.append(control)
             if proxy:
@@ -131,12 +129,12 @@ async def _create_backend(conf, group, client):
     return await module.create(conf, group, proxy), proxy
 
 
-async def _create_control(conf, engine, group, client):
+async def _create_control(conf, engine, client):
     module = importlib.import_module(conf['module'])
     proxy = None
     if client and hasattr(module, 'create_subscription'):
         proxy = common.ProxyClient(client, module.create_subscription(conf))
-    return await module.create(conf, engine, group, proxy), proxy
+    return await module.create(conf, engine, proxy), proxy
 
 
 async def _recv_loop(proxies, client):

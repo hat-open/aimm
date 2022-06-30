@@ -10,9 +10,6 @@ import aimm.server.control.repl
 import aimm.server.engine
 
 
-pytestmark = pytest.mark.asyncio
-
-
 class MockEngine(common.Engine):
     def __init__(self, state={'models': {}, 'actions': {}},
                  create_instance_cb=None, add_instance_cb=None,
@@ -92,17 +89,17 @@ def conf(juggler_port):
 async def test_login(conf, juggler_port, monkeypatch):
     engine = MockEngine()
     engine.state = {'models': {}, 'actions': {}}
-    async with aio.Group() as group:
-        await aimm.server.control.repl.create(conf, engine, group, None)
-        client = aimm.client.repl.AIMM()
-        with monkeypatch.context() as ctx:
-            aimm.client.repl.input = input
-            ctx.setattr(aimm.client.repl, 'input', lambda _: 'user')
-            ctx.setattr(aimm.client.repl, 'getpass', lambda _: 'password')
-            await client.connect(f'ws://127.0.0.1:{juggler_port}/ws')
-        await asyncio.sleep(0.3)
-        assert client.state == {'models': {}, 'actions': {}}
-        await client.async_close()
+    control = await aimm.server.control.repl.create(conf, engine, None)
+    client = aimm.client.repl.AIMM()
+    with monkeypatch.context() as ctx:
+        aimm.client.repl.input = input
+        ctx.setattr(aimm.client.repl, 'input', lambda _: 'user')
+        ctx.setattr(aimm.client.repl, 'getpass', lambda _: 'password')
+        await client.connect(f'ws://127.0.0.1:{juggler_port}/ws')
+    await asyncio.sleep(0.3)
+    assert client.state == {'models': {}, 'actions': {}}
+    await client.async_close()
+    await control.async_close()
 
 
 async def _connect(username, password, port, monkeypatch):
@@ -143,12 +140,12 @@ async def test_create_instance(plugins_model1, conf, juggler_port,
         return await done_future
 
     engine = MockEngine(create_instance_cb=create_instance_cb)
-    async with aio.Group() as group:
-        await aimm.server.control.repl.create(conf, engine, group, None)
-        client = await _connect('user', 'password', juggler_port, monkeypatch)
+    control = await aimm.server.control.repl.create(conf, engine, None)
+    client = await _connect('user', 'password', juggler_port, monkeypatch)
 
-        args = ['a1', 'a2']
-        kwargs = {'k1': '1'}
+    args = ['a1', 'a2']
+    kwargs = {'k1': '1'}
+    async with aio.Group() as group:
         task = group.spawn(client.create_instance, 'Model1', *args, **kwargs)
         call = await create_queue.get()
         assert call['model_type'] == 'Model1'
@@ -159,7 +156,8 @@ async def test_create_instance(plugins_model1, conf, juggler_port,
                                                     instance_id=1,
                                                     model_type='Model1'))
         model = await task
-        assert model
+    assert model
+    await control.async_close()
 
 
 async def test_add_instance(plugins_model1, conf, juggler_port, monkeypatch):
@@ -174,10 +172,10 @@ async def test_add_instance(plugins_model1, conf, juggler_port, monkeypatch):
         return await done_future
 
     engine = MockEngine(add_instance_cb=add_instance_cb)
-    async with aio.Group() as group:
-        await aimm.server.control.repl.create(conf, engine, group, None)
-        client = await _connect('user', 'password', juggler_port, monkeypatch)
+    control = await aimm.server.control.repl.create(conf, engine, None)
+    client = await _connect('user', 'password', juggler_port, monkeypatch)
 
+    async with aio.Group() as group:
         task = group.spawn(client.add_instance, 'Model1', 'xyz')
         call = await add_queue.get()
         assert call['instance'] == 'xyz'
@@ -187,7 +185,8 @@ async def test_add_instance(plugins_model1, conf, juggler_port, monkeypatch):
                                                     instance_id=1,
                                                     model_type='Model1'))
         model = await task
-        assert model
+    assert model
+    await control.async_close()
 
 
 async def test_fit(plugins_model1, conf, juggler_port, monkeypatch):
@@ -203,12 +202,12 @@ async def test_fit(plugins_model1, conf, juggler_port, monkeypatch):
         return await done_future
 
     engine = MockEngine(fit_cb=fit_cb)
-    async with aio.Group() as group:
-        await aimm.server.control.repl.create(conf, engine, group, None)
-        client = await _connect('user', 'password', juggler_port, monkeypatch)
+    control = await aimm.server.control.repl.create(conf, engine, None)
+    client = await _connect('user', 'password', juggler_port, monkeypatch)
 
-        args = ['a1', 'a2']
-        kwargs = {'k1': '1'}
+    args = ['a1', 'a2']
+    kwargs = {'k1': '1'}
+    async with aio.Group() as group:
         task = group.spawn(client.fit, 1, *args, **kwargs)
         call = await fit_queue.get()
         assert call['instance_id'] == 1
@@ -219,7 +218,8 @@ async def test_fit(plugins_model1, conf, juggler_port, monkeypatch):
                                                     instance_id=1,
                                                     model_type='Model1'))
         model = await task
-        assert model
+    assert model
+    await control.async_close()
 
 
 async def test_predict(plugins_model1, conf, juggler_port, monkeypatch):
@@ -235,12 +235,12 @@ async def test_predict(plugins_model1, conf, juggler_port, monkeypatch):
         return await done_future
 
     engine = MockEngine(predict_cb=predict_cb)
-    async with aio.Group() as group:
-        await aimm.server.control.repl.create(conf, engine, group, None)
-        client = await _connect('user', 'password', juggler_port, monkeypatch)
+    control = await aimm.server.control.repl.create(conf, engine, None)
+    client = await _connect('user', 'password', juggler_port, monkeypatch)
 
-        args = ['a1', 'a2']
-        kwargs = {'k1': '1'}
+    args = ['a1', 'a2']
+    kwargs = {'k1': '1'}
+    async with aio.Group() as group:
         task = group.spawn(client.predict, 1, *args, **kwargs)
         call = await predict_queue.get()
         assert call['instance_id'] == 1
@@ -249,3 +249,4 @@ async def test_predict(plugins_model1, conf, juggler_port, monkeypatch):
 
         call['done_future'].set_result([1, 2, 3, 4])
         assert await task == [1, 2, 3, 4]
+    await control.async_close()

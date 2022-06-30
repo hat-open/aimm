@@ -17,7 +17,7 @@ def create_subscription(conf):
         [tuple([*p, '*']) for p in conf['event_prefixes'].values()])
 
 
-async def create(conf, engine, async_group, event_client):
+async def create(conf, engine, event_client):
     common.json_schema_repo.validate('aimm://server/control/event.yaml#', conf)
     if event_client is None:
         raise ValueError('attempting to create event control without hat '
@@ -27,7 +27,7 @@ async def create(conf, engine, async_group, event_client):
 
     control._client = event_client
     control._engine = engine
-    control._async_group = async_group
+    control._async_group = aio.Group()
     control._event_prefixes = conf['event_prefixes']
     control._state_event_type = conf['state_event_type']
     control._action_state_event_type = conf['action_state_event_type']
