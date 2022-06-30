@@ -6,9 +6,6 @@ from aimm.server import common
 from aimm import plugins
 
 
-pytestmark = pytest.mark.asyncio
-
-
 @pytest.fixture
 async def backend(tmp_path):
     backend = await sqlite.create({'path': str(tmp_path / 'backend.db')},

@@ -26,7 +26,8 @@ def task_test():
     def run(args):
         args = args or []
         subprocess.run(
-            ['python', '-m', 'pytest', '-s', '-p', 'no:cacheprovider', *args],
+            ['python', '-m', 'pytest', '-s', '-p', 'no:cacheprovider',
+             '--asyncio-mode', 'auto', *args],
             cwd='test', check=True)
 
     return {'actions': [run],

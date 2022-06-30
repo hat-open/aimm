@@ -6,9 +6,6 @@ from aimm.server import common
 from aimm import plugins
 
 
-pytestmark = pytest.mark.asyncio
-
-
 class MockBackend(common.Backend):
 
     def __init__(self, models=None):

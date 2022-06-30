@@ -7,9 +7,6 @@ from aimm.server import common
 from aimm import plugins
 
 
-pytestmark = pytest.mark.asyncio
-
-
 class MockClient:
 
     def __init__(self, query_result=[]):

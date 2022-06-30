@@ -9,9 +9,6 @@ import time
 from aimm.server import mprocess
 
 
-pytestmark = pytest.mark.asyncio
-
-
 @pytest.fixture
 def disable_sigterm_handler(monkeypatch):
     default = mprocess._sigterm_override
