@@ -24,8 +24,8 @@ async def create(conf, event_client):
     backend._async_group.spawn(backend._event_loop)
 
     models = await backend.get_models()
-    backend._id_counter = itertools.count(max((int(ev.event_type[-1])
-                                               for ev in models), default=1))
+    backend._id_counter = itertools.count(
+        max((model.instance_id for model in models), default=1))
 
     return backend
 
