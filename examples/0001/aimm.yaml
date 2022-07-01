@@ -1,0 +1,34 @@
+---
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        console:
+            class : logging.StreamHandler
+            level   : INFO
+            stream  : ext://sys.stdout
+    root:
+        handlers:
+        - console
+        level: INFO
+    version: 1
+engine:
+    sigterm_timeout: 5
+    max_children: 5
+    check_children_period: 3
+backend:
+    module: aimm.server.backend.sqlite
+    path: ./data/aimm.db
+control:
+  - module: aimm.server.control.repl
+    server:
+        host: 127.0.0.1
+        port: 9999
+    users:
+        - username: user
+          password: d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1
+plugins:
+    names:
+        - 'plugins.sklearn'
+...

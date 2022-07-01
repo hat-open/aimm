@@ -1,0 +1,52 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Architecture of an Artificial Intelligence Model
+  Manager for Event-Driven Component-Based SCADA
+  Systems
+message: To cite AIMM please use the following parameters
+type: software
+authors:
+  - given-names: Zlatan Sičanica
+    email: zlatan.sicanica@koncar.hr
+    affiliation: Končar — Digital
+    orcid: 'https://orcid.org/0000-0001-9731-3000'
+  - given-names: Stjepan Sučić
+    affiliation: Končar — Digital
+  - given-names: Boris Milašinović
+    affiliation: >-
+      Faculty of Electrical Engineering and
+      Computing, University of Zagreb
+    orcid: 'https://orcid.org/0000-0002-7889-3131'
+identifiers:
+  - type: doi
+    value: 10.1109/ACCESS.2022.3159715
+  - type: url
+    value: 'https://aimm.readthedocs.io/en/latest/'
+repository-code: 'https://github.com/hat-open/aimm'
+abstract: >-
+  This paper analyzes Hat, an open-source framework
+  for developing event-driven component-based SCADA
+  applications, and discusses possibilities to add
+  various analytical tools to such platforms. As a
+  part of the contribution, an open-source component
+  called Artificial Intelligence Model Manager (AIMM)
+  has been developed and integrated into a Hat-based
+  SCADA platform. AIMM is extensible through various
+  plugins, allowing the addition of various models
+  for advanced analytics e.g., machine learning
+  tools, statistical tools, etc. The paper describes
+  AIMM architecture and provides a use case in which
+  state estimation was performed in a medium-voltage
+  distribution grid. This case study demonstrates
+  that it is possible to extend component-based SCADA
+  systems with components for advanced analytics with
+  minimal fundamental system changes.
+keywords:
+  - Artificial intelligence
+  - Power system analysis compouting
+  - SCADA systems
+  - Software architecture
+license: Apache-2.0

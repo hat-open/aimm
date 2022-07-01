@@ -1,0 +1,12 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/hat.yaml#'
+type: object
+properties:
+    monitor:
+        '$ref': 'hat-monitor://client.yaml#'
+    event_server_group:
+        type: string
+    event_server_address:
+        type: string
+...

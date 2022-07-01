@@ -1,0 +1,12 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/backend/event.yaml#'
+type: object
+required:
+    - model_prefix
+properties:
+    model_prefix:
+        type: array
+        items:
+            type: string
+...

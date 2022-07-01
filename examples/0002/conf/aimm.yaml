@@ -1,0 +1,44 @@
+---
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+engine:
+    sigterm_timeout: 5
+    max_children: 5
+    check_children_period: 3
+backend:
+    module: aimm.server.backend.event
+    model_prefix: ['aimm', 'model']
+control:
+  - module: aimm.server.control.event
+    event_prefixes:
+        create_instance: ['aimm', 'create_instance']
+        predict: ['aimm', 'predict']
+    state_event_type: ['aimm', 'state']
+    action_state_event_type: ['aimm', 'response']
+plugins:
+    names:
+        - aimm_plugins.power
+hat:
+    monitor:
+        name: 'aimm'
+        group: 'aimm'
+        monitor_address: 'tcp+sbs://127.0.0.1:23010'
+        component_address: null
+    event_server_group: 'event'
+...

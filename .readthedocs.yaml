@@ -1,0 +1,7 @@
+# .readthedocs.yaml
+
+build:
+    image: latest
+
+python:
+    version: 3.8
