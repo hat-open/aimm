@@ -27,10 +27,12 @@ async def test_models(backend, plugin_teardown):
     def deserialize(instance_blob):
         return instance_blob.decode('utf-8')
 
-    model = common.Model(instance_id=1, instance='instance', model_type='test')
-    await backend.create_model(model)
-    assert await backend.get_models() == [model]
+    await backend.create_model('test', 'instance')
+    expected_model = common.Model(instance_id=1,
+                                  instance='instance',
+                                  model_type='test')
+    assert await backend.get_models() == [expected_model]
 
-    model_updated = model._replace(instance='instance2')
+    model_updated = expected_model._replace(instance='instance2')
     await backend.update_model(model_updated)
     assert await backend.get_models() == [model_updated]

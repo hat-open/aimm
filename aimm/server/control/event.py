@@ -110,8 +110,8 @@ class EventControl(common.Control):
             data = event.payload.data
             instance = await self._instance_from_json(data['instance'],
                                                       data['model_type'])
-            model = await self._engine.add_instance(instance,
-                                                    data['model_type'])
+            model = await self._engine.add_instance(data['model_type'],
+                                                    instance)
             self._register_action_state(event, 'DONE', model.instance_id)
         except Exception as e:
             mlog.warning('add instance failed with exception %s', e,

@@ -40,9 +40,7 @@ async def create(conf: typing.Dict,
     engine._locks = {instance_id: asyncio.Lock()
                      for instance_id in engine._state['models']}
 
-    engine._instance_id_gen = itertools.count(
-        max(engine._state['models'], default=0) + 1)
-    engine._action_id_gen = itertools.count()
+    engine._action_id_gen = itertools.count(1)
 
     engine._pool = mprocess.ProcessManager(
         conf['max_children'], group.create_subgroup(),
@@ -70,15 +68,12 @@ class _Engine(common.Engine):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
         return _Action(
-            self._group.create_subgroup(), self._create_instance,
+            self._group.create_subgroup(), self._act_create_instance,
             model_type, args, kwargs, state_cb)
 
-    async def add_instance(self, instance, model_type):
-        model = common.Model(instance=instance,
-                             model_type=model_type,
-                             instance_id=next(self._instance_id_gen))
+    async def add_instance(self, model_type, instance):
+        model = await self._backend.create_model(model_type, instance)
         self._set_model(model)
-        await self._backend.create_model(model)
         return model
 
     async def update_instance(self, model: common.Model):
@@ -90,7 +85,7 @@ class _Engine(common.Engine):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
         return _Action(
-            self._group.create_subgroup(), self._fit,
+            self._group.create_subgroup(), self._act_fit,
             instance_id, args, kwargs, state_cb)
 
     def predict(self, instance_id, *args, **kwargs):
@@ -98,7 +93,7 @@ class _Engine(common.Engine):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
         return _Action(
-            self._group.create_subgroup(), self._predict,
+            self._group.create_subgroup(), self._act_predict,
             instance_id, args, kwargs, state_cb)
 
     def _update_action(self, action_id, action_state):
@@ -117,7 +112,7 @@ class _Engine(common.Engine):
         self._state = new_state
         self._callback_registry.notify()
 
-    async def _create_instance(self, model_type, args, kwargs, state_cb):
+    async def _act_create_instance(self, model_type, args, kwargs, state_cb):
         reactive = _ReactiveState({
             'meta': {
                 'call': 'create_instance',
@@ -139,17 +134,14 @@ class _Engine(common.Engine):
             model_type, handler.proc_notify_state_change, *args, **kwargs)
 
         reactive.update(dict(reactive.state, progress='storing'))
-        model = common.Model(instance=instance,
-                             model_type=model_type,
-                             instance_id=next(self._instance_id_gen))
-        await self._backend.create_model(model)
+        model = await self._backend.create_model(model_type, instance)
         self._set_model(model)
 
         reactive.update(dict(reactive.state, progress='complete'))
 
         return model
 
-    async def _fit(self, instance_id, args, kwargs, state_cb):
+    async def _act_fit(self, instance_id, args, kwargs, state_cb):
         reactive = _ReactiveState({
             'meta': {
                 'call': 'fit',
@@ -183,7 +175,7 @@ class _Engine(common.Engine):
         self._set_model(new_model)
         return new_model
 
-    async def _predict(self, instance_id, args, kwargs, state_cb):
+    async def _act_predict(self, instance_id, args, kwargs, state_cb):
         reactive = _ReactiveState({
             'meta': {
                 'call': 'predict',

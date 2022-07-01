@@ -179,7 +179,7 @@ async def test_add_instance(plugin_teardown):
 
     add_queue = aio.Queue()
 
-    async def add_instance_cb(instance, model_type):
+    async def add_instance_cb(model_type, instance):
         complete_future = asyncio.Future()
         add_queue.put_nowait({'instance': instance,
                               'model_type': model_type,

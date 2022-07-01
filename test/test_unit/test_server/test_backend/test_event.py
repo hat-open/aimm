@@ -40,9 +40,7 @@ async def test_create_model(string_plugins):
     backend = await event.create({'model_prefix': ['model']}, mock_client)
     assert await backend.get_models() == []
 
-    await backend.create_model(common.Model(instance='instance',
-                                            model_type='type',
-                                            instance_id=1))
+    await backend.create_model('type', 'instance')
     events = await mock_client._register_queue.get()
     assert len(events) == 1
     ev = events[0]
@@ -60,9 +58,7 @@ async def test_get_models(string_plugins):
     backend = await event.create({'model_prefix': ['model']}, mock_client)
     assert await backend.get_models() == []
 
-    await backend.create_model(common.Model(instance='instance',
-                                            model_type='type',
-                                            instance_id=1))
+    await backend.create_model('type', 'instance')
     events = await mock_client._register_queue.get()
     mock_client._query_result = events
 
@@ -80,9 +76,7 @@ async def test_update_model(string_plugins):
     backend = await event.create({'model_prefix': ['model']}, mock_client)
     assert await backend.get_models() == []
 
-    await backend.create_model(common.Model(instance='instance',
-                                            model_type='type',
-                                            instance_id=1))
+    await backend.create_model('type', 'instance')
     await mock_client._register_queue.get()
 
     await backend.update_model(common.Model(instance='instance2',

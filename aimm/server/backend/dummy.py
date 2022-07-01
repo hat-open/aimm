@@ -1,5 +1,5 @@
 from hat import aio
-from hat import util
+import itertools
 
 from aimm.server import common
 
@@ -7,6 +7,7 @@ from aimm.server import common
 def create(conf, _):
     backend = DummyBackend()
     backend._group = aio.Group()
+    backend._id_counter = itertools.count(1)
     return backend
 
 
@@ -20,11 +21,10 @@ class DummyBackend(common.Backend):
     async def get_models(self):
         return []
 
-    async def create_model(self, model):
-        return
+    async def create_model(self, model_type, instance):
+        return common.Model(model_type=model_type,
+                            instance=instance,
+                            instance_id=next(self._id_counter))
 
     async def update_model(self, model):
         return
-
-    def register_model_change_cb(self, cb):
-        return util.RegisterCallbackHandle()

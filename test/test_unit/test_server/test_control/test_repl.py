@@ -164,7 +164,7 @@ async def test_add_instance(plugins_model1, conf, juggler_port, monkeypatch):
 
     add_queue = aio.Queue()
 
-    async def add_instance_cb(instance, model_type):
+    async def add_instance_cb(model_type, instance):
         done_future = asyncio.Future()
         add_queue.put_nowait({'instance': instance,
                               'model_type': model_type,

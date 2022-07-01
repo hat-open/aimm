@@ -120,8 +120,8 @@ class Engine(aio.Resource, abc.ABC):
 
     @abc.abstractmethod
     async def add_instance(self,
-                           instance: Any,
-                           model_type: str) -> Model:
+                           model_type: str,
+                           instance: Any) -> Model:
         """Adds existing instance to the state"""
 
     @abc.abstractmethod
@@ -219,12 +219,9 @@ class Backend(aio.Resource):
             persisted models"""
 
     @abc.abstractmethod
-    async def create_model(self, model: Model):
+    async def create_model(self, model_type: str, instance: Any):
         """Store a new model, requires that a serialization for the model type
-        is defined
-
-        Args:
-            model: model that needs to be persisted"""
+        is defined"""
 
     @abc.abstractmethod
     async def update_model(self, model: Model):

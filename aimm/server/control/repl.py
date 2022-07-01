@@ -107,7 +107,7 @@ class Session(aio.Resource):
     async def _add_instance(self, model_type, instance):
         self._check_authorization()
         instance = await _model_from_json(instance, model_type)
-        model = await self._engine.add_instance(instance, model_type)
+        model = await self._engine.add_instance(model_type, instance)
         return await _model_to_json(model)
 
     async def _update_instance(self, model_type, instance_id, instance):

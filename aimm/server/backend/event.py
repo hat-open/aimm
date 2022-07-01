@@ -2,6 +2,7 @@ from hat import aio
 from hat import util
 import base64
 import hat.event.common
+import itertools
 
 from aimm.server import common
 from aimm import plugins
@@ -22,6 +23,10 @@ async def create(conf, event_client):
     backend._client = event_client
     backend._async_group.spawn(backend._event_loop)
 
+    models = await backend.get_models()
+    backend._id_counter = itertools.count(max((int(ev.event_type[-1])
+                                               for ev in models), default=1))
+
     return backend
 
 
@@ -37,8 +42,12 @@ class EventBackend(common.Backend):
             event_types=[(*self._model_prefix, '*')], unique_type=True))
         return [await self._event_to_model(e) for e in events]
 
-    async def create_model(self, model):
+    async def create_model(self, model_type, instance):
+        model = common.Model(model_type=model_type,
+                             instance=instance,
+                             instance_id=next(self._id_counter))
         await self._register_model(model)
+        return model
 
     async def update_model(self, model):
         await self._register_model(model)

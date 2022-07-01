@@ -24,9 +24,13 @@ class MockBackend(common.Backend):
     async def get_models(self):
         return self._models
 
-    async def create_model(self, model):
+    async def create_model(self, model_type, instance):
+        model = common.Model(instance=instance,
+                             model_type=model_type,
+                             instance_id=len(self._models) + 1)
         self._models.append(model)
         self._queue.put_nowait(('create', model))
+        return model
 
     async def update_model(self, model):
         index = None
@@ -77,17 +81,17 @@ async def test_create_instance(plugin_teardown):
     kwargs = {'p1': 4, 'p2': 5}
     action = eng.create_instance('test', *args, **kwargs)
     model_id = 1
-    model = common.Model(instance=('test', args, kwargs),
-                         instance_id=model_id,
-                         model_type='test')
+    expected_model = common.Model(instance=('test', args, kwargs),
+                                  instance_id=model_id,
+                                  model_type='test')
     await state_queue.get()
     while True:
         state = await state_queue.get()
         if model_id in state['models']:
             break
-    assert state['models'][model_id] == model
-    assert await action.wait_result() == model
-    await backend.queue.get() == ('create', model)
+    assert state['models'][model_id] == expected_model
+    assert await action.wait_result() == expected_model
+    await backend.queue.get() == ('create', expected_model)
     await eng.async_close()
 
 
@@ -104,7 +108,7 @@ async def test_add_instance(plugin_teardown):
         queue.put_nowait(True)
     eng.subscribe_to_state_change(state_change_cb)
 
-    await eng.add_instance(None, 'test')
+    await eng.add_instance('test', None)
     await queue.get()
 
     instance_id = 1
@@ -130,7 +134,7 @@ async def test_fit(plugin_teardown):
         queue.put_nowait(eng.state)
     eng.subscribe_to_state_change(state_change_cb)
 
-    await eng.add_instance('instance', 'test')
+    await eng.add_instance('test', 'instance')
     await queue.get()
     await backend.queue.get()
 
@@ -172,7 +176,7 @@ async def test_predict(plugin_teardown):
         queue.put_nowait(eng.state)
     eng.subscribe_to_state_change(state_change_cb)
 
-    await eng.add_instance(['instance'], 'test')
+    await eng.add_instance('test', ['instance'])
     await queue.get()
     await backend.queue.get()
 
