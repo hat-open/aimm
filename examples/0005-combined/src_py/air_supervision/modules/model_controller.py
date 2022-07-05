@@ -46,49 +46,6 @@ class ReadingsControl:
         self.size -= n
 
 
-async def create(conf, engine):
-    module = ReadingsModule()
-    # module.model_control = ModelControl()
-
-    global _source_id
-    module._source = hat.event.server.common.Source(
-        type=hat.event.server.common.SourceType.MODULE,
-        name=__name__,
-        id=_source_id)
-    _source_id += 1
-
-    module._subscription = hat.event.server.common.Subscription([
-        ('aimm', '*'),
-        ('gui', 'system', 'timeseries', 'reading'),
-        ('back_action', '*')])
-    module._async_group = hat.aio.Group()
-    module._engine = engine
-
-    module._current_model_name = None
-
-    module._readings_control = ReadingsControl()
-
-    module._MODELS = {}
-    module._request_ids = {}
-
-    module._batch_size = 48
-
-    return module
-
-
-# class AnomalyModule:
-#     def __init__(self):
-#         super().__init__()
-#
-#         self._model_type = 'anomaly'
-#         self._import_module_name = "air_supervision.modules.forecast.regression_models"
-#         self._supported_models = ["MultiOutputSVR", "linear", "constant"]
-#         self._readings_control = ReadingsControl()
-#         self._MODELS = {}
-#         self._request_ids = {}
-#         self._batch_size = 48
-
-
 class ReadingsModule(hat.event.server.common.Module):
 
     @property
@@ -130,25 +87,9 @@ class ReadingsModule(hat.event.server.common.Module):
 
         self.send_message(event.payload.data, 'model_state')
 
+
     def process_predict(self, event):
-
-        def _process_event(event_type, payload, source_timestamp=None):
-            return self._engine.create_process_event(
-                self._source,
-                _register_event(event_type, payload, source_timestamp))
-
-        _, timestamps = self._readings_control.get_first_n_readings(self._batch_size)
-
-        ret = [
-            _process_event(
-                ('gui', 'system', 'timeseries', 'forecast'), {
-                    'timestamp': t,
-                    'value': v
-                })
-            for v, t in zip(event.payload.data['result'], timestamps)]
-
-        self._readings_control.remove_first_n_readings(self._batch_size)
-        return ret
+        raise NotImplementedError()
 
     def process_action(self, event):
         if (request_instance := event.payload.data.get('request_id')['instance']) in self._request_ids \
@@ -219,15 +160,7 @@ class ReadingsModule(hat.event.server.common.Module):
             return self.process_action(event)
 
     def process_reading(self, event):
-
-        self.send_message(self._supported_models, 'supported_models')
-
-        self._readings_control.append(event.payload.data["value"], event.payload.data["timestamp"])
-
-        if self._readings_control.size >= self._batch_size + 24 and self._current_model_name:
-            model_input, _ = self._readings_control.get_first_n_readings(self._batch_size)
-
-            self._async_group.spawn(self._MODELS[self._current_model_name].predict, [model_input.tolist()])
+        raise NotImplementedError()
 
 
 class ReadingsSession(hat.event.server.common.ModuleSession):

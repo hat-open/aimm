@@ -5,6 +5,7 @@
     "@hat-core/juggler": "^0.4.1-dev20210707",
     "@hat-core/renderer": "^0.4.1-dev20210707",
     "@reduxjs/toolkit": "^1.8.3",
+    "bootstrap": "^4.6.0",
     "css-loader": "^5.2.6",
     "plotly": "^1.0.6",
     "plotly.js": "^2.7.0",
