@@ -59,6 +59,8 @@ class GenericModel(ABC):
             #
             # data = {'args': [train_data, None], 'kwargs': kwargs}
 
+
+
             await self._register_event(event_type, data, RETURN_TYPE.FIT)
 
     async def create_instance(self):
@@ -81,20 +83,14 @@ class GenericModel(ABC):
         # self.module._request_ids[return_id[0].event_id._asdict()['instance']] = (RETURN_TYPE.CREATE, self.name)
 
     async def predict(self, model_input):
+
         event_type = ('aimm', 'predict', self._id)
         data = {'args': [model_input], 'kwargs': {}}
 
 
+
         await self._register_event(event_type, data, RETURN_TYPE.PREDICT)
 
-        # events = await self.module._engine.register(
-        #     self.module._source,
-        #     [_register_event(('aimm', 'predict', self._id),
-        #                      {'args': [model_input],
-        #                       'kwargs': {}
-        #                       }
-        #                      )])
-        # self.module._request_ids[events[0].event_id._asdict()['instance']] = (RETURN_TYPE.PREDICT, self.name)
 
     def _get_dataset(self):
 
@@ -102,7 +98,7 @@ class GenericModel(ABC):
         from datetime import datetime
 
         values = []
-        x, y = [], []
+
         with open("dataset/ambient_temperature_system_failure.csv", "r") as f:
             reader = csv.reader(f, delimiter="\t")
             for i, line in enumerate(reader):
@@ -114,9 +110,10 @@ class GenericModel(ABC):
 
                 values.append(value)
 
+        x, y = [], []
         for i in range(48, len(values) - 24, 24):
-            x.extend(values[i - 48:i])
-            y.extend(values[i:i + 24])
+            x.append(values[i - 48:i])
+            y.append(values[i:i + 24])
 
         x, y = numpy.array(x), numpy.array(y)
 

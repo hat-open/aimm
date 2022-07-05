@@ -1,5 +1,6 @@
 import * as plotly from 'plotly.js/dist/plotly.js';
 import 'main/index.scss';
+import redux from 'redux';
 
 
 export function vt() {
@@ -9,17 +10,22 @@ export function vt() {
 export function plot() {
     let l = r.get('remote', 'timeseries','timestamps','reading').length;
 
+    const dateValue = new Date(r.get('remote', 'timeseries','timestamps','reading')[l-1]);
+    dateValue.setHours(dateValue.getHours() + 48);
+    const x_r = dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
+
+
+
+
+
     const layout = {
         title: 'Timeseries anomaly/forecast model testing',
         xaxis: {
             title: 'Timestamp',
             showgrid: true,
             range: [
-                // '2013-07-06 06:00:00',
-                // '2013-10-06 06:00:00'
-
-                // r.get('remote', 'timeseries','timestamps','reading')[0],
-                // r.get('remote', 'timeseries','timestamps','reading')[l-1]
+                r.get('remote', 'timeseries','timestamps','reading')[0],
+                x_r
             ]
         },
         yaxis: {
@@ -41,21 +47,43 @@ export function plot() {
         type: 'scatter',
         name: 'Reading'
     };
+
+
     const anomaly_trace = {
         x: r.get('remote', 'timeseries','timestamps','anomaly'),
         y: r.get('remote', 'timeseries','values','anomaly'),
         // line: { shape: 'spline' },
         mode: 'markers',
         type: 'scatter',
-        name: 'Amp,ačy'
+        name: 'Anomaly'
     };
+
+
+            // console.log(k);
+            // const regex = new RegExp(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
+            // const result3 = regex.exec(k);
+            // console.log(result3[1] + "T" + result3[2] + "Z");
+            // const dateValue = new Date(result3[1] + "T" + result3[2] + "Z");
+            // dateValue.setHours(dateValue.getHours() + 48);
+            // return dateValue.toString();
+
+
     const forecast_trace = {
-        x: r.get('remote', 'timeseries','values','forecast').map((_, k) => k + 47),
+        x: r.get('remote', 'timeseries','timestamps','forecast').map((k) => {
+
+            const dateValue = new Date(k);
+            dateValue.setHours(dateValue.getHours() + 48);
+            return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
+
+        }),
         y: r.get('remote', 'timeseries','values','forecast'),
         line: { shape: 'spline' },
         type: 'scatter',
         name: 'Forecast'
     };
+
+
+    // console.log(forecast_trace);
 
     const data = [reading_trace, anomaly_trace,forecast_trace];
 
@@ -114,30 +142,32 @@ export function plot() {
     const generate_model_buttons = function (prediction_type) {
         if (!r.get('remote','timeseries','info',prediction_type,'supported_models')) return;
 
-        var cur_model_name = prediction_type === 'anomaly'? cur_anomaly_model_name:cur_forecast_model_name;
+        const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
 
-        var t = r.get('remote','timeseries','info',prediction_type, 'supported_models').map(function(value,index) {
-                      return [
-                    "button",
-                    {
-                        props: {
-                            disabled: cur_model_name === value,
-                            type: 'checkbox', id: 'id1',
-                            name: 'modelSelect',
-                            style: change_button_color(value,prediction_type),
-                            value: 'Forest' },
-                        on: {  click: () => on_radio_switch(value,prediction_type) }
+        const t = r.get('remote', 'timeseries', 'info', prediction_type, 'supported_models').map(function (value, index) {
+            return [
+                "button",
+                {
+                    props: {
+                        disabled: cur_model_name === value,
+                        type: 'checkbox', id: 'id1',
+                        name: 'modelSelect',
+                        style: change_button_color(value, prediction_type),
+                        value: 'Forest'
                     },
-                    value
-                    ]
-               });
-         return ["div",t];
+                    on: {click: () => on_radio_switch(value, prediction_type)}
+                },
+                value
+            ]
+        });
+        return ["div",t];
     }
 
     const generate_div = function (prediction_type){
+        const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
         return ['div',
             ["label",{props: {for: 'input2'}},' Current '+prediction_type+' Model '],
-            ["input",{props: {disabled: true, id: 'input2',value: cur_anomaly_model_name }}],
+            ["input",{props: {disabled: true, id: 'input2',value: cur_model_name }}],
             ["br"],
             generate_setting_inputs(prediction_type),
             ["br"],

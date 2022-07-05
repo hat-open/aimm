@@ -241,6 +241,8 @@ class ReadingsModule(hat.event.server.common.Module):
             model_input = self._readings
             self._readings = self._readings[:24]
 
+            breakpoint()
+
             if self._current_model_name:
                 self._async_group.spawn(self._MODELS[self._current_model_name].predict, model_input)
 

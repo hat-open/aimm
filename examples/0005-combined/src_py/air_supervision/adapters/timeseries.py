@@ -81,26 +81,19 @@ class Adapter(hat.gui.common.Adapter):
 
                     series_id = event.event_type[-1]
 
-                    if series_id == 'anomaly':
-                        value = event.payload.data['value']
-                        timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
+                    value = event.payload.data['value']
+                    timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
 
+                    if series_id == 'anomaly':
                         if event.payload.data['is_anomaly'] <= 0:
                             continue
 
-                    elif series_id == 'reading':
-                        value = event.payload.data['value']
-                        timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
-
-                    elif series_id == 'forecast':
-                        value = event.payload.data
 
                     self._series_values = dict(self._series_values,
                                                **{series_id: self._series_values[series_id] + [value]})
 
-                    if series_id in ['anomaly', 'reading']:
-                        self._series_timestamps = dict(self._series_timestamps,
-                                                       **{series_id: self._series_timestamps[series_id] + [timestamp]})
+                    self._series_timestamps = dict(self._series_timestamps,
+                                                   **{series_id: self._series_timestamps[series_id] + [timestamp]})
 
             if len(self._series_values['reading']) > 71:
                 self._series_values['reading'].pop(0)
@@ -116,9 +109,10 @@ class Adapter(hat.gui.common.Adapter):
                 self._series_timestamps['anomaly'] = [i for i in sorted__forecast_ts if i >= m]
                 self._series_values['anomaly'] = sorted_forcast[-len(self._series_timestamps['anomaly']):]
 
-            if len(self._series_values['forecast']) > 24:
-                self._series_values['forecast'] = self._series_values['forecast'][-24:]
-                # self._series_timestamps['forecast'] = self._series_timestamps['forecast'][-24:]
+
+            if len(self._series_values['forecast']) > 50:
+                self._series_values['forecast'] = self._series_values['forecast'][-40:]
+                self._series_timestamps['forecast'] = self._series_timestamps['forecast'][-40:]
 
             if self._session:
                 self._session._on_state_change()

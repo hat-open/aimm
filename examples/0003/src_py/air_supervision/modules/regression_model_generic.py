@@ -53,6 +53,8 @@ class GenericModel(ABC):
             event_type = ('aimm', 'fit', self._id)
             data = {'args': [x.tolist(), y.tolist()], 'kwargs': kwargs}
 
+
+
             await self._register_event(event_type, data, RETURN_TYPE.FIT)
 
     async def create_instance(self):

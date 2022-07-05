@@ -1,11 +1,18 @@
+from hat import util
 import hat.aio
 import hat.event.server.common
+# from aimm.client import repl
+# from enum import Enum
+
 import sys
-import numpy as np
+import os
 from datetime import datetime
+
 sys.path.insert(0, '../../')
 import importlib
-from air_supervision.modules.anomaly.model_controller_generic import RETURN_TYPE
+# from src_py.air_supervision.modules.SVR import MultiOutputSVR, constant
+from air_supervision.modules.forecast.regression_model_generic import RETURN_TYPE
+import numpy as np
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -14,13 +21,34 @@ json_schema_repo = None
 _source_id = 0
 
 
-# class PREDICTION_STATUS(Enum):
-#     NOT_FITTED_YET = 0
-#     ACQUIRING_DATA = 1
-#     SENDING = 2
+class ReadingsControl:
+    def __init__(self):
+        self.readings = []
+        self.readings_times = []
+        self.size = 0
+        self.read_index = 0
+
+    def append(self, reading, reading_time):
+        self.readings = np.append(self.readings, reading)
+        self.readings_times = np.append(self.readings_times, reading_time)
+        # if reading is array
+        if isinstance(reading, np.ndarray):
+            self.size += reading.shape[0]
+        else:
+            self.size += 1
+
+    def get_first_n_readings(self, n):
+        return self.readings[:n].copy(), self.readings_times[:n].copy()
+
+    def remove_first_n_readings(self, n):
+        self.readings = self.readings[n:]
+        self.readings_times = self.readings_times[n:]
+        self.size -= n
+
 
 async def create(conf, engine):
     module = ReadingsModule()
+    # module.model_control = ModelControl()
 
     global _source_id
     module._source = hat.event.server.common.Source(
@@ -32,30 +60,36 @@ async def create(conf, engine):
     module._subscription = hat.event.server.common.Subscription([
         ('aimm', '*'),
         ('gui', 'system', 'timeseries', 'reading'),
-        ('back_action', 'anomaly', '*')])
+        ('back_action', '*')])
     module._async_group = hat.aio.Group()
     module._engine = engine
 
-    module._model_ids = {}
     module._current_model_name = None
 
-    module._predictions = []
-    module._predictions_times = []
-
-    module._readings_done = None
-    module._readings = []
-    module.data_tracker = 0
-
-    module._request_id = None
+    module._readings_control = ReadingsControl()
 
     module._MODELS = {}
     module._request_ids = {}
 
+    module._batch_size = 48
+
     return module
 
 
-class ReadingsModule(hat.event.server.common.Module):
+# class AnomalyModule:
+#     def __init__(self):
+#         super().__init__()
+#
+#         self._model_type = 'anomaly'
+#         self._import_module_name = "air_supervision.modules.forecast.regression_models"
+#         self._supported_models = ["MultiOutputSVR", "linear", "constant"]
+#         self._readings_control = ReadingsControl()
+#         self._MODELS = {}
+#         self._request_ids = {}
+#         self._batch_size = 48
 
+
+class ReadingsModule(hat.event.server.common.Module):
 
     @property
     def async_group(self):
@@ -75,12 +109,13 @@ class ReadingsModule(hat.event.server.common.Module):
 
             await self._engine.register(
                 self._source,
-                [_register_event(('gui', 'log', 'anomaly', type_name), data)])
+                [_register_event(('gui', 'log', self._model_type, type_name), data)])
 
         try:
             self._async_group.spawn(send_log_message)
         except:
             pass
+
 
     def update_models_ids(self, event):
         if not event.payload.data['models'] or not self._MODELS:
@@ -95,6 +130,26 @@ class ReadingsModule(hat.event.server.common.Module):
 
         self.send_message(event.payload.data, 'model_state')
 
+    def process_predict(self, event):
+
+        def _process_event(event_type, payload, source_timestamp=None):
+            return self._engine.create_process_event(
+                self._source,
+                _register_event(event_type, payload, source_timestamp))
+
+        _, timestamps = self._readings_control.get_first_n_readings(self._batch_size)
+
+        ret = [
+            _process_event(
+                ('gui', 'system', 'timeseries', 'forecast'), {
+                    'timestamp': t,
+                    'value': v
+                })
+            for v, t in zip(event.payload.data['result'], timestamps)]
+
+        self._readings_control.remove_first_n_readings(self._batch_size)
+        return ret
+
     def process_action(self, event):
         if (request_instance := event.payload.data.get('request_id')['instance']) in self._request_ids \
                 and event.payload.data.get('status') == 'DONE':
@@ -103,11 +158,11 @@ class ReadingsModule(hat.event.server.common.Module):
             del self._request_ids[request_instance]
 
             if request_type == RETURN_TYPE.CREATE:
+
                 try:
                     self._async_group.spawn(self._MODELS[model_name].fit)
                     self.send_message(model_name, 'new_current_model')
-                    hyperparameters = self._MODELS[
-                        model_name].get_default_setting()  # {'name': 'Precision', 'value': 0.02}
+                    hyperparameters = self._MODELS[model_name].get_default_setting()
                     self.send_message(hyperparameters, 'setting')
                 except:
                     pass
@@ -117,33 +172,16 @@ class ReadingsModule(hat.event.server.common.Module):
                 pass
 
             if request_type == RETURN_TYPE.PREDICT:
-
-                def _process_event(event_type, payload, source_timestamp=None):
-                    return self._engine.create_process_event(
-                        self._source,
-                        _register_event(event_type, payload, source_timestamp))
+                return self.process_predict(event)
 
 
-                # send to adapter
 
-                vals = np.array(self._predictions[-5:])[:, 0]
+    def process_back_value(self, event):
+        {
+            'setting_change': self.process_setting_change,
+            'model_change': self.process_model_change
+        }[event.event_type[-1]](event)
 
-                org_vals_from_aimm = np.array(event.payload.data['result'])[:, 0]
-
-                results = np.array(event.payload.data['result'])[:, -1]
-
-                rez = [
-                    _process_event(
-                        ('gui', 'system', 'timeseries', 'anomaly'), {
-                            'timestamp': t,
-                            'is_anomaly': r,
-                            'value': v
-                        })
-                    for r, t, v in zip(results, self._predictions_times[-5:], vals)]
-
-                self._predictions_times = self._predictions_times[-5:]
-                self._predictions = self._predictions[-5:]
-                return rez
 
     def process_model_change(self, event):
         received_model_name = event.payload.data['model']
@@ -153,9 +191,9 @@ class ReadingsModule(hat.event.server.common.Module):
             self.send_message(received_model_name, 'new_current_model')
             return
 
-
         self._MODELS[received_model_name] = \
-            getattr(importlib.import_module("air_supervision.modules.anomaly.model_controller"), received_model_name)(self, received_model_name)
+            getattr(importlib.import_module(self._import_module_name),
+                    received_model_name)(self, received_model_name)
 
         try:
             self._async_group.spawn(self._MODELS[received_model_name].create_instance)
@@ -182,34 +220,14 @@ class ReadingsModule(hat.event.server.common.Module):
 
     def process_reading(self, event):
 
-        self.send_message(["Forest","SVM","Cluster"], 'supported_models')
+        self.send_message(self._supported_models, 'supported_models')
 
-        if self._current_model_name:
-            d = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
-            predict_row = [float(event.payload.data['value']),
-                           d.hour,
-                           int((d.hour >= 7) & (d.hour <= 22)),
-                           d.weekday(),
-                           int(d.weekday() < 5)]
+        self._readings_control.append(event.payload.data["value"], event.payload.data["timestamp"])
 
-            self._predictions_times.append(str(d))
-            self._predictions.append(predict_row)
+        if self._readings_control.size >= self._batch_size + 24 and self._current_model_name:
+            model_input, _ = self._readings_control.get_first_n_readings(self._batch_size)
 
-            self.data_tracker += 1
-            if self.data_tracker >= 5:
-
-                try:
-                    self._async_group.spawn(
-                        self._MODELS[self._current_model_name].predict, np.array(self._predictions[-5:]))
-                except:
-                    pass
-                self.data_tracker = 0
-
-    def process_back_value(self, event):
-        {
-            'setting_change': self.process_setting_change,
-            'model_change': self.process_model_change
-        }[event.event_type[-1]](event)
+            self._async_group.spawn(self._MODELS[self._current_model_name].predict, [model_input.tolist()])
 
 
 class ReadingsSession(hat.event.server.common.ModuleSession):

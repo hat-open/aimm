@@ -7,6 +7,7 @@ import hat.event.server.common
 import sys
 import os
 from datetime import datetime
+
 sys.path.insert(0, '../../')
 import importlib
 # from src_py.air_supervision.modules.SVR import MultiOutputSVR, constant
@@ -14,11 +15,37 @@ from air_supervision.modules.forecast.regression_model_generic import RETURN_TYP
 import numpy as np
 import logging
 
-
 mlog = logging.getLogger(__name__)
 json_schema_id = None
 json_schema_repo = None
 _source_id = 0
+
+
+class ReadingsControl:
+    def __init__(self):
+        self.readings = []
+        self.readings_times = []
+        self.size = 0
+        self.read_index = 0
+
+
+    def append(self, reading, reading_time):
+        self.readings = np.append(self.readings, reading)
+        self.readings_times = np.append(self.readings_times, reading_time)
+        # if reading is array
+        if isinstance(reading, np.ndarray):
+            self.size += reading.shape[0]
+        else:
+            self.size += 1
+
+    def get_first_n_readings(self, n):
+        return self.readings[:n].copy(), self.readings_times[:n].copy()
+
+
+    def remove_first_n_readings(self, n):
+        self.readings = self.readings[n:]
+        self.readings_times = self.readings_times[n:]
+        self.size -= n
 
 
 async def create(conf, engine):
@@ -45,6 +72,8 @@ async def create(conf, engine):
     module._predictions = []
     module._predictions_times = []
 
+    module._readings_control = ReadingsControl()
+
     module._readings_done = None
     module._readings = []
 
@@ -54,6 +83,8 @@ async def create(conf, engine):
 
     module._MODELS = {}
     module._request_ids = {}
+
+    module._batch_size = 48
 
     return module
 
@@ -85,7 +116,6 @@ class ReadingsModule(hat.event.server.common.Module):
         except:
             pass
 
-
     # def process_state(self, event):
     #     if not event.payload.data['models'] or not self._MODELS:
     #         return
@@ -111,7 +141,6 @@ class ReadingsModule(hat.event.server.common.Module):
 
         self.send_message(event.payload.data, 'model_state')
 
-
     def process_action(self, event):
         if (request_instance := event.payload.data.get('request_id')['instance']) in self._request_ids \
                 and event.payload.data.get('status') == 'DONE':
@@ -135,16 +164,23 @@ class ReadingsModule(hat.event.server.common.Module):
                 pass
 
             if request_type == RETURN_TYPE.PREDICT:
-
                 def _process_event(event_type, payload, source_timestamp=None):
                     return self._engine.create_process_event(
                         self._source,
                         _register_event(event_type, payload, source_timestamp))
 
-                return [
+                _, timestamps = self._readings_control.get_first_n_readings(self._batch_size)
+
+                ret = [
                     _process_event(
-                        ('gui', 'system', 'timeseries', 'forecast'), v)
-                    for v in event.payload.data['result']]
+                        ('gui', 'system', 'timeseries', 'forecast'), {
+                            'timestamp': t,
+                            'value': v
+                        })
+                    for v, t in zip(event.payload.data['result'], timestamps)]
+
+                self._readings_control.remove_first_n_readings(self._batch_size)
+                return ret
 
             # vals = np.array(self._predictions[-5:])[:, 0]
             #
@@ -165,14 +201,11 @@ class ReadingsModule(hat.event.server.common.Module):
             # self._predictions = self._predictions[-5:]
             # return rez
 
-
-
     def process_back_value(self, event):
         {
             'setting_change': self.process_setting_change,
             'model_change': self.process_model_change
         }[event.event_type[-1]](event)
-
 
     # def process_back_value(self, event):
     #
@@ -209,7 +242,6 @@ class ReadingsModule(hat.event.server.common.Module):
         except:
             pass
 
-
     def process_setting_change(self, event):
 
         kw = event.payload.data
@@ -220,7 +252,6 @@ class ReadingsModule(hat.event.server.common.Module):
         except:
             pass
 
-
     def process_aimm(self, event):
 
         if event.event_type[1] == 'state':
@@ -229,41 +260,19 @@ class ReadingsModule(hat.event.server.common.Module):
         elif event.event_type[1] == 'action':
             return self.process_action(event)
 
-
-
     def process_reading(self, event):
 
         self.send_message(["MultiOutputSVR", "linear", "constant"], 'supported_models')
 
-        self._readings += [event.payload.data]
+        self._readings_control.append(event.payload.data["value"], event.payload.data["timestamp"])
 
-        if len(self._readings) == 48:
-            model_input = self._readings
-            self._readings = self._readings[:24]
+        if self._readings_control.size >= self._batch_size + 24 and self._current_model_name:
+            model_input, _ = self._readings_control.get_first_n_readings(self._batch_size)
 
-            if self._current_model_name:
-                self._async_group.spawn(self._MODELS[self._current_model_name].predict, model_input)
+            self._async_group.spawn(self._MODELS[self._current_model_name].predict, [model_input.tolist()])
 
-        # if self._current_model_name:
-        #     d = event.payload.data['timestamp']
-        #     predict_row = [float(event.payload.data['value']),
-        #                    d.hour,
-        #                    int((d.hour >= 7) & (d.hour <= 22)),
-        #                    d.weekday(),
-        #                    int(d.weekday() < 5)]
-        #
-        #     self._predictions_times.append(str(d))
-        #     self._predictions.append(predict_row)
-        #
-        #     self.data_tracker += 1
-        #     if self.data_tracker >= 5:
-        #
-        #         try:
-        #             self._async_group.spawn(
-        #                 self._MODELS[self._current_model_name].predict, np.array(self._predictions[-5:]))
-        #         except:
-        #             pass
-        #         self.data_tracker = 0
+
+
 
 class ReadingsSession(hat.event.server.common.ModuleSession):
 

@@ -5,6 +5,7 @@ import pickle
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression
+import random
 
 class GenericPredictionModel(aimm.plugins.Model):
     def __init__(self, **kwargs):
@@ -95,14 +96,26 @@ class MultiOutputSVR(aimm.plugins.Model):
 @aimm.plugins.model
 class linear(aimm.plugins.Model):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        self.hyperparameters = {}
+
+        self._update_hp(**kwargs)
+
         self._linear = LinearRegression()
 
     def fit(self, x, y):
         self._linear = self._linear.fit(x, y)
         return self
 
-    def predict(self, X):
+    def _update_hp(self, **kwargs):
+        changed = False
+        for key, value in kwargs.items():
+            if key in self.hyperparameters:
+                self.hyperparameters[key] = float(value)
+                changed = True
+        return changed
+
+    def predict(self, X, **kwargs):
         return self._linear.predict(X).reshape(-1).tolist()
 
 
@@ -118,17 +131,33 @@ class linear(aimm.plugins.Model):
 @aimm.plugins.model
 class constant(aimm.plugins.Model):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        self.hyperparameters = {}
+
+        self._update_hp(**kwargs)
+
         self._linear = LinearRegression()
 
-    def fit(self, X, y):
-        self._linear = self._linear.fit(X, y)
+    def _update_hp(self, **kwargs):
+        changed = False
+        for key, value in kwargs.items():
+            if key in self.hyperparameters:
+                self.hyperparameters[key] = float(value)
+                changed = True
+        return changed
+
+    def fit(self, x, y, **kwargs):
+        if self._update_hp(**kwargs):
+            self._linear = LinearRegression()
+
+        # self._linear.fit(x, y)
+
         return self
 
     def predict(self, X):
         # return self._linear.predict(X)
 
-        return [800] * len(X)
+        return [random.randint(1, 15)] * len(X)
 
 
     def serialize(self):
