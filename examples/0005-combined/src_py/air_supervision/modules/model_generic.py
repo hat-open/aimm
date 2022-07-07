@@ -17,6 +17,7 @@ class RETURN_TYPE(Enum):
 
 class GenericModel(ABC):
 
+
     def get_default_setting(self):
         return self.hyperparameters
 

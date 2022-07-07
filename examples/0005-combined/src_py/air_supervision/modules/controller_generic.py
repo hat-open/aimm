@@ -48,6 +48,31 @@ class ReadingsHandler:
         self.size -= n
 
 
+class FitLock:
+    def __init__(self):
+        self.lock = True
+        self.current_model = None
+
+    def get_current_model(self):
+        return self.current_model
+
+    def can_fit(self):
+        return not self.lock
+
+    def can_predict(self):
+        return not self.lock
+
+    def created(self, model):
+        self.current_model = model
+
+    def changed(self, model):
+        self.current_model = model
+        self.lock = True
+
+    def fitted(self):
+        self.lock = False
+        
+        
 class GenericReadingsModule(hat.event.server.common.Module):
 
     def __init__(self):
@@ -62,7 +87,9 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
         self._MODELS = {}
         self._request_ids = {}
-
+        
+        self.lock = FitLock()
+        
         self.vars = {}
 
     @property
@@ -137,15 +164,17 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
             if request_type == RETURN_TYPE.CREATE:
 
-
                 self._async_group.spawn(self._MODELS[model_name].fit)
 
                 self.send_message(model_name, 'new_current_model')
                 hyperparameters = self._MODELS[model_name].get_default_setting()
                 self.send_message(hyperparameters, 'setting')
 
+                self.lock.created(model_name)
+
             if request_type == RETURN_TYPE.FIT:
-                self._current_model_name = model_name
+                self.lock.fitted()
+                # self._current_model_name = model_name
                 pass
 
             if request_type == RETURN_TYPE.PREDICT:
@@ -165,6 +194,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
             self.send_message(received_model_name, 'new_current_model')
             return
 
+        self.lock.changed(received_model_name)
         self._MODELS[received_model_name] = \
             getattr(importlib.import_module(self._import_module_name),
                     received_model_name)(self, received_model_name)
@@ -198,7 +228,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
     def process_reading(self, event):
         self.send_message(self.vars["supported_models"], 'supported_models')
 
-        if self._current_model_name:
+        if self.lock.can_fit():
 
             row = self.transform_row(event.payload.data['value'], event.payload.data['timestamp'])
             self.readings_control.append(row, event.payload.data["timestamp"])
