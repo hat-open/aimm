@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
-
+import pandas
+import numpy
 import hat.aio
 import hat.event.server.common
 import yaml
 from enum import Enum
+import csv
+from datetime import datetime
 
 
 class RETURN_TYPE(Enum):
@@ -12,23 +15,17 @@ class RETURN_TYPE(Enum):
     CREATE = 3
 
 
-# with open("modules_config.yaml", "r") as stream:
-#     try:
-#         config_file = yaml.safe_load(stream)
-#     except yaml.YAMLError as exc:
-#         print(exc)
-
-
 class GenericModel(ABC):
 
     def get_default_setting(self):
         return self.hyperparameters
 
-    def __init__(self, module, name="undefined"):
+    def __init__(self, module, name="undefined", model_type="undefined"):
         self.module = module
 
         self._id = None
         self.name = name
+        self.model_type = f"air_supervision.aimm.{model_type}_models.{name}",
         self.created = False
 
         self.hyperparameters = {}
@@ -38,7 +35,6 @@ class GenericModel(ABC):
         self.created = True
 
     async def _register_event(self, event_type, data, return_type):
-
         events = await self.module._engine.register(
             self.module._source,
             [hat.event.server.common.RegisterEvent(
@@ -51,53 +47,21 @@ class GenericModel(ABC):
 
     # @abstractmethod
     async def fit(self, **kwargs):
-
-        if self._id:
-            train_data = self._get_dataset()
-
-            event_type = ('aimm', 'fit', self._id)
-
-            data = {'args': [train_data, None], 'kwargs': kwargs}
-
-            await self._register_event(event_type, data, RETURN_TYPE.FIT)
+        raise NotImplementedError()
 
     async def create_instance(self):
-
         event_type = ('aimm', 'create_instance')
-        data = {'model_type':  "air_supervision.aimm.anomaly_models" + "." + self.name,
+        data = {'model_type': self.model_type,
                 'args': [],
                 'kwargs': self.hyperparameters}
         await self._register_event(event_type, data, RETURN_TYPE.CREATE)
 
     async def predict(self, model_input):
-
+        import json
         event_type = ('aimm', 'predict', self._id)
-        data = {'args': [model_input.tolist()], 'kwargs': {}}
+        data = {'args': [json.dumps(model_input)], 'kwargs': {}}
+
         await self._register_event(event_type, data, RETURN_TYPE.PREDICT)
 
     def _get_dataset(self):
-        import csv
-        from datetime import datetime
-
-        train_data = []
-
-        with open("dataset/ambient_temperature_system_failure.csv", "r") as f:
-            reader = csv.reader(f, delimiter="\t")
-            for i, line in enumerate(reader):
-                if not i:
-                    continue
-                timestamp = datetime.strptime(line[0].split(',')[0], '%Y-%m-%d %H:%M:%S')
-                value = float(line[0].split(',')[1])
-
-                value = (float(value) - 32) * 5 / 9
-
-
-
-                train_data.append([
-                    value,
-                    timestamp.hour,
-                    int((timestamp.hour >= 7) & (timestamp.hour <= 22)),
-                    timestamp.weekday(),
-                    int(timestamp.weekday() < 5)
-                ])
-        return train_data
+        raise NotImplementedError()

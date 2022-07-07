@@ -11,9 +11,9 @@ from datetime import datetime
 sys.path.insert(0, '../../')
 import importlib
 # from src_py.air_supervision.modules.SVR import MultiOutputSVR, constant
-from air_supervision.modules.forecast.regression_model_generic import RETURN_TYPE
+from air_supervision.modules.forecast.forecast_model_generic import RETURN_TYPE
 import numpy as np
-from air_supervision.modules.model_controller import ReadingsModule, ReadingsControl,_register_event
+from air_supervision.modules.controller_generic import GenericReadingsModule, ReadingsHandler,_register_event
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -39,60 +39,22 @@ async def create(conf, engine):
     module._async_group = hat.aio.Group()
     module._engine = engine
 
-    module._model_ids = {}
-    module._current_model_name = None
-
-    module._predictions = []
-    module._predictions_times = []
-
-    module._readings_control = ReadingsControl()
-
-    module._readings_done = None
-    module._readings = []
-
-    module.data_tracker = 0
-
-    module._request_id = None
     module._model_type = 'forecast'
-    module._import_module_name = "air_supervision.modules.forecast.regression_models"
+    module._import_module_name = f"air_supervision.modules.{module._model_type}.{module._model_type}_model"
     module._supported_models = ["MultiOutputSVR", "linear", "constant"]
-    module._readings_control = ReadingsControl()
-    module._MODELS = {}
-    module._request_ids = {}
+    module.readings_control = ReadingsHandler()
     module._batch_size = 48
+
+    module.vars = {
+        "supported_models": module._supported_models,
+        "model_type": module._model_type,
+        "import_module_name": module._import_module_name
+    }
 
     return module
 
 
-class ForecastModule(ReadingsModule):
-    def process_predict(self, event):
-        def _process_event(event_type, payload, source_timestamp=None):
-            return self._engine.create_process_event(
-                self._source,
-                _register_event(event_type, payload, source_timestamp))
+class ForecastModule(GenericReadingsModule):
 
-        _, timestamps = self._readings_control.get_first_n_readings(self._batch_size)
-
-        ret = [
-            _process_event(
-                ('gui', 'system', 'timeseries', 'forecast'), {
-                    'timestamp': t,
-                    'value': v
-                })
-            for v, t in zip(event.payload.data['result'], timestamps)]
-
-        self._readings_control.remove_first_n_readings(self._batch_size)
-        return ret
-
-    def process_reading(self, event):
-
-        self.send_message(["MultiOutputSVR", "linear", "constant"], 'supported_models')
-
-        self._readings_control.append(event.payload.data["value"], event.payload.data["timestamp"])
-
-        if self._readings_control.size >= self._batch_size + 24 and self._current_model_name:
-            model_input, _ = self._readings_control.get_first_n_readings(self._batch_size)
-
-            self._async_group.spawn(self._MODELS[self._current_model_name].predict, [model_input.tolist()])
-
-
+    def transform_row(self, value, timestamp):
+        return value

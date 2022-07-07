@@ -3,10 +3,10 @@ import numpy
 import hat.aio
 import hat.event.server.common
 
-from air_supervision.modules.forecast.regression_model_generic import GenericModel
+from air_supervision.modules.forecast.forecast_model_generic import GenericForecastModel
 
 
-class MultiOutputSVR(GenericModel):
+class MultiOutputSVR(GenericForecastModel):
     def __init__(self, module, name):
         super().__init__(module, name)
 
@@ -17,7 +17,7 @@ class MultiOutputSVR(GenericModel):
         }
 
 
-class linear(GenericModel):
+class linear(GenericForecastModel):
     def __init__(self, module, name):
         super().__init__(module, name)
 
@@ -29,7 +29,7 @@ class linear(GenericModel):
 
 
 
-class constant(GenericModel):
+class constant(GenericForecastModel):
     def __init__(self, module, name):
         super().__init__(module, name)
 

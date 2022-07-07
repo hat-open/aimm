@@ -81,17 +81,25 @@ class Adapter(hat.gui.common.Adapter):
 
                     series_id = event.event_type[-1]
 
-                    value = event.payload.data['value']
+
+
                     timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
 
-                    if series_id == 'anomaly':
-                        if event.payload.data['is_anomaly'] <= 0:
+                    if series_id == 'reading':
+                        value = event.payload.data['value']
+
+                    elif series_id == 'anomaly':
+                        result = event.payload.data['result']
+
+                        if result <= 0:
                             continue
 
+                        value = event.payload.data['value']
+                    else:
+                        value = event.payload.data['result']
 
                     self._series_values = dict(self._series_values,
                                                **{series_id: self._series_values[series_id] + [value]})
-
                     self._series_timestamps = dict(self._series_timestamps,
                                                    **{series_id: self._series_timestamps[series_id] + [timestamp]})
 
