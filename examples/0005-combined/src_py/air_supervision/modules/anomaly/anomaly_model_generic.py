@@ -4,20 +4,13 @@ import hat.aio
 import hat.event.server.common
 import yaml
 from enum import Enum
-from air_supervision.modules.model_generic import GenericModel
-
-
-class RETURN_TYPE(Enum):
-    PREDICT = 1
-    FIT = 2
-    CREATE = 3
+from air_supervision.modules.model_generic import GenericModel, RETURN_TYPE
 
 
 class GenericAnomalyModel(GenericModel):
 
     def __init__(self, module, name):
         super().__init__(module, name, 'anomaly')
-
 
     # @abstractmethod
     async def fit(self, **kwargs):
@@ -28,7 +21,7 @@ class GenericAnomalyModel(GenericModel):
 
             data = {'args': [train_data, None], 'kwargs': kwargs}
 
-            await self._register_event(event_type, data, RETURN_TYPE.FIT)
+            await self._register_event(event_type, data, RETURN_TYPE.A_FIT)
 
     def _get_dataset(self):
         import csv
@@ -46,8 +39,6 @@ class GenericAnomalyModel(GenericModel):
 
                 value = (float(value) - 32) * 5 / 9
 
-
-
                 train_data.append([
                     value,
                     timestamp.hour,
@@ -55,4 +46,5 @@ class GenericAnomalyModel(GenericModel):
                     timestamp.weekday(),
                     int(timestamp.weekday() < 5)
                 ])
+
         return train_data

@@ -10,13 +10,15 @@ from datetime import datetime
 
 
 class RETURN_TYPE(Enum):
-    PREDICT = 1
-    FIT = 2
-    CREATE = 3
+    A_PREDICT = 1
+    F_PREDICT = 2
+    A_FIT = 3
+    F_FIT = 4
+    A_CREATE = 5
+    F_CREATE = 6
 
 
 class GenericModel(ABC):
-
 
     def get_default_setting(self):
         return self.hyperparameters
@@ -26,7 +28,8 @@ class GenericModel(ABC):
 
         self._id = None
         self.name = name
-        self.model_type = f"air_supervision.aimm.{model_type}_models.{name}",
+        self.model_type_short = model_type
+        self.model_type = f"air_supervision.aimm.{model_type}_models.{name}"
         self.created = False
 
         self.hyperparameters = {}
@@ -55,14 +58,21 @@ class GenericModel(ABC):
         data = {'model_type': self.model_type,
                 'args': [],
                 'kwargs': self.hyperparameters}
-        await self._register_event(event_type, data, RETURN_TYPE.CREATE)
+
+        await self._register_event(event_type, data,
+                                   RETURN_TYPE.A_CREATE if self.model_type_short == 'anomaly' else RETURN_TYPE.F_CREATE)
 
     async def predict(self, model_input):
         import json
-        event_type = ('aimm', 'predict', self._id)
-        data = {'args': [json.dumps(model_input)], 'kwargs': {}}
 
-        await self._register_event(event_type, data, RETURN_TYPE.PREDICT)
+
+        event_type = ('aimm', 'predict', self._id)
+        data = {'args': [model_input], 'kwargs': {}}
+
+
+
+        await self._register_event(event_type, data,
+                                    RETURN_TYPE.A_PREDICT if self.model_type_short == 'anomaly' else RETURN_TYPE.F_PREDICT)
 
     def _get_dataset(self):
         raise NotImplementedError()

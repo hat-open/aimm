@@ -1,12 +1,11 @@
 import hat.aio
 import hat.event.server.common
 import sys
-import numpy as np
 from datetime import datetime
+
 sys.path.insert(0, '../../')
 import importlib
-from air_supervision.modules.anomaly.anomaly_model_generic import RETURN_TYPE
-from air_supervision.modules.controller_generic import GenericReadingsModule, ReadingsHandler,_register_event
+from air_supervision.modules.controller_generic import GenericReadingsModule, ReadingsHandler
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ async def create(conf, engine):
     module._import_module_name = f"air_supervision.modules.{module._model_type}.{module._model_type}_model"
     module._supported_models = ["Forest", "SVM", "Cluster"]
     module._readings_control = ReadingsHandler()
-    module._batch_size = 48
+    module._batch_size = 5
 
     module.vars = {
         "supported_models": module._supported_models,
@@ -44,6 +43,7 @@ async def create(conf, engine):
         "import_module_name": module._import_module_name
     }
     return module
+
 
 class AnomalyModule(GenericReadingsModule):
     def transform_row(self, value, timestamp):

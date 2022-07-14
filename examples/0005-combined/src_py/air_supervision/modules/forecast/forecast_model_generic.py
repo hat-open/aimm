@@ -4,12 +4,7 @@ import numpy
 import hat.aio
 import hat.event.server.common
 from enum import Enum
-from air_supervision.modules.model_generic import GenericModel
-
-class RETURN_TYPE(Enum):
-    PREDICT = 1
-    FIT = 2
-    CREATE = 3
+from air_supervision.modules.model_generic import GenericModel,RETURN_TYPE
 
 
 class GenericForecastModel(GenericModel):
@@ -33,7 +28,7 @@ class GenericForecastModel(GenericModel):
 
 
 
-            await self._register_event(event_type, data, RETURN_TYPE.FIT)
+            await self._register_event(event_type, data, RETURN_TYPE.F_FIT)
 
 
     def _get_dataset(self):

@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.insert(0, '../../')
 import importlib
 # from src_py.air_supervision.modules.SVR import MultiOutputSVR, constant
-from air_supervision.modules.forecast.forecast_model_generic import RETURN_TYPE
+from air_supervision.modules.model_generic import RETURN_TYPE
 import numpy as np
 import logging
 
@@ -131,6 +131,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
         self.send_message(event.payload.data, 'model_state')
 
     def process_predict(self, event):
+
         def _process_event(event_type, payload, source_timestamp=None):
             return self._engine.create_process_event(
                 self._source,
@@ -160,9 +161,9 @@ class GenericReadingsModule(hat.event.server.common.Module):
                 and event.payload.data.get('status') == 'DONE':
 
             request_type, model_name = self._request_ids[request_instance]
-            del self._request_ids[request_instance]
 
-            if request_type == RETURN_TYPE.CREATE:
+            if (request_type == RETURN_TYPE.A_CREATE) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_CREATE):
+                self.lock.created(model_name)
 
                 self._async_group.spawn(self._MODELS[model_name].fit)
 
@@ -170,15 +171,18 @@ class GenericReadingsModule(hat.event.server.common.Module):
                 hyperparameters = self._MODELS[model_name].get_default_setting()
                 self.send_message(hyperparameters, 'setting')
 
-                self.lock.created(model_name)
+                return
 
-            if request_type == RETURN_TYPE.FIT:
+
+            if (request_type == RETURN_TYPE.A_FIT) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_FIT):
                 self.lock.fitted()
                 # self._current_model_name = model_name
-                pass
+                return
 
-            if request_type == RETURN_TYPE.PREDICT:
+            if (request_type == RETURN_TYPE.A_PREDICT) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_PREDICT):
                 return self.process_predict(event)
+
+            del self._request_ids[request_instance]
 
     def process_back_value(self, event):
         {
@@ -187,10 +191,12 @@ class GenericReadingsModule(hat.event.server.common.Module):
         }[event.event_type[-1]](event)
 
     def process_model_change(self, event):
+        # {'action': 'model_change', 'type': 'anomaly', 'model': 'Forest'}
+
         received_model_name = event.payload.data['model']
 
         if received_model_name in self._MODELS:
-            self._current_model_name = received_model_name
+            self.lock.current_model = received_model_name
             self.send_message(received_model_name, 'new_current_model')
             return
 
@@ -202,7 +208,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
         try:
             self._async_group.spawn(self._MODELS[received_model_name].create_instance)
         except:
-            pass
+            breakpoint()
 
     def process_setting_change(self, event):
 
@@ -210,7 +216,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
         del kw['action']
 
         try:
-            self._async_group.spawn(self._MODELS[self._current_model_name].fit, **kw)
+            self._async_group.spawn(self._MODELS[self.lock.current_model].fit, **kw)
         except:
             pass
 
@@ -238,7 +244,8 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
                 model_input, _ = self.readings_control.get_first_n_readings(self._batch_size)
 
-                self._async_group.spawn(self._MODELS[self._current_model_name].predict, [model_input.tolist()])
+                # breakpoint()
+                self._async_group.spawn(self._MODELS[self.lock.current_model].predict, [model_input.tolist()])
 
 
 class ReadingsSession(hat.event.server.common.ModuleSession):
