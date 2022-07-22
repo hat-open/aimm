@@ -1,10 +1,12 @@
 # hat-aimm-anomaly
 Hat aimm anomaly example.
 
+![This is an image](scr.png)
+
 
 ### DataFlow
 
-```AnomalyModule``` and ```ForecastModule``` run in parallel. Both are inherited from ```GenericReadingsModule```.
+[```AnomalyModule```](src_py/air_supervision/modules/anomaly/anomaly.py)  and [```ForecastModule```](src_py/air_supervision/modules/forecast/forecast.py) run in parallel. Both are inherited from [```GenericReadingsModule```](src_py/air_supervision/modules/controller_generic.py).
 
 Both recieve new data from the device with event types: ```('gui', 'system', 'timeseries', 'reading')```.
 The received data is being saved in their ```ReadingsHandler```'s (objects that handle when that data should be propagated to the adapter).
@@ -32,11 +34,11 @@ current_model = 'linear'
 ```
 
 
-```FitLock``` class is used to manage which model is the current one,and in which state it is(is it fitted or not or is it even defined, that way we cant send predict actions beforehand).
+[```FitLock```](src_py/air_supervision/modules/controller_generic.py) class is used to manage which model is the current one,and in which state it is(is it fitted or not or is it even defined, that way we cant send predict actions beforehand).
 
 When a model is created, module sends a message to AIMM module to create that model with a same name in backend. When we get confim message, we fit that model and prepare data for prediction process.
 
-When ```ReadingsHandler``` is ready and current model is defined and is fitted (we also get a confirm message from AIMM), we send a batch of data to AIMM for prediction.
+When [```ReadingsHandler```](src_py/air_supervision/modules/controller_generic.py) is ready and current model is defined and is fitted (we also get a confirm message from AIMM), we send a batch of data to AIMM for prediction.
 AIMM will return predicted values,that we then send to the adapter.
 
 
@@ -44,14 +46,8 @@ If we get a setting_change event,it is expected from the module to update hyperp
 
 
 
-
-
-
-
-
-
-
 ### UML
+![This is an image](UML.png)
 Done in https://yuml.me/
 
 ```
