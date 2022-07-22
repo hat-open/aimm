@@ -153,7 +153,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
                 })
             for t, r, v in zip(timestamps, results, values)]
 
-        self.readings_control.remove_first_n_readings(self._batch_size)
+        self.readings_control.remove_first_n_readings(self._batch_size//2)
         return ret
 
     def process_action(self, event):
@@ -240,7 +240,6 @@ class GenericReadingsModule(hat.event.server.common.Module):
             self.readings_control.append(row, event.payload.data["timestamp"])
 
             if self.readings_control.size >= self._batch_size:
-                self.readings_control.size += self._batch_size
 
                 model_input, _ = self.readings_control.get_first_n_readings(self._batch_size)
 
