@@ -63,11 +63,9 @@ class GenericModel(ABC):
                                    RETURN_TYPE.A_CREATE if self.model_type_short == 'anomaly' else RETURN_TYPE.F_CREATE)
 
     async def predict(self, model_input):
-        import json
-
 
         event_type = ('aimm', 'predict', self._id)
-        data = {'args': [model_input], 'kwargs': {}}
+        data = {'args': model_input, 'kwargs': {}}
 
 
 

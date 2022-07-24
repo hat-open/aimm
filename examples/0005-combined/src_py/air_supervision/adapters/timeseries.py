@@ -70,30 +70,43 @@ class Adapter(hat.gui.common.Adapter):
                 pass
             for event in events:
                 if event.event_type[1] == 'log':
-                    # self._info[event.event_type[2]] = event.payload.data
+                    """
+                    Additional data for GUI. Just pass it through, JS will handle it.
+                    """
 
                     self._info[event.event_type[2]] = dict(self._info[event.event_type[2]], **{event.event_type[3]: event.payload.data})
 
-                    # if event.event_type[3] == 'new_current_model':
-                    #     breakpoint()
-
-                else:  # reading or forecast or anomaly
+                else:
+                    """
+                    # Data is from reading OR forecast OR anomaly
+                    
+                    
+                    Data has the following structure:
+                    {
+                        'timestamp': datetime.datetime(...),
+                        'value': original y value,
+                        'result': result from model
+                    }
+                    
+                    Anomaly:
+                        'result' is a number 0 or 1, save 'value' if 'result' == 1
+                    Forecast:
+                        'result' is a predicted value y,always save 'value'
+                    Reading:
+                        'result' DOESN'T EXIST
+                        
+                        
+                    """
 
                     series_id = event.event_type[-1]
 
-
-
                     timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
 
-                    if series_id == 'reading':
+                    if series_id == 'anomaly':
                         value = event.payload.data['value']
-
-                    elif series_id == 'anomaly':
-                        result = event.payload.data['result']
-
-                        if result <= 0:
+                        if event.payload.data['result'] <= 0:
                             continue
-
+                    elif series_id == 'reading':
                         value = event.payload.data['value']
                     else:
                         value = event.payload.data['result']
@@ -116,7 +129,6 @@ class Adapter(hat.gui.common.Adapter):
                 m = min(self._series_timestamps['reading'])
                 self._series_timestamps['anomaly'] = [i for i in sorted__forecast_ts if i >= m]
                 self._series_values['anomaly'] = sorted_forcast[-len(self._series_timestamps['anomaly']):]
-
 
             if len(self._series_values['forecast']) > 50:
                 self._series_values['forecast'] = self._series_values['forecast'][-40:]

@@ -29,13 +29,10 @@ class ReadingsHandler:
         self.read_index = 0
 
     def append(self, reading, reading_time):
-        self.readings = np.append(self.readings, reading)
-        self.readings_times = np.append(self.readings_times, reading_time)
+        self.readings.append(reading)
+        self.readings_times.append(reading_time)
         # if reading is array
-        if isinstance(reading, np.ndarray):
-            self.size += reading.shape[0]
-        else:
-            self.size += 1
+        self.size += 1
 
     def get_first_n_readings(self, n):
         return self.readings[:n].copy(), self.readings_times[:n].copy()
@@ -140,8 +137,10 @@ class GenericReadingsModule(hat.event.server.common.Module):
         values, timestamps = self.readings_control.get_first_n_readings(self._batch_size)
         results = np.array(event.payload.data['result'])
 
+
         if self.vars['model_type'] == 'anomaly':
             results = results[:, -1]
+            values = [i[0] for i in values]
 
         ret = [
             _process_event(
@@ -153,7 +152,9 @@ class GenericReadingsModule(hat.event.server.common.Module):
                 })
             for t, r, v in zip(timestamps, results, values)]
 
-        self.readings_control.remove_first_n_readings(self._batch_size//2)
+
+
+        self.readings_control.remove_first_n_readings(self._batch_size if self._model_type == 'anomaly' else self._batch_size//2)
         return ret
 
     def process_action(self, event):
@@ -242,9 +243,10 @@ class GenericReadingsModule(hat.event.server.common.Module):
             if self.readings_control.size >= self._batch_size:
 
                 model_input, _ = self.readings_control.get_first_n_readings(self._batch_size)
+                # if self._model_type == 'anomaly':
+                #     breakpoint()
 
-                # breakpoint()
-                self._async_group.spawn(self._MODELS[self.lock.current_model].predict, [model_input.tolist()])
+                self._async_group.spawn(self._MODELS[self.lock.current_model].predict, [model_input])
 
 
 class ReadingsSession(hat.event.server.common.ModuleSession):
