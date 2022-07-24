@@ -4,7 +4,7 @@ import hat.gui.common
 import hat.util
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 json_schema_id = None
 json_schema_repo = None
@@ -120,19 +120,36 @@ class Adapter(hat.gui.common.Adapter):
                 self._series_values['reading'].pop(0)
                 self._series_timestamps['reading'].pop(0)
 
-                self._series_values['anomaly'] = [f for f in self._series_values['anomaly']]
+            if len(self._series_values['anomaly']) > 20:
+                self._series_values['anomaly'].pop(0)
+                self._series_timestamps['anomaly'].pop(0)
 
-                sorted__forecast_ts = sorted(self._series_timestamps['anomaly'])
-                sorted_forcast = [x for _, x in
-                                  sorted(zip(self._series_timestamps['anomaly'], self._series_values['anomaly']))]
+                # sorted__forecast_ts = sorted(self._series_timestamps['anomaly'])
+                # sorted_forcast = [x for _, x in
+                #                   sorted(zip(self._series_timestamps['anomaly'], self._series_values['anomaly']))]
 
-                m = min(self._series_timestamps['reading'])
-                self._series_timestamps['anomaly'] = [i for i in sorted__forecast_ts if i >= m]
-                self._series_values['anomaly'] = sorted_forcast[-len(self._series_timestamps['anomaly']):]
+            if self._series_timestamps['forecast']:
+                if min(self._series_timestamps['forecast']) < max(self._series_timestamps['reading']) - timedelta(days=3):
+                    # sort values by timestamp
+                    sorted_forecast_ts = sorted(self._series_timestamps['forecast'])
+                    sorted_forcast = [x for _, x in
+                                      sorted(
+                                          zip(self._series_timestamps['forecast'], self._series_values['forecast']),
+                                          key=lambda x: x[0])]
 
-            if len(self._series_values['forecast']) > 50:
-                self._series_values['forecast'] = self._series_values['forecast'][-40:]
-                self._series_timestamps['forecast'] = self._series_timestamps['forecast'][-40:]
+                    self._series_timestamps['forecast'] = sorted_forecast_ts
+                    self._series_values['forecast'] = sorted_forcast
+
+                    #delete timestamps and values that are older than 3 days
+                    self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i >= max(self._series_timestamps['reading']) - timedelta(days=3)]
+                    self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
+
+                #just in case, delete forecast if it predicts too far in the future
+                # elif max(self._series_timestamps['forecast']) > max(self._series_timestamps['reading']) + timedelta(days=3):
+                #     # delete timestamps and values that are 3 days in the future or more
+                #     self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i <= max(self._series_timestamps['reading']) + timedelta(days=3)]
+                #     self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
+
 
             if self._session:
                 self._session._on_state_change()
