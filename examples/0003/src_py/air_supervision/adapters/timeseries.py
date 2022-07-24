@@ -4,6 +4,7 @@ import hat.gui.common
 import hat.util
 import asyncio
 import sys
+from datetime import datetime, timedelta
 
 json_schema_id = None
 json_schema_repo = None
@@ -22,19 +23,19 @@ async def create_adapter(conf, event_client):
     adapter._async_group = hat.aio.Group()
     adapter._event_client = event_client
     adapter._session = set()
-    # adapter._series = {
-    #     'reading': [],
-    #     'forecast': []
-    # }
 
-    adapter._info = {}
+    adapter._info = {
+        'anomaly': {},
+        'forecast': {}
+    }
     adapter._series_values = {
         'reading': [],
+        'anomaly': [],
         'forecast': []}
     adapter._series_timestamps = {
         'reading': [],
+        'anomaly': [],
         'forecast': []}
-
 
     adapter._state_change_cb_registry = hat.util.CallbackRegistry()
     try:
@@ -52,9 +53,9 @@ class Adapter(hat.gui.common.Adapter):
 
     async def create_session(self, juggler_client):
         self._session = Session(self,
-            juggler_client,
-            self._async_group.create_subgroup())
-        #self._sessions.add(session)
+                                juggler_client,
+                                self._async_group.create_subgroup())
+        # self._sessions.add(session)
         return self._session
 
     def subscribe_to_state_change(self, callback):
@@ -62,36 +63,94 @@ class Adapter(hat.gui.common.Adapter):
 
     async def _main_loop(self):
         while True:
-            events = await self._event_client.receive()
+
+            try:
+                events = await self._event_client.receive()
+            except:
+                pass
             for event in events:
                 if event.event_type[1] == 'log':
-                    # self._info[event.event_type[2]] = event.payload.data
+                    """
+                    Additional data for GUI. Just pass it through, JS will handle it.
+                    """
 
-                    self._info = dict(self._info, **{event.event_type[2]: event.payload.data})
+                    self._info[event.event_type[2]] = dict(self._info[event.event_type[2]], **{event.event_type[3]: event.payload.data})
 
                 else:
+                    """
+                    # Data is from reading OR forecast OR anomaly
+                    
+                    
+                    Data has the following structure:
+                    {
+                        'timestamp': datetime.datetime(...),
+                        'value': original y value,
+                        'result': result from model
+                    }
+                    
+                    Anomaly:
+                        'result' is a number 0 or 1, save 'value' if 'result' == 1
+                    Forecast:
+                        'result' is a predicted value y,always save 'value'
+                    Reading:
+                        'result' DOESN'T EXIST
+                        
+                        
+                    """
+
                     series_id = event.event_type[-1]
-                    # new_series = self._series[series_id] + [event.payload.data]
-                    # self._series = dict(self._series, **{series_id: new_series})
-                    # timestamp = event.payload.data['timestamp']
-                    value = event.payload.data
+
+                    timestamp = datetime.strptime(event.payload.data['timestamp'], '%Y-%m-%d %H:%M:%S')
+
+                    if series_id == 'anomaly':
+                        value = event.payload.data['value']
+                        if event.payload.data['result'] <= 0:
+                            continue
+                    elif series_id == 'reading':
+                        value = event.payload.data['value']
+                    else:
+                        value = event.payload.data['result']
 
                     self._series_values = dict(self._series_values,
                                                **{series_id: self._series_values[series_id] + [value]})
-                    # self._series_timestamps = dict(self._series_timestamps,
-                    #                                **{series_id: self._series_timestamps[series_id] + [timestamp]})
+                    self._series_timestamps = dict(self._series_timestamps,
+                                                   **{series_id: self._series_timestamps[series_id] + [timestamp]})
 
             if len(self._series_values['reading']) > 71:
-                # self._series['reading'] = self._series['reading'][-48:]
-                self._series_values['reading'] = self._series_values['reading'][-48:]
-                # self._series_timestamps['reading']= self._series_timestamps['reading'][-48:]
+                self._series_values['reading'].pop(0)
+                self._series_timestamps['reading'].pop(0)
 
-            if len(self._series_values['forecast']) > 24:
-                self._series_values['forecast'] = self._series_values['forecast'][-24:]
-                # self._series_timestamps['forecast'] = self._series_timestamps['forecast'][-24:]
+            if len(self._series_values['anomaly']) > 20:
+                self._series_values['anomaly'].pop(0)
+                self._series_timestamps['anomaly'].pop(0)
+
+                # sorted__forecast_ts = sorted(self._series_timestamps['anomaly'])
+                # sorted_forcast = [x for _, x in
+                #                   sorted(zip(self._series_timestamps['anomaly'], self._series_values['anomaly']))]
+
+            if self._series_timestamps['forecast']:
+                if min(self._series_timestamps['forecast']) < max(self._series_timestamps['reading']) - timedelta(days=3):
+                    # sort values by timestamp
+                    sorted_forecast_ts = sorted(self._series_timestamps['forecast'])
+                    sorted_forcast = [x for _, x in
+                                      sorted(
+                                          zip(self._series_timestamps['forecast'], self._series_values['forecast']),
+                                          key=lambda x: x[0])]
+
+                    self._series_timestamps['forecast'] = sorted_forecast_ts
+                    self._series_values['forecast'] = sorted_forcast
+
+                    #delete timestamps and values that are older than 3 days
+                    self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i >= max(self._series_timestamps['reading']) - timedelta(days=3)]
+                    self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
+
+                #just in case, delete forecast if it predicts too far in the future
+                # elif max(self._series_timestamps['forecast']) > max(self._series_timestamps['reading']) + timedelta(days=3):
+                #     # delete timestamps and values that are 3 days in the future or more
+                #     self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i <= max(self._series_timestamps['reading']) + timedelta(days=3)]
+                #     self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
 
 
-            #for session in self._sessions:
             if self._session:
                 self._session._on_state_change()
             self._state_change_cb_registry.notify()
@@ -99,12 +158,10 @@ class Adapter(hat.gui.common.Adapter):
 
 class Session(hat.gui.common.AdapterSession):
 
-    def __init__(self,adapter, juggler_client, group):
+    def __init__(self, adapter, juggler_client, group):
         self._adapter = adapter
         self._juggler_client = juggler_client
         self._async_group = group
-        # self._async_group.spawn(self._run)
-
         try:
             self._async_group.spawn(self._run)
         except:
@@ -118,28 +175,19 @@ class Session(hat.gui.common.AdapterSession):
         component).
         """
 
-
         try:
             self._on_state_change()
             with self._adapter.subscribe_to_state_change(
                     self._on_state_change):
                 while True:
                     data = await self._juggler_client.receive()  # sent data
-                    #print("CB..")
+                    # print("CB..")
 
-                    # # sending data to module 'module'
-                    # self._adapter._event_client.register(([
-                    #     hat.event.common.RegisterEvent(
-                    #         event_type=('backValue', 'backValue', 'modelChange'),
-                    #         source_timestamp=None,
-                    #         payload=hat.event.common.EventPayload(
-                    #             type=hat.event.common.EventPayloadType.JSON,
-                    #             data=data))]))
                     if data['action'] == 'setting_change':
-                        event_type = ('back_action', 'setting_change')
+                        event_type = ('back_action', data['type'], 'setting_change')
                     elif data['action'] == 'model_change':
-                        event_type = ('back_action', 'model_change')
-                        # sending data to module 'module'
+                        event_type = ('back_action', data['type'], 'model_change')
+                    # sending data to module 'module'
                     self._adapter._event_client.register(([
                         hat.event.common.RegisterEvent(
                             event_type=event_type,
@@ -155,20 +203,21 @@ class Session(hat.gui.common.AdapterSession):
             print("Unexpected closing:", sys.exc_info()[0])
             await self.wait_closing()
 
-
     @property
     def async_group(self):
         return self._async_group
 
     def _on_state_change(self):
-        # self._juggler_client.set_local_data(self._adapter._series)
+
         self._juggler_client.set_local_data({
             'values': self._adapter._series_values,
             'timestamps': {
-                # 'reading': [str(ts) for ts in self._adapter._series_timestamps['reading']],
-                # 'forecast': [str(ts) for ts in self._adapter._series_timestamps['forecast']],
-                'reading':[],
-                'forecast':[]
+                'reading': [str(ts) for ts in self._adapter._series_timestamps['reading']],
+                'anomaly': [str(ts) for ts in self._adapter._series_timestamps['anomaly']],
+                'forecast': [str(ts) for ts in self._adapter._series_timestamps['forecast']],
             },
-            'info': self._adapter._info
+            'info': {
+                'anomaly': self._adapter._info['anomaly'],
+                'forecast': self._adapter._info['forecast']
+            }
         })

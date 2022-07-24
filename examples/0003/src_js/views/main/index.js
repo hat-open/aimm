@@ -1,34 +1,37 @@
 import * as plotly from 'plotly.js/dist/plotly.js';
 import 'main/index.scss';
+import redux from 'redux';
 
 
 export function vt() {
     return plot();
 }
 
-// export function on_radio_switch(model_type){
-//     console.log("HELLO " + model_type);
-//
-// //     r.get('remote', 'timeseries', 'reading')
-//        hat.conn.send('timeseries', {'model': model_type});
-// //     let swValue = r.get('remote', 'adapter', String(i) + '+' + '0');
-// }
-// export function trigger_notebook(){
-//         hat.conn.send('timeseries', {'notebook': 1});
-// }
-
 export function plot() {
+    let l = r.get('remote', 'timeseries','timestamps','reading').length;
+
+    const dateValue = new Date(r.get('remote', 'timeseries','timestamps','reading')[l-1]);
+    dateValue.setHours(dateValue.getHours() + 48);
+    const x_r = dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
+
+
+
+
+
     const layout = {
-        title: 'Timeseries prediction model testing',
+        title: 'Timeseries anomaly/forecast model testing',
         xaxis: {
             title: 'Timestamp',
             showgrid: true,
-            range: [0, 72]
+            range: [
+                r.get('remote', 'timeseries','timestamps','reading')[0],
+                x_r
+            ]
         },
         yaxis: {
-            title: 'CO concentration',
+            title: 'Temperature',
             showline: false,
-            range: [600, 2100]
+            // range: [0, 2]
         }
     };
     const config = {
@@ -38,30 +41,65 @@ export function plot() {
     };
 
     const reading_trace = {
-        x: r.get('remote', 'timeseries','values','reading').keys(),
+        x: r.get('remote', 'timeseries','timestamps','reading'),
         y: r.get('remote', 'timeseries','values','reading'),
         line: { shape: 'spline' },
         type: 'scatter',
         name: 'Reading'
     };
 
+
+    const anomaly_trace = {
+        x: r.get('remote', 'timeseries','timestamps','anomaly'),
+        y: r.get('remote', 'timeseries','values','anomaly'),
+        // line: { shape: 'spline' },
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Anomaly'
+    };
+
+
+            // console.log(k);
+            // const regex = new RegExp(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
+            // const result3 = regex.exec(k);
+            // console.log(result3[1] + "T" + result3[2] + "Z");
+            // const dateValue = new Date(result3[1] + "T" + result3[2] + "Z");
+            // dateValue.setHours(dateValue.getHours() + 48);
+            // return dateValue.toString();
+
+
     const forecast_trace = {
-        x: r.get('remote', 'timeseries','values','forecast').map((_, k) => k + 47),
+        x: r.get('remote', 'timeseries','timestamps','forecast').map((k) => {
+
+            const dateValue = new Date(k);
+            dateValue.setHours(dateValue.getHours() + 48);
+            return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
+
+        }),
         y: r.get('remote', 'timeseries','values','forecast'),
         line: { shape: 'spline' },
         type: 'scatter',
         name: 'Forecast'
     };
 
-    const cur_model_name = r.get('remote','timeseries','info','new_current_model');
 
-    function on_radio_switch(model_type){
+    // console.log(forecast_trace);
+
+    const data = [reading_trace, anomaly_trace,forecast_trace];
+
+    const cur_anomaly_model_name = r.get('remote','timeseries','info','anomaly','new_current_model');
+    const cur_forecast_model_name = r.get('remote','timeseries','info','forecast','new_current_model');
+
+
+    const setting_name = r.get('remote','timeseries','info','anomaly','setting','name');
+
+    function on_radio_switch(model_type,prediction_type){
         console.log("Picked: " + model_type);
-        hat.conn.send('timeseries', {'action': 'model_change', 'model': model_type});
+        hat.conn.send('timeseries', {'action': 'model_change','type':prediction_type, 'model': model_type});
     }
 
-    function change_button_color(model_type){
-        const models = r.get('remote','timeseries','info','model_state','models');
+    function change_button_color(model_type,prediction_type){
+        const models = r.get('remote','timeseries','info',prediction_type, 'model_state','models');
         if (!models) return '';
         for (const [key, value] of Object.entries(models)) {
           if (value.split(".").at(-1) === model_type ) return 'border: 3px solid green;'
@@ -69,10 +107,13 @@ export function plot() {
         }
         return '';
     }
-    const generate_setting_inputs = function () {
-            if (!r.get('remote','timeseries','info','setting')) return;
 
-            var t = Object.entries(r.get('remote','timeseries','info','setting'))
+    const generate_setting_inputs = function (prediction_type) {
+            if (!r.get('remote','timeseries','info',prediction_type,'setting')) return;
+
+            var cur_model_name = prediction_type === 'anomaly'? cur_anomaly_model_name:cur_forecast_model_name;
+
+            var t = Object.entries(r.get('remote','timeseries','info',prediction_type,'setting'))
                 .map(function([key,value],index) {
                           return ["div",[
                 ["label",{props: {for: 'input1'}}, key  ],
@@ -86,7 +127,7 @@ export function plot() {
                                     console.log("changed to: " + e.target.value);
                                     hat.conn.send('timeseries',
                                      {
-                                     'action': 'setting_change',
+                                     'action': 'setting_change','type':prediction_type,
                                      [key]: e.target.value});
                                 }
                             }
@@ -97,39 +138,53 @@ export function plot() {
 
              return ["div",t];
     }
-    const generate_model_buttons = function () {
-        if (!r.get('remote','timeseries','info','supported_models')) return;
 
-        var t = r.get('remote','timeseries','info','supported_models').map(function(value,index) {
-                      return [
-                    "button",
-                    {
-                        props: {
-                            disabled: cur_model_name === value,
-                            type: 'checkbox', id: 'id1',
-                            name: 'modelSelect',
-                            style: change_button_color(value),
-                            value: 'Forest' },
-                        on: {  click: () => on_radio_switch(value) }
+    const generate_model_buttons = function (prediction_type) {
+        if (!r.get('remote','timeseries','info',prediction_type,'supported_models')) return;
+
+        const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
+
+        const t = r.get('remote', 'timeseries', 'info', prediction_type, 'supported_models').map(function (value, index) {
+            return [
+                "button",
+                {
+                    props: {
+                        disabled: cur_model_name === value,
+                        type: 'checkbox', id: 'id1',
+                        name: 'modelSelect',
+                        style: change_button_color(value, prediction_type),
+                        value: 'Forest'
                     },
-                    value
-                    ]
-               });
-
-         return ["div",t];
+                    on: {click: () => on_radio_switch(value, prediction_type)}
+                },
+                value
+            ]
+        });
+        return ["div",t];
     }
-    const data = [reading_trace, forecast_trace];
-    return ['div',
-        [
 
-            ["label",{props: {for: 'input2'}},' Current Model '],
+    const generate_div = function (prediction_type){
+        const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
+        return ['div',
+            ["label",{props: {for: 'input2'}},' Current '+prediction_type+' Model '],
             ["input",{props: {disabled: true, id: 'input2',value: cur_model_name }}],
             ["br"],
-            generate_setting_inputs(),
+            generate_setting_inputs(prediction_type),
             ["br"],
+            ["label",{props: {for: prediction_type+'_buttons'}},prediction_type+' models: '],
+            ['div',{props: {id: prediction_type+'_buttons'}},generate_model_buttons(prediction_type)]
+        ];
+    }
+
+
+    return ['div',
+
+        ['div',
+
+            generate_div('anomaly'),
+            generate_div('forecast')
         ],
-        ["br"], ["br"],
-        ['div',generate_model_buttons()],
+
         ['div.plot',
             {
                 plotData: data,
@@ -147,5 +202,4 @@ export function plot() {
             }
         ]
     ];
-
 }

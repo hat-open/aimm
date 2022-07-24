@@ -2,7 +2,7 @@
 devices:
     - module: air_supervision.devices.air_readings
       name: device
-      dataset_path: dataset/sanatized.csv
+      dataset_path: dataset/ambient_temperature_system_failure.csv
 event_server_group: event
 gateway_name: gateway
 log:

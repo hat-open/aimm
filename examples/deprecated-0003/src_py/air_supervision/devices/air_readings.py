@@ -29,13 +29,9 @@ class AirReading(hat.gateway.common.Device):
         return self._async_group
 
     async def _main_loop(self):
-        column = 'value'
+        column = 'PT08.S1(CO)'
         for index, value in self._df[column].iteritems():
             await asyncio.sleep(0.5)
-
-            timestamp = self._df.iloc[index]['timestamp']
-            value = (float(value) - 32) * 5/9
-
             self._event_client.register([
                 hat.event.common.RegisterEvent(
                     event_type=(*self._event_type_prefix,
@@ -43,7 +39,4 @@ class AirReading(hat.gateway.common.Device):
                     source_timestamp=hat.event.common.Timestamp(index, 0),
                     payload=hat.event.common.EventPayload(
                         type=hat.event.common.EventPayloadType.JSON,
-                        data={
-                            'timestamp': timestamp,
-                            'value': value
-                        }))])
+                        data=value))])
