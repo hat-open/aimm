@@ -149,7 +149,7 @@ export function plot() {
                 "button",
                 {
                     props: {
-                        disabled: cur_model_name === value,
+                        disabled: cur_model_name === value  || value === 'linear' || value === 'Cluster',
                         type: 'checkbox', id: 'id1',
                         name: 'modelSelect',
                         style: change_button_color(value, prediction_type),
@@ -166,6 +166,9 @@ export function plot() {
     const generate_div = function (prediction_type){
         const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
         return ['div',
+            {props: {
+                    id: prediction_type + '_div',
+                }},
             ["label",{props: {for: 'input2'}},' Current '+prediction_type+' Model '],
             ["input",{props: {disabled: true, id: 'input2',value: cur_model_name }}],
             ["br"],
@@ -180,6 +183,11 @@ export function plot() {
     return ['div',
 
         ['div',
+            {
+                props: {
+                    style: 'width:100% ;float: left;'
+                },
+            },
 
             generate_div('anomaly'),
             generate_div('forecast')
@@ -189,7 +197,7 @@ export function plot() {
             {
                 plotData: data,
                 props: {
-                    style: 'height: 100%'
+                    style: 'height: 100%; width:100% ;float: left;'
                 },
                 hook: {
                     insert: vnode => plotly.newPlot(vnode.elm, data, layout, config),

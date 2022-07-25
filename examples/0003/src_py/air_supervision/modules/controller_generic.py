@@ -142,6 +142,10 @@ class GenericReadingsModule(hat.event.server.common.Module):
             results = results[:, -1]
             values = [i[0] for i in values]
 
+        #if results is of type array
+        if isinstance(results, np.ndarray):
+            results = results.tolist()
+
         ret = [
             _process_event(
                 ('gui', 'system', 'timeseries', self.vars["model_type"]), {
@@ -151,6 +155,9 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
                 })
             for t, r, v in zip(timestamps, results, values)]
+
+        # if self._model_type == 'forecast':
+        #     breakpoint()
 
 
 
@@ -243,7 +250,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
             if self.readings_control.size >= self._batch_size:
 
                 model_input, _ = self.readings_control.get_first_n_readings(self._batch_size)
-                # if self._model_type == 'anomaly':
+                # if self._model_type == 'forecast':
                 #     breakpoint()
 
                 self._async_group.spawn(self._MODELS[self.lock.current_model].predict, [model_input])

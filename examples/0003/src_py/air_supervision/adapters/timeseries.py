@@ -61,6 +61,36 @@ class Adapter(hat.gui.common.Adapter):
     def subscribe_to_state_change(self, callback):
         return self._state_change_cb_registry.register(callback)
 
+    def truncate_lists(self, vals, tss):
+        """
+        Truncates lists vals and tss so that timestamps don't repeat.
+        For example:
+        vals = [20,21,25,23,28,19,22,26,21]
+        tss  = [1,2,3,4,5,3,4,5,6]
+
+        will be truncated to:
+        vals = [20, 21, 25, 23, 28, 21]
+        tss  = [1, 2, 3, 4, 5, 6]
+        """
+
+        max_ts = tss[0]
+        index = 0
+        for ts in tss:
+            if ts >= max_ts:
+                max_ts = ts
+                index = index + 1
+            else:
+                break
+
+        # index of element with value equal to max_ts
+        index_last = len(tss) - list(reversed(tss)).index(max_ts)
+
+        # delete elements from index_first to index
+        vals_new = vals[:index] + vals[index_last:]
+        tss_new = tss[:index] + tss[index_last:]
+
+        return vals_new, tss_new
+
     async def _main_loop(self):
         while True:
 
@@ -74,7 +104,8 @@ class Adapter(hat.gui.common.Adapter):
                     Additional data for GUI. Just pass it through, JS will handle it.
                     """
 
-                    self._info[event.event_type[2]] = dict(self._info[event.event_type[2]], **{event.event_type[3]: event.payload.data})
+                    self._info[event.event_type[2]] = dict(self._info[event.event_type[2]],
+                                                           **{event.event_type[3]: event.payload.data})
 
                 else:
                     """
@@ -116,6 +147,7 @@ class Adapter(hat.gui.common.Adapter):
                     self._series_timestamps = dict(self._series_timestamps,
                                                    **{series_id: self._series_timestamps[series_id] + [timestamp]})
 
+
             if len(self._series_values['reading']) > 71:
                 self._series_values['reading'].pop(0)
                 self._series_timestamps['reading'].pop(0)
@@ -129,27 +161,19 @@ class Adapter(hat.gui.common.Adapter):
                 #                   sorted(zip(self._series_timestamps['anomaly'], self._series_values['anomaly']))]
 
             if self._series_timestamps['forecast']:
-                if min(self._series_timestamps['forecast']) < max(self._series_timestamps['reading']) - timedelta(days=3):
-                    # sort values by timestamp
-                    sorted_forecast_ts = sorted(self._series_timestamps['forecast'])
-                    sorted_forcast = [x for _, x in
-                                      sorted(
-                                          zip(self._series_timestamps['forecast'], self._series_values['forecast']),
-                                          key=lambda x: x[0])]
+                # truncate lists
+                self._series_values['forecast'], self._series_timestamps['forecast'] = self.truncate_lists(
+                    self._series_values['forecast'], self._series_timestamps['forecast'])
 
-                    self._series_timestamps['forecast'] = sorted_forecast_ts
-                    self._series_values['forecast'] = sorted_forcast
+                if min(self._series_timestamps['forecast']) < max(self._series_timestamps['reading']) - timedelta(
+                        days=3):
 
-                    #delete timestamps and values that are older than 3 days
-                    self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i >= max(self._series_timestamps['reading']) - timedelta(days=3)]
-                    self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
-
-                #just in case, delete forecast if it predicts too far in the future
-                # elif max(self._series_timestamps['forecast']) > max(self._series_timestamps['reading']) + timedelta(days=3):
-                #     # delete timestamps and values that are 3 days in the future or more
-                #     self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if i <= max(self._series_timestamps['reading']) + timedelta(days=3)]
-                #     self._series_values['forecast'] = self._series_values['forecast'][-len(self._series_timestamps['forecast']):]
-
+                    # delete timestamps and values that are older than 3 days
+                    self._series_timestamps['forecast'] = [i for i in self._series_timestamps['forecast'] if
+                                                           i >= max(self._series_timestamps['reading']) - timedelta(
+                                                               days=3)]
+                    self._series_values['forecast'] = self._series_values['forecast'][
+                                                      -len(self._series_timestamps['forecast']):]
 
             if self._session:
                 self._session._on_state_change()
