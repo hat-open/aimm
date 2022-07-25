@@ -1,3 +1,5 @@
+.idea/
+
 .doit*
 __pycache__/
 test/.coverage

@@ -1,0 +1,15 @@
+aimm
+sklearn
+pandas
+numpy
+pandapower
+hat-syslog
+hat-drivers
+hat-gui
+hat-orchestrator
+hat-gateway
+hat-manager
+numba
+
+scikit-learn
+PyYAML
