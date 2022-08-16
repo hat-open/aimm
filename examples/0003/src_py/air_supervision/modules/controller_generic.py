@@ -1,19 +1,9 @@
-from hat import util
+from air_supervision.modules.model_generic import RETURN_TYPE
 import hat.aio
 import hat.event.server.common
-# from aimm.client import repl
-# from enum import Enum
-
-import sys
-import os
-from datetime import datetime
-
-sys.path.insert(0, '../../')
 import importlib
-# from src_py.air_supervision.modules.SVR import MultiOutputSVR, constant
-from air_supervision.modules.model_generic import RETURN_TYPE
-import numpy as np
 import logging
+import numpy as np
 
 mlog = logging.getLogger(__name__)
 json_schema_id = None
@@ -36,8 +26,6 @@ class ReadingsHandler:
 
     def get_first_n_readings(self, n):
         return self.readings[:n].copy(), self.readings_times[:n].copy()
-
-
 
     def remove_first_n_readings(self, n):
         self.readings = self.readings[n:]
@@ -68,8 +56,8 @@ class FitLock:
 
     def fitted(self):
         self.lock = False
-        
-        
+
+
 class GenericReadingsModule(hat.event.server.common.Module):
 
     def __init__(self):
@@ -84,9 +72,9 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
         self._MODELS = {}
         self._request_ids = {}
-        
+
         self.lock = FitLock()
-        
+
         self.vars = {}
 
     @property
@@ -98,32 +86,27 @@ class GenericReadingsModule(hat.event.server.common.Module):
         return self._subscription
 
     async def create_session(self):
-        return ReadingsSession(self._engine, self,
-                               self._async_group.create_subgroup())
+        return Session(self._engine, self, self._async_group.create_subgroup())
 
     def send_message(self, data, type_name):
 
         async def send_log_message():
-
             await self._engine.register(
                 self._source,
-                [_register_event(('gui', 'log', self._model_type, type_name), data)])
-
-        try:
-            self._async_group.spawn(send_log_message)
-        except:
-            pass
+                [_register_event(('gui', 'log', self._model_type, type_name),
+                                 data)])
+        self._async_group.spawn(send_log_message)
 
     def update_models_ids(self, event):
         if not event.payload.data['models'] or not self._MODELS:
             return
 
-        for aimm_model_id, aimm_model_name in event.payload.data['models'].items():
-            aimm_model_name = aimm_model_name.rsplit('.', 1)[-1]
+        for model_id, model_name in event.payload.data['models'].items():
+            model_name = model_name.rsplit('.', 1)[-1]
 
             for saved_model_name, saved_model_inst in self._MODELS.items():
-                if aimm_model_name == saved_model_name:
-                    saved_model_inst.set_id(aimm_model_id)
+                if model_name == saved_model_name:
+                    saved_model_inst.set_id(model_id)
 
         self.send_message(event.payload.data, 'model_state')
 
@@ -134,15 +117,15 @@ class GenericReadingsModule(hat.event.server.common.Module):
                 self._source,
                 _register_event(event_type, payload, source_timestamp))
 
-        values, timestamps = self.readings_control.get_first_n_readings(self._batch_size)
+        values, timestamps = self.readings_control.get_first_n_readings(
+            self._batch_size)
         results = np.array(event.payload.data['result'])
-
 
         if self.vars['model_type'] == 'anomaly':
             results = results[:, -1]
             values = [i[0] for i in values]
 
-        #if results is of type array
+        # if results is of type array
         if isinstance(results, np.ndarray):
             results = results.tolist()
 
@@ -159,35 +142,40 @@ class GenericReadingsModule(hat.event.server.common.Module):
         # if self._model_type == 'forecast':
         #     breakpoint()
 
-
-
-        self.readings_control.remove_first_n_readings(self._batch_size if self._model_type == 'anomaly' else self._batch_size//2)
+        self.readings_control.remove_first_n_readings(
+            self._batch_size if self._model_type == 'anomaly'
+            else self._batch_size // 2)
         return ret
 
     def process_action(self, event):
-        if (request_instance := event.payload.data.get('request_id')['instance']) in self._request_ids \
-                and event.payload.data.get('status') == 'DONE':
+        payload = event.payload.data
+        if ((request_instance := payload.get('request_id')['instance'])
+                in self._request_ids and payload.get('status') == 'DONE'):
 
             request_type, model_name = self._request_ids[request_instance]
 
-            if (request_type == RETURN_TYPE.A_CREATE) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_CREATE):
+            is_anomaly = self._model_type == 'anomaly'
+            if ((request_type == RETURN_TYPE.A_CREATE and is_anomaly) or
+                    (request_type == RETURN_TYPE.F_CREATE and not is_anomaly)):
                 self.lock.created(model_name)
 
                 self._async_group.spawn(self._MODELS[model_name].fit)
 
                 self.send_message(model_name, 'new_current_model')
-                hyperparameters = self._MODELS[model_name].get_default_setting()
-                self.send_message(hyperparameters, 'setting')
+                params = self._MODELS[model_name].get_default_setting()
+                self.send_message(params, 'setting')
 
                 return
 
-
-            if (request_type == RETURN_TYPE.A_FIT) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_FIT):
+            if ((request_type == RETURN_TYPE.A_FIT and is_anomaly) or
+                    (request_type == RETURN_TYPE.F_FIT and not is_anomaly)):
                 self.lock.fitted()
                 # self._current_model_name = model_name
                 return
 
-            if (request_type == RETURN_TYPE.A_PREDICT) if self._model_type == 'anomaly' else (request_type == RETURN_TYPE.F_PREDICT):
+            if ((request_type == RETURN_TYPE.A_PREDICT and is_anomaly) or
+                    (request_type == RETURN_TYPE.F_PREDICT
+                     and not is_anomaly)):
                 return self.process_predict(event)
 
             del self._request_ids[request_instance]
@@ -213,20 +201,15 @@ class GenericReadingsModule(hat.event.server.common.Module):
             getattr(importlib.import_module(self._import_module_name),
                     received_model_name)(self, received_model_name)
 
-        try:
-            self._async_group.spawn(self._MODELS[received_model_name].create_instance)
-        except:
-            breakpoint()
+        self._async_group.spawn(
+            self._MODELS[received_model_name].create_instance)
 
     def process_setting_change(self, event):
 
         kw = event.payload.data
         del kw['action']
-
-        try:
-            self._async_group.spawn(self._MODELS[self.lock.current_model].fit, **kw)
-        except:
-            pass
+        self._async_group.spawn(self._MODELS[self.lock.current_model].fit,
+                                **kw)
 
     def process_aimm(self, event):
 
@@ -244,19 +227,21 @@ class GenericReadingsModule(hat.event.server.common.Module):
 
         if self.lock.can_fit():
 
-            row = self.transform_row(event.payload.data['value'], event.payload.data['timestamp'])
+            row = self.transform_row(event.payload.data['value'],
+                                     event.payload.data['timestamp'])
             self.readings_control.append(row, event.payload.data["timestamp"])
 
             if self.readings_control.size >= self._batch_size:
 
-                model_input, _ = self.readings_control.get_first_n_readings(self._batch_size)
-                # if self._model_type == 'forecast':
-                #     breakpoint()
+                model_input, _ = self.readings_control.get_first_n_readings(
+                    self._batch_size)
 
-                self._async_group.spawn(self._MODELS[self.lock.current_model].predict, [model_input])
+                self._async_group.spawn(
+                    self._MODELS[self.lock.current_model].predict,
+                    [model_input])
 
 
-class ReadingsSession(hat.event.server.common.ModuleSession):
+class Session(hat.event.server.common.ModuleSession):
 
     def __init__(self, engine, module, group):
         self._engine = engine

@@ -1,9 +1,4 @@
-import pandas
-import numpy
-import hat.aio
-import hat.event.server.common
-
-from air_supervision.modules.anomaly.anomaly_model_generic import GenericAnomalyModel
+from air_supervision.modules.anomaly.anomaly_model_generic import GenericAnomalyModel  # NOQA
 
 
 class SVM(GenericAnomalyModel):

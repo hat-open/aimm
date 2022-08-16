@@ -1,12 +1,7 @@
-from abc import ABC, abstractmethod
-import pandas
-import numpy
+from abc import ABC
 import hat.aio
 import hat.event.server.common
-import yaml
 from enum import Enum
-import csv
-from datetime import datetime
 
 
 class RETURN_TYPE(Enum):
@@ -47,7 +42,8 @@ class GenericModel(ABC):
                 payload=hat.event.server.common.EventPayload(
                     type=hat.event.server.common.EventPayloadType.JSON,
                     data=data))])
-        self.module._request_ids[events[0].event_id._asdict()['instance']] = (return_type, self.name)
+        request_id = events[0].event_id._asdict()['instance']
+        self.module._request_ids[request_id] = (return_type, self.name)
 
     # @abstractmethod
     async def fit(self, **kwargs):
@@ -60,17 +56,19 @@ class GenericModel(ABC):
                 'kwargs': self.hyperparameters}
 
         await self._register_event(event_type, data,
-                                   RETURN_TYPE.A_CREATE if self.model_type_short == 'anomaly' else RETURN_TYPE.F_CREATE)
+                                   RETURN_TYPE.A_CREATE
+                                   if self.model_type_short == 'anomaly'
+                                   else RETURN_TYPE.F_CREATE)
 
     async def predict(self, model_input):
 
         event_type = ('aimm', 'predict', self._id)
         data = {'args': model_input, 'kwargs': {}}
 
-
-
         await self._register_event(event_type, data,
-                                    RETURN_TYPE.A_PREDICT if self.model_type_short == 'anomaly' else RETURN_TYPE.F_PREDICT)
+                                   RETURN_TYPE.A_PREDICT
+                                   if self.model_type_short == 'anomaly'
+                                   else RETURN_TYPE.F_PREDICT)
 
     def _get_dataset(self):
         raise NotImplementedError()

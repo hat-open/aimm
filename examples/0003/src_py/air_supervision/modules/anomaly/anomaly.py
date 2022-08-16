@@ -1,11 +1,9 @@
 import hat.aio
 import hat.event.server.common
-import sys
 from datetime import datetime
 
-sys.path.insert(0, '../../')
-import importlib
-from air_supervision.modules.controller_generic import GenericReadingsModule, ReadingsHandler
+from air_supervision.modules.controller_generic import (GenericReadingsModule,
+                                                        ReadingsHandler)
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -32,7 +30,8 @@ async def create(conf, engine):
     module._engine = engine
 
     module._model_type = 'anomaly'
-    module._import_module_name = f"air_supervision.modules.{module._model_type}.{module._model_type}_model"
+    module._import_module_name = "{}.{}.{}_model".format(
+        __name__, module._model_type, module._model_type)
     module._supported_models = ["Forest", "SVM", "Cluster"]
     module._readings_control = ReadingsHandler()
     module._batch_size = 5

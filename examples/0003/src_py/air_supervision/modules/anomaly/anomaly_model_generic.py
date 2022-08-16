@@ -1,9 +1,3 @@
-from abc import ABC, abstractmethod
-
-import hat.aio
-import hat.event.server.common
-import yaml
-from enum import Enum
 from air_supervision.modules.model_generic import GenericModel, RETURN_TYPE
 
 
@@ -34,7 +28,8 @@ class GenericAnomalyModel(GenericModel):
             for i, line in enumerate(reader):
                 if not i:
                     continue
-                timestamp = datetime.strptime(line[0].split(',')[0], '%Y-%m-%d %H:%M:%S')
+                timestamp = datetime.strptime(line[0].split(',')[0],
+                                              '%Y-%m-%d %H:%M:%S')
                 value = float(line[0].split(',')[1])
 
                 value = (float(value) - 32) * 5 / 9

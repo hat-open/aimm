@@ -7,6 +7,7 @@ from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression
 import random
 
+
 class GenericPredictionModel(aimm.plugins.Model):
     def __init__(self, **kwargs):
         self.scale_ = -1
@@ -24,7 +25,8 @@ class GenericPredictionModel(aimm.plugins.Model):
 
     def predict(self, x):
         x = pd.DataFrame((x - self.mean_) / self.scale_)
-        rez = pd.Series(self.model.predict(x)).map({1: 0, -1: 1}).values.tolist()
+        series = pd.Series(self.model.predict(x))
+        rez = series.map({1: 0, -1: 1}).values.tolist()
         x = pd.DataFrame(x*self.scale_ + self.mean_)
         x['result'] = rez
         return x.values.tolist()
@@ -49,7 +51,6 @@ class GenericPredictionModel(aimm.plugins.Model):
         return pickle.loads(b)
 
 
-
 @aimm.plugins.model
 class MultiOutputSVR(aimm.plugins.Model):
 
@@ -59,12 +60,14 @@ class MultiOutputSVR(aimm.plugins.Model):
         if not self._update_hp(**kwargs):
             self.hyperparameters = {'C': 2000}
 
-        self._model = multioutput.MultiOutputRegressor(svm.SVR(C=self.hyperparameters['C']))
+        self._model = multioutput.MultiOutputRegressor(
+            svm.SVR(C=self.hyperparameters['C']))
 
     def fit(self, x, y, **kwargs):
 
         if self._update_hp(**kwargs):
-            self.model = multioutput.MultiOutputRegressor(svm.SVR(C=self.hyperparameters['C']))
+            self.model = multioutput.MultiOutputRegressor(
+                svm.SVR(C=self.hyperparameters['C']))
 
         self._model.fit(x, y)
         return self
@@ -92,7 +95,6 @@ class MultiOutputSVR(aimm.plugins.Model):
         return pickle.loads(b)
 
 
-
 @aimm.plugins.model
 class linear(aimm.plugins.Model):
 
@@ -117,15 +119,6 @@ class linear(aimm.plugins.Model):
 
     def predict(self, X, **kwargs):
         return self._linear.predict(X).reshape(-1).tolist()
-
-
-
-    def serialize(self):
-        return pickle.dumps(self)
-
-    @classmethod
-    def deserialize(cls, b):
-        return pickle.loads(b)
 
 
 @aimm.plugins.model
@@ -159,11 +152,9 @@ class constant(aimm.plugins.Model):
 
         return [random.randint(1, 15)] * len(X)
 
-
     def serialize(self):
         return pickle.dumps(self)
 
     @classmethod
     def deserialize(cls, b):
         return pickle.loads(b)
-

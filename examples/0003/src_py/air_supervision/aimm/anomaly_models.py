@@ -1,4 +1,4 @@
-from sklearn import multioutput, svm, exceptions
+from sklearn import exceptions
 import aimm.plugins
 import numpy as np
 import pickle
@@ -29,7 +29,8 @@ class GenericAnomalyModel(aimm.plugins.Model):
 
     def predict(self, x):
         x = pd.DataFrame((x - self.mean_) / self.scale_)
-        rez = pd.Series(self.model.predict(x)).map({1: 0, -1: 1}).values.tolist()
+        series = pd.Series(self.model.predict(x))
+        rez = series.map({1: 0, -1: 1}).values.tolist()
         x = pd.DataFrame(x*self.scale_ + self.mean_)
         x['result'] = rez
         return x.values.tolist()
@@ -63,12 +64,14 @@ class Forest(GenericAnomalyModel):
         if not self._update_hp(**kwargs):
             self.hyperparameters = {'contamination': 0.01}
 
-        self.model = IsolationForest(contamination=self.hyperparameters['contamination'])
+        self.model = IsolationForest(
+            contamination=self.hyperparameters['contamination'])
 
     def fit(self, x, y, **kwargs):
 
         if self._update_hp(**kwargs):
-            self.model = IsolationForest(contamination=self.hyperparameters['contamination'])
+            self.model = IsolationForest(
+                contamination=self.hyperparameters['contamination'])
 
         super().fit(x, y, **kwargs)
         return self
@@ -83,13 +86,15 @@ class SVM(GenericAnomalyModel):
         if not self._update_hp(**kwargs):
             self.hyperparameters = {'contamination': 0.05}
 
-        self.model = OneClassSVM(nu=0.95 * self.hyperparameters['contamination'])
+        self.model = OneClassSVM(
+            nu=0.95 * self.hyperparameters['contamination'])
         # nu=0.95 * outliers_fraction  + 0.05
 
     def fit(self, x, y, **kwargs):
 
         if self._update_hp(**kwargs):
-            self.model = OneClassSVM(nu=0.95 * self.hyperparameters['contamination'])
+            self.model = OneClassSVM(
+                nu=0.95 * self.hyperparameters['contamination'])
 
         super().fit(x, y, **kwargs)
         return self
@@ -118,17 +123,19 @@ class Cluster(aimm.plugins.Model):
         np_scaled = min_max_scaler.fit_transform(data)
         data = pd.DataFrame(np_scaled)
 
-        # calculate with different number of centroids to see the loss plot (elbow method)
+        # calculate with different number of centroids to see the loss plot
+        # (elbow method)
         n_cluster = range(1, 20)
         kmeans = [KMeans(n_clusters=i).fit(data) for i in n_cluster]
-        scores = [kmeans[i].score(data) for i in range(len(kmeans))]
 
-        # Not clear for me, I choose 15 centroids arbitrarily and add these data to the central dataframe
+        # Not clear for me, I choose 15 centroids arbitrarily and add these
+        # data to the central dataframe
         x['cluster'] = kmeans[14].predict(data)
         x['principal_feature1'] = data[0]
         x['principal_feature2'] = data[1]
 
-        # return Series of distance between each point and his distance with the closest centroid
+        # return Series of distance between each point and his distance with
+        # the closest centroid
         def getDistanceByPoint(data, model):
             distance = pd.Series()
             for i in range(0, len(data)):
@@ -137,17 +144,18 @@ class Cluster(aimm.plugins.Model):
                 distance.at[i] = np.linalg.norm(Xa - Xb)
             return distance
 
-        # get the distance between each point and its nearest centroid. The biggest distances are considered as anomaly
+        # get the distance between each point and its nearest centroid. The
+        # biggest distances are considered as anomaly
         distance = getDistanceByPoint(data, kmeans[14])
         number_of_outliers = int(outliers_fraction * len(distance))
         threshold = distance.nlargest(number_of_outliers).min()
-        # anomaly21 contain the anomaly result of method 2.1 Cluster (0:normal, 1:anomaly)
+        # anomaly21 contain the anomaly result of method
+        # 2.1 Cluster (0:normal, 1:anomaly)
         x['anomaly21'] = (distance >= threshold).astype(int)
 
         a = x.loc[x['anomaly21'] == 1, ['time_epoch', 'value']]  # anomaly
 
         return a
-
 
     def predict(self, x):
         try:
@@ -162,6 +170,3 @@ class Cluster(aimm.plugins.Model):
     @classmethod
     def deserialize(self, b):
         return pickle.loads(b)
-
-
-

@@ -2,7 +2,6 @@ node_modules/
 build/
 data/
 dataset/
-.idea/
 .venv
 __pycache__/
 
