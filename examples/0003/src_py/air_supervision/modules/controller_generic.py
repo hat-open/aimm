@@ -1,7 +1,8 @@
-from air_supervision.modules.model_generic import RETURN_TYPE
+from air_supervision.modules import model
+from typing import Any
+import abc
 import hat.aio
 import hat.event.server.common
-import importlib
 import logging
 import numpy as np
 
@@ -21,7 +22,6 @@ class ReadingsHandler:
     def append(self, reading, reading_time):
         self.readings.append(reading)
         self.readings_times.append(reading_time)
-        # if reading is array
         self.size += 1
 
     def get_first_n_readings(self, n):
@@ -58,11 +58,9 @@ class FitLock:
         self.lock = False
 
 
-class GenericReadingsModule(hat.event.server.common.Module):
+class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
     def __init__(self):
-        super().__init__()
-
         self.readings_control = ReadingsHandler()
         self._current_model_name = None
 
@@ -70,7 +68,7 @@ class GenericReadingsModule(hat.event.server.common.Module):
         self.fit_data_lim = 5
         self._batch_size = 48
 
-        self._MODELS = {}
+        self._models = {}
         self._request_ids = {}
 
         self.lock = FitLock()
@@ -88,35 +86,81 @@ class GenericReadingsModule(hat.event.server.common.Module):
     async def create_session(self):
         return Session(self._engine, self, self._async_group.create_subgroup())
 
-    def send_message(self, data, type_name):
+    def process(self, event):
+        selector = event.event_type[0]
+        if selector == 'aimm':
+            yield from self._process_aimm(event)
+        elif selector == 'gui':
+            yield from self._process_reading(event)
+        elif selector == 'user_action':
+            yield from self._process_user_action(event)
 
-        async def send_log_message():
-            await self._engine.register(
-                self._source,
-                [_register_event(('gui', 'log', self._model_type, type_name),
-                                 data)])
-        self._async_group.spawn(send_log_message)
+    @abc.abstractmethod
+    def transform_row(self,
+                      value: float,
+                      timestamp: float) -> Any:
+        """Convert a given value and timestamp into a table row, used to create
+        a table input for the AIMM model.
 
-    def update_models_ids(self, event):
-        if not event.payload.data['models'] or not self._MODELS:
+        value: received measurement
+        timestamp: time of measurement
+
+        Returns:
+            Row representation"""
+
+    def _process_aimm(self, event):
+        msg_type = event.event_type[1]
+        if msg_type == 'state':
+            yield from self._update_model_ids(event)
+        elif msg_type == 'action':
+            yield from self._process_action(event)
+
+    def _update_model_ids(self, event):
+        if not event.payload.data['models'] or not self._models:
             return
 
         for model_id, model_name in event.payload.data['models'].items():
             model_name = model_name.rsplit('.', 1)[-1]
 
-            for saved_model_name, saved_model_inst in self._MODELS.items():
+            for saved_model_name, saved_model_inst in self._models.items():
                 if model_name == saved_model_name:
                     saved_model_inst.set_id(model_id)
 
-        self.send_message(event.payload.data, 'model_state')
+        yield self._message(event.payload.data, 'model_state')
 
-    def process_predict(self, event):
+    def _process_action(self, event):
+        payload = event.payload.data
+        instance = payload.get('request_id')['instance']
+        if (instance not in self._request_ids
+                or payload.get('status') != 'DONE'):
+            return
 
-        def _process_event(event_type, payload, source_timestamp=None):
-            return self._engine.create_process_event(
-                self._source,
-                _register_event(event_type, payload, source_timestamp))
+        type_, model_name = self._request_ids[instance]
 
+        if self._model_type == 'anomaly':
+            create_type = model.ReturnType.A_CREATE
+            fit_type = model.ReturnType.A_FIT
+            predict_type = model.ReturnType.A_PREDICT
+        else:
+            create_type = model.ReturnType.F_CREATE
+            fit_type = model.ReturnType.F_FIT
+            predict_type = model.ReturnType.F_PREDICT
+
+        if type_ == create_type:
+            self.lock.created(model_name)
+            self._async_group.spawn(self._models[model_name].fit)
+
+            yield self._message(model_name, 'new_current_model')
+            params = self._models[model_name].get_default_setting()
+            yield self._message(params, 'setting')
+        elif type_ == fit_type:
+            self.lock.fitted()
+        elif type_ == predict_type:
+            yield from self._process_predict(event)
+        else:
+            del self._request_ids[instance]
+
+    def _process_predict(self, event):
         values, timestamps = self.readings_control.get_first_n_readings(
             self._batch_size)
         results = np.array(event.payload.data['result'])
@@ -125,120 +169,62 @@ class GenericReadingsModule(hat.event.server.common.Module):
             results = results[:, -1]
             values = [i[0] for i in values]
 
-        # if results is of type array
         if isinstance(results, np.ndarray):
             results = results.tolist()
 
-        ret = [
-            _process_event(
-                ('gui', 'system', 'timeseries', self.vars["model_type"]), {
-                    'timestamp': t,
-                    'result': r,
-                    'value': v
-
-                })
-            for t, r, v in zip(timestamps, results, values)]
-
-        # if self._model_type == 'forecast':
-        #     breakpoint()
-
+        for t, r, v in zip(timestamps, results, values):
+            yield _register_event(('gui', 'system', 'timeseries',
+                                   self.vars['model_type']),
+                                  {'timestamp': t, 'result': r, 'value': v})
         self.readings_control.remove_first_n_readings(
             self._batch_size if self._model_type == 'anomaly'
             else self._batch_size // 2)
-        return ret
 
-    def process_action(self, event):
-        payload = event.payload.data
-        if ((request_instance := payload.get('request_id')['instance'])
-                in self._request_ids and payload.get('status') == 'DONE'):
+    def _process_reading(self, event):
+        yield self._message(self.vars["supported_models"], 'supported_models')
+        if not self.lock.can_fit():
+            return
+        row = self.transform_row(event.payload.data['value'],
+                                 event.payload.data['timestamp'])
+        self.readings_control.append(row, event.payload.data["timestamp"])
 
-            request_type, model_name = self._request_ids[request_instance]
-
-            is_anomaly = self._model_type == 'anomaly'
-            if ((request_type == RETURN_TYPE.A_CREATE and is_anomaly) or
-                    (request_type == RETURN_TYPE.F_CREATE and not is_anomaly)):
-                self.lock.created(model_name)
-
-                self._async_group.spawn(self._MODELS[model_name].fit)
-
-                self.send_message(model_name, 'new_current_model')
-                params = self._MODELS[model_name].get_default_setting()
-                self.send_message(params, 'setting')
-
-                return
-
-            if ((request_type == RETURN_TYPE.A_FIT and is_anomaly) or
-                    (request_type == RETURN_TYPE.F_FIT and not is_anomaly)):
-                self.lock.fitted()
-                # self._current_model_name = model_name
-                return
-
-            if ((request_type == RETURN_TYPE.A_PREDICT and is_anomaly) or
-                    (request_type == RETURN_TYPE.F_PREDICT
-                     and not is_anomaly)):
-                return self.process_predict(event)
-
-            del self._request_ids[request_instance]
-
-    def process_back_value(self, event):
-        {
-            'setting_change': self.process_setting_change,
-            'model_change': self.process_model_change
-        }[event.event_type[-1]](event)
-
-    def process_model_change(self, event):
-        # {'action': 'model_change', 'type': 'anomaly', 'model': 'Forest'}
-
-        received_model_name = event.payload.data['model']
-
-        if received_model_name in self._MODELS:
-            self.lock.current_model = received_model_name
-            self.send_message(received_model_name, 'new_current_model')
+        if self.readings_control.size < self._batch_size:
             return
 
-        self.lock.changed(received_model_name)
-        self._MODELS[received_model_name] = \
-            getattr(importlib.import_module(self._import_module_name),
-                    received_model_name)(self, received_model_name)
+        model_input, _ = self.readings_control.get_first_n_readings(
+            self._batch_size)
+        current_model = self._models[self.lock.current_model]
+        self._async_group.spawn(current_model.predict, [model_input])
 
-        self._async_group.spawn(
-            self._MODELS[received_model_name].create_instance)
+    def _process_user_action(self, event):
+        user_action = event.event_type[-1]
+        if user_action == 'setting_change':
+            self._process_setting_change(event)
+        elif user_action == 'model_change':
+            yield from self._process_model_change(event)
 
-    def process_setting_change(self, event):
-
-        kw = event.payload.data
+    def _process_setting_change(self, event):
+        kw = dict(event.payload.data)
         del kw['action']
-        self._async_group.spawn(self._MODELS[self.lock.current_model].fit,
-                                **kw)
+        current_model = self._models[self.lock.current_model]
+        self._async_group.spawn(current_model.fit, **kw)
 
-    def process_aimm(self, event):
+    def _process_model_change(self, event):
+        received_model_name = event.payload.data['model']
 
-        if event.event_type[1] == 'state':
-            return self.update_models_ids(event)
+        if received_model_name in self._models:
+            self.lock.current_model = received_model_name
+            yield self._message(received_model_name, 'new_current_model')
 
-        elif event.event_type[1] == 'action':
-            return self.process_action(event)
+        self.lock.changed(received_model_name)
+        new_model = model.factory(self._model_type, received_model_name, self)
 
-    def transform_row(self, value, timestamp):
-        raise NotImplementedError()
+        self._models[received_model_name] = new_model
+        self._async_group.spawn(new_model.create_instance)
 
-    def process_reading(self, event):
-        self.send_message(self.vars["supported_models"], 'supported_models')
-
-        if self.lock.can_fit():
-
-            row = self.transform_row(event.payload.data['value'],
-                                     event.payload.data['timestamp'])
-            self.readings_control.append(row, event.payload.data["timestamp"])
-
-            if self.readings_control.size >= self._batch_size:
-
-                model_input, _ = self.readings_control.get_first_n_readings(
-                    self._batch_size)
-
-                self._async_group.spawn(
-                    self._MODELS[self.lock.current_model].predict,
-                    [model_input])
+    def _message(self, data, type_name):
+        return _register_event(('gui', 'log', self._model_type, type_name),
+                               data)
 
 
 class Session(hat.event.server.common.ModuleSession):
@@ -254,19 +240,11 @@ class Session(hat.event.server.common.ModuleSession):
 
     async def process(self, changes):
         new_events = []
-
         for event in changes:
-
-            result = {
-                'aimm': self._module.process_aimm,
-                'gui': self._module.process_reading,
-                'back_action': self._module.process_back_value
-
-            }[event.event_type[0]](event)
-
-            if result:
-                new_events.extend(result)
-
+            for new_event in self._module.process(event):
+                proc_event = self._engine.create_process_event(
+                    self._module._source, new_event)
+                new_events.append(proc_event)
         return new_events
 
 

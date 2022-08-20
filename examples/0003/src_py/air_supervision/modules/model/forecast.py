@@ -1,9 +1,13 @@
-from air_supervision.modules.model_generic import GenericModel, RETURN_TYPE
+from air_supervision.modules.model.common import GenericModel, ReturnType
 import csv
 import numpy
+import logging
 
 
-class GenericForecastModel(GenericModel):
+mlog = logging.getLogger(__name__)
+
+
+class _ForecastModel(GenericModel):
 
     def __init__(self, module, name):
         super().__init__(module, name, 'forecast')
@@ -14,7 +18,7 @@ class GenericForecastModel(GenericModel):
             event_type = ('aimm', 'fit', self._id)
             data = {'args': [x.tolist(), y.tolist()], 'kwargs': kwargs}
 
-            await self._register_event(event_type, data, RETURN_TYPE.F_FIT)
+            await self._register_event(event_type, data, ReturnType.F_FIT)
 
     def _get_dataset(self):
         values = []
@@ -37,3 +41,33 @@ class GenericForecastModel(GenericModel):
         x, y = numpy.array(x), numpy.array(y)
 
         return x, y
+
+
+class MultiOutputSVR(_ForecastModel):
+    def __init__(self, module, name):
+        super().__init__(module, name)
+
+        self.hyperparameters = {
+            'C': 2000,
+            'svm1': 1,
+            'svm2': 2}
+
+
+class Linear(_ForecastModel):
+    def __init__(self, module, name):
+        super().__init__(module, name)
+
+        self.hyperparameters = {
+            'contamination': 0.3,
+            'cluster1': 1,
+            'cluster2': 3}
+
+
+class Constant(_ForecastModel):
+    def __init__(self, module, name):
+        super().__init__(module, name)
+
+        self.hyperparameters = {
+            'contamination2': 0.3,
+            'other_test_p': 1,
+            'third': 4}

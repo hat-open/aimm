@@ -4,7 +4,7 @@ import hat.event.server.common
 from enum import Enum
 
 
-class RETURN_TYPE(Enum):
+class ReturnType(Enum):
     A_PREDICT = 1
     F_PREDICT = 2
     A_FIT = 3
@@ -14,9 +14,6 @@ class RETURN_TYPE(Enum):
 
 
 class GenericModel(ABC):
-
-    def get_default_setting(self):
-        return self.hyperparameters
 
     def __init__(self, module, name="undefined", model_type="undefined"):
         self.module = module
@@ -29,9 +26,35 @@ class GenericModel(ABC):
 
         self.hyperparameters = {}
 
+    def get_default_setting(self):
+        return self.hyperparameters
+
     def set_id(self, model_id):
         self._id = model_id
         self.created = True
+
+    async def fit(self, **kwargs):
+        raise NotImplementedError()
+
+    async def create_instance(self):
+        event_type = ('aimm', 'create_instance')
+        data = {'model_type': self.model_type,
+                'args': [],
+                'kwargs': self.hyperparameters}
+
+        await self._register_event(event_type, data,
+                                   ReturnType.A_CREATE
+                                   if self.model_type_short == 'anomaly'
+                                   else ReturnType.F_CREATE)
+
+    async def predict(self, model_input):
+        event_type = ('aimm', 'predict', self._id)
+        data = {'args': model_input, 'kwargs': {}}
+
+        await self._register_event(event_type, data,
+                                   ReturnType.A_PREDICT
+                                   if self.model_type_short == 'anomaly'
+                                   else ReturnType.F_PREDICT)
 
     async def _register_event(self, event_type, data, return_type):
         events = await self.module._engine.register(
@@ -44,31 +67,3 @@ class GenericModel(ABC):
                     data=data))])
         request_id = events[0].event_id._asdict()['instance']
         self.module._request_ids[request_id] = (return_type, self.name)
-
-    # @abstractmethod
-    async def fit(self, **kwargs):
-        raise NotImplementedError()
-
-    async def create_instance(self):
-        event_type = ('aimm', 'create_instance')
-        data = {'model_type': self.model_type,
-                'args': [],
-                'kwargs': self.hyperparameters}
-
-        await self._register_event(event_type, data,
-                                   RETURN_TYPE.A_CREATE
-                                   if self.model_type_short == 'anomaly'
-                                   else RETURN_TYPE.F_CREATE)
-
-    async def predict(self, model_input):
-
-        event_type = ('aimm', 'predict', self._id)
-        data = {'args': model_input, 'kwargs': {}}
-
-        await self._register_event(event_type, data,
-                                   RETURN_TYPE.A_PREDICT
-                                   if self.model_type_short == 'anomaly'
-                                   else RETURN_TYPE.F_PREDICT)
-
-    def _get_dataset(self):
-        raise NotImplementedError()

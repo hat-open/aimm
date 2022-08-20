@@ -1,11 +1,9 @@
 from datetime import datetime, timedelta
-import asyncio
 import hat.aio
 import hat.event.common
 import hat.gui.common
 import hat.util
 import logging
-import sys
 
 
 mlog = logging.getLogger(__name__)
@@ -211,16 +209,13 @@ class Session(hat.gui.common.AdapterSession):
             with self._adapter.subscribe_to_state_change(
                     self._on_state_change):
                 while True:
-                    data = await self._juggler_client.receive()  # sent data
-                    # print("CB..")
-
+                    data = await self._juggler_client.receive()
                     if data['action'] == 'setting_change':
-                        event_type = ('back_action', data['type'],
+                        event_type = ('user_action', data['type'],
                                       'setting_change')
                     elif data['action'] == 'model_change':
-                        event_type = ('back_action', data['type'],
+                        event_type = ('user_action', data['type'],
                                       'model_change')
-                    # sending data to module 'module'
                     self._adapter._event_client.register(([
                         hat.event.common.RegisterEvent(
                             event_type=event_type,
@@ -228,12 +223,7 @@ class Session(hat.gui.common.AdapterSession):
                             payload=hat.event.common.EventPayload(
                                 type=hat.event.common.EventPayloadType.JSON,
                                 data=data))]))
-        except AttributeError:
-            # breakpoint()
-            await self.wait_closing()
-
-        except asyncio.exceptions.CancelledError:
-            print("Unexpected closing:", sys.exc_info()[0])
+        finally:
             await self.wait_closing()
 
     @property

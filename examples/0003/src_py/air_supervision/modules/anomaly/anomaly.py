@@ -2,8 +2,7 @@ import hat.aio
 import hat.event.server.common
 from datetime import datetime
 
-from air_supervision.modules.controller_generic import (GenericReadingsModule,
-                                                        ReadingsHandler)
+from air_supervision.modules.controller_generic import GenericReadingsModule
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -25,21 +24,19 @@ async def create(conf, engine):
     module._subscription = hat.event.server.common.Subscription([
         ('aimm', '*'),
         ('gui', 'system', 'timeseries', 'reading'),
-        ('back_action', 'anomaly', '*')])
+        ('user_action', 'anomaly', '*')])
     module._async_group = hat.aio.Group()
     module._engine = engine
 
     module._model_type = 'anomaly'
-    module._import_module_name = "{}.{}.{}_model".format(
-        __name__, module._model_type, module._model_type)
-    module._supported_models = ["Forest", "SVM", "Cluster"]
-    module._readings_control = ReadingsHandler()
+    module._import_module_name = f'{__name__}_model'
+    module._supported_models = ['Forest', 'SVM', 'Cluster']
     module._batch_size = 5
 
     module.vars = {
-        "supported_models": module._supported_models,
-        "model_type": module._model_type,
-        "import_module_name": module._import_module_name
+        'supported_models': module._supported_models,
+        'model_type': module._model_type,
+        'import_module_name': module._import_module_name
     }
     return module
 
