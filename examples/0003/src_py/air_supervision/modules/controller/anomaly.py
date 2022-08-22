@@ -2,7 +2,9 @@ import hat.aio
 import hat.event.server.common
 from datetime import datetime
 
-from air_supervision.modules.controller_generic import GenericReadingsModule
+from air_supervision.modules.controller.common import (GenericReadingsModule,
+                                                       ReadingsModuleBuilder)
+
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -12,33 +14,29 @@ _source_id = 0
 
 
 async def create(conf, engine):
-    module = AnomalyModule()
+    builder = ReadingsModuleBuilder()
 
     global _source_id
-    module._source = hat.event.server.common.Source(
+    builder.source = hat.event.server.common.Source(
         type=hat.event.server.common.SourceType.MODULE,
         name=__name__,
         id=_source_id)
     _source_id += 1
 
-    module._subscription = hat.event.server.common.Subscription([
+    builder.subscription = hat.event.server.common.Subscription([
         ('aimm', '*'),
         ('gui', 'system', 'timeseries', 'reading'),
         ('user_action', 'anomaly', '*')])
-    module._async_group = hat.aio.Group()
-    module._engine = engine
+    builder.engine = engine
 
-    module._model_type = 'anomaly'
-    module._import_module_name = f'{__name__}_model'
-    module._supported_models = ['Forest', 'SVM', 'Cluster']
-    module._batch_size = 5
+    builder.model_family = 'anomaly'
+    builder.supported_models = ['Forest', 'SVM', 'Cluster']
+    builder.batch_size = 5
 
-    module.vars = {
-        'supported_models': module._supported_models,
-        'model_type': module._model_type,
-        'import_module_name': module._import_module_name
-    }
-    return module
+    builder.vars = {'supported_models': builder.supported_models,
+                    'model_family': builder.model_family}
+
+    return AnomalyModule(builder)
 
 
 class AnomalyModule(GenericReadingsModule):

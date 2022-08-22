@@ -168,9 +168,10 @@ class Adapter(hat.gui.common.Adapter):
                 forecast_v, forecast_t = self.truncate_lists(forecast_v,
                                                              forecast_t)
 
-                if min(forecast_t) < max(reading_t) - timedelta(days=3):
+                oldest_forecast = max(reading_t) - timedelta(days=2)
+                if min(forecast_t) < oldest_forecast:
                     forecast_t = [i for i in forecast_t
-                                  if i >= max(reading_t) - timedelta(days=3)]
+                                  if i >= oldest_forecast]
                     forecast_v = forecast_v[-len(forecast_t):]
 
                 self._series_values['forecast'] = forecast_v

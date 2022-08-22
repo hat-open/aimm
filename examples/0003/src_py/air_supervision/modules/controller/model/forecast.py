@@ -1,4 +1,6 @@
-from air_supervision.modules.model.common import GenericModel, ReturnType
+from air_supervision.modules.controller.model.common import (GenericModel,
+                                                             ReturnType)
+from hat import aio
 import csv
 import numpy
 import logging
@@ -9,18 +11,20 @@ mlog = logging.getLogger(__name__)
 
 class _ForecastModel(GenericModel):
 
-    def __init__(self, module, name):
-        super().__init__(module, name, 'forecast')
+    def __init__(self, module, model_import):
+        super().__init__(module, 'forecast', model_import)
+        self._executor = aio.create_executor()
 
-    async def fit(self, **kwargs):
-        if self._id:
-            x, y = self._get_dataset()
-            event_type = ('aimm', 'fit', self._id)
-            data = {'args': [x.tolist(), y.tolist()], 'kwargs': kwargs}
+    async def fit(self):
+        if not self._id:
+            return
+        event_type = ('aimm', 'fit', self._id)
 
-            await self._register_event(event_type, data, ReturnType.F_FIT)
+        x, y = await self._executor(self._ext_get_dataset)
+        data = {'args': [x.tolist(), y.tolist()]}
+        await self._register_event(event_type, data, ReturnType.F_FIT)
 
-    def _get_dataset(self):
+    def _ext_get_dataset(self):
         values = []
 
         with open("dataset/ambient_temperature_system_failure.csv", "r") as f:
@@ -40,12 +44,16 @@ class _ForecastModel(GenericModel):
 
         x, y = numpy.array(x), numpy.array(y)
 
-        return x, y
+        fit_start = int(len(x) * 0.25)
+        return x[fit_start:], y[fit_start:]
+
+
+_import_prefix = 'air_supervision.aimm.forecast'
 
 
 class MultiOutputSVR(_ForecastModel):
-    def __init__(self, module, name):
-        super().__init__(module, name)
+    def __init__(self, module):
+        super().__init__(module, f'{_import_prefix}.MultiOutputSVR')
 
         self.hyperparameters = {
             'C': 2000,
@@ -54,8 +62,8 @@ class MultiOutputSVR(_ForecastModel):
 
 
 class Linear(_ForecastModel):
-    def __init__(self, module, name):
-        super().__init__(module, name)
+    def __init__(self, module):
+        super().__init__(module, f'{_import_prefix}.Linear')
 
         self.hyperparameters = {
             'contamination': 0.3,
@@ -64,8 +72,8 @@ class Linear(_ForecastModel):
 
 
 class Constant(_ForecastModel):
-    def __init__(self, module, name):
-        super().__init__(module, name)
+    def __init__(self, module):
+        super().__init__(module, f'{_import_prefix}.Constant')
 
         self.hyperparameters = {
             'contamination2': 0.3,

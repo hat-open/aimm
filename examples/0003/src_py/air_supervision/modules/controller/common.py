@@ -1,8 +1,10 @@
-from air_supervision.modules import model
-from typing import Any
+from air_supervision.modules.controller import model
+from dataclasses import dataclass
+from typing import Any, List
 import abc
 import hat.aio
 import hat.event.server.common
+import hat.event.server.module_engine
 import logging
 import numpy as np
 
@@ -58,22 +60,40 @@ class FitLock:
         self.lock = False
 
 
+@dataclass
+class ReadingsModuleBuilder:
+    engine: hat.event.server.module_engine.ModuleEngine = None
+    source: hat.event.server.common.Source = None
+    subscription: hat.event.server.common.Subscription = None
+    model_family: str = None
+    supported_models: List[str] = None
+    batch_size: int = 48
+    vars: dict = None
+
+
 class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
-    def __init__(self):
+    def __init__(self, builder: ReadingsModuleBuilder):
+        self._engine = builder.engine
+        self._source = builder.source
+        self._subscription = builder.subscription
+        self._model_family = builder.model_family
+        self._supported_models = builder.supported_models
+        self._batch_size = builder.batch_size
+        self.vars = builder.vars
+
+        self._async_group = hat.aio.Group()
+
         self.readings_control = ReadingsHandler()
         self._current_model_name = None
 
         self.fit_data_ind = 0
         self.fit_data_lim = 5
-        self._batch_size = 48
 
         self._models = {}
         self._request_ids = {}
 
         self.lock = FitLock()
-
-        self.vars = {}
 
     @property
     def async_group(self):
@@ -137,25 +157,16 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
         type_, model_name = self._request_ids[instance]
 
-        if self._model_type == 'anomaly':
-            create_type = model.ReturnType.A_CREATE
-            fit_type = model.ReturnType.A_FIT
-            predict_type = model.ReturnType.A_PREDICT
-        else:
-            create_type = model.ReturnType.F_CREATE
-            fit_type = model.ReturnType.F_FIT
-            predict_type = model.ReturnType.F_PREDICT
-
-        if type_ == create_type:
+        if type_ == model.ReturnType.CREATE:
             self.lock.created(model_name)
             self._async_group.spawn(self._models[model_name].fit)
 
             yield self._message(model_name, 'new_current_model')
             params = self._models[model_name].get_default_setting()
             yield self._message(params, 'setting')
-        elif type_ == fit_type:
+        elif type_ == model.ReturnType.FIT:
             self.lock.fitted()
-        elif type_ == predict_type:
+        elif type_ == model.ReturnType.PREDICT:
             yield from self._process_predict(event)
         else:
             del self._request_ids[instance]
@@ -165,7 +176,7 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
             self._batch_size)
         results = np.array(event.payload.data['result'])
 
-        if self.vars['model_type'] == 'anomaly':
+        if self.vars['model_family'] == 'anomaly':
             results = results[:, -1]
             values = [i[0] for i in values]
 
@@ -174,11 +185,10 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
         for t, r, v in zip(timestamps, results, values):
             yield _register_event(('gui', 'system', 'timeseries',
-                                   self.vars['model_type']),
-                                  {'timestamp': t, 'result': r, 'value': v})
-        self.readings_control.remove_first_n_readings(
-            self._batch_size if self._model_type == 'anomaly'
-            else self._batch_size // 2)
+                                   self.vars['model_family']),
+                                  {'timestamp': t,
+                                   'result': r,
+                                   'value': v})
 
     def _process_reading(self, event):
         yield self._message(self.vars["supported_models"], 'supported_models')
@@ -188,13 +198,17 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
                                  event.payload.data['timestamp'])
         self.readings_control.append(row, event.payload.data["timestamp"])
 
-        if self.readings_control.size < self._batch_size:
+        if self.readings_control.size != self._batch_size:
             return
 
         model_input, _ = self.readings_control.get_first_n_readings(
             self._batch_size)
         current_model = self._models[self.lock.current_model]
         self._async_group.spawn(current_model.predict, [model_input])
+
+        self.readings_control.remove_first_n_readings(
+            self._batch_size if self._model_family == 'anomaly'
+            else self._batch_size // 2)
 
     def _process_user_action(self, event):
         user_action = event.event_type[-1]
@@ -217,13 +231,14 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
             yield self._message(received_model_name, 'new_current_model')
 
         self.lock.changed(received_model_name)
-        new_model = model.factory(self._model_type, received_model_name, self)
+        new_model = model.factory(self._model_family, received_model_name,
+                                  self)
 
         self._models[received_model_name] = new_model
         self._async_group.spawn(new_model.create_instance)
 
     def _message(self, data, type_name):
-        return _register_event(('gui', 'log', self._model_type, type_name),
+        return _register_event(('gui', 'log', self._model_family, type_name),
                                data)
 
 

@@ -28,6 +28,7 @@ export function plot() {
         yaxis: {
             title: 'Temperature',
             showline: false,
+            range: [16, 24]
         }
     };
     const config = {
@@ -56,7 +57,7 @@ export function plot() {
         x: r.get('remote', 'timeseries','timestamps','forecast').map((k) => {
             const dateValue = new Date(k);
 
-            dateValue.setHours(dateValue.getHours() + 48);
+            dateValue.setHours(dateValue.getHours() + 24);
             return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " "
 		   + dateValue.getHours() + ":00:00";
 

@@ -1,27 +1,23 @@
-from abc import ABC
+import abc
 import hat.aio
 import hat.event.server.common
 from enum import Enum
 
 
 class ReturnType(Enum):
-    A_PREDICT = 1
-    F_PREDICT = 2
-    A_FIT = 3
-    F_FIT = 4
-    A_CREATE = 5
-    F_CREATE = 6
+    CREATE = 1
+    FIT = 2
+    PREDICT = 3
 
 
-class GenericModel(ABC):
+class GenericModel(abc.ABC):
 
-    def __init__(self, module, name="undefined", model_type="undefined"):
+    def __init__(self, module, model_family, model_type):
         self.module = module
 
         self._id = None
-        self.name = name
-        self.model_type_short = model_type
-        self.model_type = f"air_supervision.aimm.{model_type}_models.{name}"
+        self.model_family = model_family
+        self.model_type = model_type
         self.created = False
 
         self.hyperparameters = {}
@@ -33,8 +29,9 @@ class GenericModel(ABC):
         self._id = model_id
         self.created = True
 
-    async def fit(self, **kwargs):
-        raise NotImplementedError()
+    @abc.abstractmethod
+    async def fit(self):
+        '''Method used to invoke model fitting.'''
 
     async def create_instance(self):
         event_type = ('aimm', 'create_instance')
@@ -42,19 +39,13 @@ class GenericModel(ABC):
                 'args': [],
                 'kwargs': self.hyperparameters}
 
-        await self._register_event(event_type, data,
-                                   ReturnType.A_CREATE
-                                   if self.model_type_short == 'anomaly'
-                                   else ReturnType.F_CREATE)
+        await self._register_event(event_type, data, ReturnType.CREATE)
 
     async def predict(self, model_input):
         event_type = ('aimm', 'predict', self._id)
         data = {'args': model_input, 'kwargs': {}}
 
-        await self._register_event(event_type, data,
-                                   ReturnType.A_PREDICT
-                                   if self.model_type_short == 'anomaly'
-                                   else ReturnType.F_PREDICT)
+        await self._register_event(event_type, data, ReturnType.PREDICT)
 
     async def _register_event(self, event_type, data, return_type):
         events = await self.module._engine.register(
@@ -66,4 +57,4 @@ class GenericModel(ABC):
                     type=hat.event.server.common.EventPayloadType.JSON,
                     data=data))])
         request_id = events[0].event_id._asdict()['instance']
-        self.module._request_ids[request_id] = (return_type, self.name)
+        self.module._request_ids[request_id] = (return_type, self.model_type)
