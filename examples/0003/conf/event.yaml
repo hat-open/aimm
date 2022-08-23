@@ -31,8 +31,8 @@ log:
 module_engine:
     modules:
       - module: air_supervision.modules.readings
-      - module: air_supervision.modules.anomaly.anomaly
-      - module: air_supervision.modules.forecast.forecast
+      - module: air_supervision.modules.controller.anomaly
+      - module: air_supervision.modules.controller.forecast
       - module: air_supervision.modules.enable_all
 
 monitor:

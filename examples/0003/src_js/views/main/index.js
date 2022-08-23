@@ -12,11 +12,8 @@ export function plot() {
 
     const dateValue = new Date(r.get('remote', 'timeseries','timestamps','reading')[l-1]);
     dateValue.setHours(dateValue.getHours() + 48);
-    const x_r = dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
-
-
-
-
+    const x_r = dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " "
+		+ dateValue.getHours() + ":00:00";
 
     const layout = {
         title: 'Timeseries anomaly/forecast model testing',
@@ -31,7 +28,7 @@ export function plot() {
         yaxis: {
             title: 'Temperature',
             showline: false,
-            // range: [0, 2]
+            range: [16, 24]
         }
     };
     const config = {
@@ -48,32 +45,21 @@ export function plot() {
         name: 'Reading'
     };
 
-
     const anomaly_trace = {
         x: r.get('remote', 'timeseries','timestamps','anomaly'),
         y: r.get('remote', 'timeseries','values','anomaly'),
-        // line: { shape: 'spline' },
         mode: 'markers',
         type: 'scatter',
         name: 'Anomaly'
     };
 
-
-            // console.log(k);
-            // const regex = new RegExp(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
-            // const result3 = regex.exec(k);
-            // console.log(result3[1] + "T" + result3[2] + "Z");
-            // const dateValue = new Date(result3[1] + "T" + result3[2] + "Z");
-            // dateValue.setHours(dateValue.getHours() + 48);
-            // return dateValue.toString();
-
-
     const forecast_trace = {
         x: r.get('remote', 'timeseries','timestamps','forecast').map((k) => {
-
             const dateValue = new Date(k);
-            dateValue.setHours(dateValue.getHours() + 48);
-            return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " " + dateValue.getHours() + ":00:00";
+
+            dateValue.setHours(dateValue.getHours() + 24);
+            return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " "
+		   + dateValue.getHours() + ":00:00";
 
         }),
         y: r.get('remote', 'timeseries','values','forecast'),
@@ -81,9 +67,6 @@ export function plot() {
         type: 'scatter',
         name: 'Forecast'
     };
-
-
-    // console.log(forecast_trace);
 
     const data = [reading_trace, anomaly_trace,forecast_trace];
 
@@ -102,41 +85,40 @@ export function plot() {
         const models = r.get('remote','timeseries','info',prediction_type, 'model_state','models');
         if (!models) return '';
         for (const [key, value] of Object.entries(models)) {
-          if (value.split(".").at(-1) === model_type ) return 'border: 3px solid green;'
-
+	    if (value.split(".").at(-1) === model_type )
+		return 'border: 3px solid green;'
         }
         return '';
     }
 
     const generate_setting_inputs = function (prediction_type) {
-            if (!r.get('remote','timeseries','info',prediction_type,'setting')) return;
+	if (!r.get('remote','timeseries','info',prediction_type,'setting')) return;
 
-            var cur_model_name = prediction_type === 'anomaly'? cur_anomaly_model_name:cur_forecast_model_name;
+	var cur_model_name = prediction_type === 'anomaly'? cur_anomaly_model_name:cur_forecast_model_name;
 
-            var t = Object.entries(r.get('remote','timeseries','info',prediction_type,'setting'))
-                .map(function([key,value],index) {
-                          return ["div",[
-                ["label",{props: {for: 'input1'}}, key  ],
-                ["input",{
-                            props: {
-                                disabled: !cur_model_name,
-                                id: 'input1',
-                                value: value },
-                            on: {
-                                change: function (e) {
-                                    console.log("changed to: " + e.target.value);
-                                    hat.conn.send('timeseries',
-                                     {
-                                     'action': 'setting_change','type':prediction_type,
-                                     [key]: e.target.value});
-                                }
-                            }
-                        }],
-                    ]]
+	var t = Object.entries(r.get('remote','timeseries','info',prediction_type,'setting'))
+	    .map(function([key,value],index) {
+		      return ["div",[
+	    ["label",{props: {for: 'input1'}}, key  ],
+	    ["input",{
+			props: {
+			    disabled: !cur_model_name,
+			    id: 'input1',
+			    value: value },
+			on: {
+			    change: function (e) {
+				console.log("changed to: " + e.target.value);
+				hat.conn.send('timeseries',
+				 {
+				 'action': 'setting_change','type':prediction_type,
+				 [key]: e.target.value});
+			    }
+			}
+		    }],
+		]]
+	       });
 
-                   });
-
-             return ["div",t];
+	 return ["div",t];
     }
 
     const generate_model_buttons = function (prediction_type) {
@@ -178,7 +160,6 @@ export function plot() {
             ['div',{props: {id: prediction_type+'_buttons'}},generate_model_buttons(prediction_type)]
         ];
     }
-
 
     return ['div',
 
