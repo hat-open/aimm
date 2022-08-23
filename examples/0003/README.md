@@ -48,7 +48,7 @@ current_model = 'linear'
 ```
 
 
-[```FitLock```](src_py/air_supervision/modules/controller_generic.py) class is
+[```FitLock```](src_py/air_supervision/modules/controller/common.py) class is
 used to manage which model is the current one,and in which state it is(is it
 fitted or not or is it even defined, that way we cant send predict actions
 beforehand).
