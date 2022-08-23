@@ -20,18 +20,13 @@ async def create(conf, engine):
         id=_source_id)
     _source_id += 1
 
-    builder.subscription = hat.event.server.common.Subscription([
-        ('aimm', '*'),
-        ('gui', 'system', 'timeseries', 'reading'),
-        ('user_action', 'forecast', '*')])
+    builder.user_action_type = ('user_action', 'forecast', '*')
     builder.engine = engine
 
     builder.model_family = 'forecast'
     builder.supported_models = ['MultiOutputSVR', 'linear', 'constant']
     builder.batch_size = 48
-
-    builder.vars = {"supported_models": builder.supported_models,
-                    "model_family": builder.model_family}
+    builder.min_readings = 24
 
     return ForecastModule(builder)
 

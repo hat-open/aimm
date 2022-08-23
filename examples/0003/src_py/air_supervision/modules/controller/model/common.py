@@ -12,26 +12,31 @@ class ReturnType(Enum):
 
 class GenericModel(abc.ABC):
 
-    def __init__(self, module, model_family, model_type):
-        self.module = module
+    def __init__(self, module, model_type, hyperparameters):
+        self._module = module
 
         self._id = None
-        self.model_family = model_family
-        self.model_type = model_type
-        self.created = False
+        self._model_type = model_type
 
-        self.hyperparameters = {}
+        self._hyperparameters = hyperparameters
 
-    def get_default_setting(self):
-        return self.hyperparameters
+    @property
+    def model_type(self):
+        return self._model_type
+
+    @property
+    def hyperparameters(self):
+        return self._hyperparameters
 
     def set_id(self, model_id):
         self._id = model_id
-        self.created = True
 
     @abc.abstractmethod
-    async def fit(self):
-        '''Method used to invoke model fitting.'''
+    async def fit(self, **kwargs):
+        """Method used to invoke model fitting.
+
+        Args:
+            **kwargs: matches concrete model's hyperparameters"""
 
     async def create_instance(self):
         event_type = ('aimm', 'create_instance')
@@ -48,8 +53,8 @@ class GenericModel(abc.ABC):
         await self._register_event(event_type, data, ReturnType.PREDICT)
 
     async def _register_event(self, event_type, data, return_type):
-        events = await self.module._engine.register(
-            self.module._source,
+        events = await self._module._engine.register(
+            self._module._source,
             [hat.event.server.common.RegisterEvent(
                 event_type=event_type,
                 source_timestamp=None,
@@ -57,4 +62,4 @@ class GenericModel(abc.ABC):
                     type=hat.event.server.common.EventPayloadType.JSON,
                     data=data))])
         request_id = events[0].event_id._asdict()['instance']
-        self.module._request_ids[request_id] = (return_type, self.model_type)
+        self._module._request_ids[request_id] = (return_type, self.model_type)
