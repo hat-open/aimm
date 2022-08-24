@@ -5,20 +5,20 @@ from hat import aio
 import csv
 
 
-class _AnomalyModel(GenericModel):
+class AnomalyModel(GenericModel):
 
-    def __init__(self, module, model_import):
-        super().__init__(module, 'anomaly', model_import)
+    def __init__(self, module, model_type, hyperparameters):
+        super().__init__(module, model_type, hyperparameters)
         self._executor = aio.create_executor()
 
-    async def fit(self):
+    async def fit(self, **kwargs):
         if not self._id:
             return
         event_type = ('aimm', 'fit', self._id)
 
         train_data = await self._executor(self._ext_get_dataset)
-        data = {'args': [train_data, None]}
-        await self._register_event(event_type, data, ReturnType.A_FIT)
+        data = {'args': [train_data, None], 'kwargs': kwargs}
+        await self._register_event(event_type, data, ReturnType.FIT)
 
     def _ext_get_dataset(self):
         train_data = []
@@ -42,46 +42,3 @@ class _AnomalyModel(GenericModel):
                     int(timestamp.weekday() < 5)])
 
         return train_data
-
-
-_import_prefix = 'air_supervision.aimm.anomaly'
-
-
-class SVM(_AnomalyModel):
-    def __init__(self, module):
-        super().__init__(module, f'{_import_prefix}.SVM')
-
-        self.hyperparameters = {
-            'contamination': 0.3,
-            'svm1': 1,
-            'svm2': 2}
-
-
-class Cluster(_AnomalyModel):
-    def __init__(self, module):
-        super().__init__(module, f'{_import_prefix}.Cluster')
-
-        self.hyperparameters = {
-            'contamination': 0.3,
-            'cluster1': 1,
-            'cluster2': 3}
-
-
-class Forest(_AnomalyModel):
-    def __init__(self, module):
-        super().__init__(module, f'{_import_prefix}.Forest')
-
-        self.hyperparameters = {
-            'contamination': 0.3,
-            'other_test_p': 1,
-            'third': 4}
-
-
-class Forest2(_AnomalyModel):
-    def __init__(self, module):
-        super().__init__(module, f'{_import_prefix}.Forest')
-
-        self.hyperparameters = {
-            'contamination2': 0.3,
-            'other_test_p': 1,
-            'third': 4}

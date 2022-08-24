@@ -28,7 +28,7 @@ export function plot() {
         yaxis: {
             title: 'Temperature',
             showline: false,
-            range: [16, 24]
+            range: [16, 30]
         }
     };
     const config = {
@@ -161,25 +161,11 @@ export function plot() {
         ];
     }
 
-    return ['div',
-
-        ['div',
-            {
-                props: {
-                    style: 'width:100% ;float: left;'
-                },
-            },
-
-            generate_div('anomaly'),
-            generate_div('forecast')
-        ],
-
+    return ['div.main',
+        ['div.settings', generate_div('anomaly'), generate_div('forecast')],
         ['div.plot',
             {
                 plotData: data,
-                props: {
-                    style: 'height: 100%; width:100% ;float: left;'
-                },
                 hook: {
                     insert: vnode => plotly.newPlot(vnode.elm, data, layout, config),
                     update: (oldVnode, vnode) => {
