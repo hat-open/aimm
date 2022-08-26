@@ -41,4 +41,5 @@ class AnomalyModel(GenericModel):
                     timestamp.weekday(),
                     int(timestamp.weekday() < 5)])
 
-        return train_data
+        fit_start = int(len(train_data) * 0.25)
+        return train_data[fit_start:]

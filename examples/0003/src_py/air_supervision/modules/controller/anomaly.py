@@ -28,8 +28,8 @@ async def create(conf, engine):
 
     builder.model_family = 'anomaly'
     builder.supported_models = ['Forest', 'SVM', 'Cluster']
-    builder.batch_size = 5
-    builder.min_readings = 0
+    builder.batch_size = 48
+    builder.min_readings = 24
 
     return AnomalyModule(builder)
 

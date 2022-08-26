@@ -166,7 +166,7 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
             return
         row = self.transform_row(event.payload.data['value'],
                                  event.payload.data['timestamp'])
-        self._readings.append((row, event.payload.data["timestamp"]))
+        self._readings.append((row, event.payload.data['timestamp']))
 
         if len(self._readings) != self._batch_size:
             return
@@ -179,7 +179,8 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
         current_model = self._models[self._lock.current_model]
         self._async_group.spawn(current_model.predict, [model_input])
 
-        self._readings = self._readings[-self._min_readings:]
+        self._readings = self._readings[
+            (len(self._readings) - self._min_readings):]
 
     def _process_user_action(self, event):
         user_action = event.event_type[-1]
