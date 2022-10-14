@@ -114,6 +114,8 @@ class AIMM(aio.Resource):
         return _result_from_json(result)
 
     def _clear_connection(self):
+        if self._connection:
+            self._connection.close()
         self._connection = None
 
     def _on_remote_state_change(self):
