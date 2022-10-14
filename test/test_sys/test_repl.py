@@ -1,3 +1,4 @@
+from hat import aio
 from hat import json
 import asyncio
 import hashlib
@@ -77,4 +78,13 @@ async def repl_client(monkeypatch, aimm_server_proc, aimm_port):
 
 
 async def test_connects(repl_client):
-    await asyncio.sleep(1)
+    assert repl_client
+
+
+async def test_workflow(repl_client):
+
+    model = await repl_client.create_instance('test_sys.plugins.basic.Model1',
+                                              'a1', 'a2', k1='1', k2='2')
+    await model.fit('a1', 'a2', k1='1', k2='2')
+    prediction = await model.predict(0.1, a='b', c='d')
+    assert prediction == [[0.1], dict(a='b', c='d')]

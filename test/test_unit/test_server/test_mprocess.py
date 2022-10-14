@@ -25,7 +25,8 @@ def disable_sigterm_handler(monkeypatch):
 
 
 @pytest.mark.timeout(2)
-async def test_process_regular(disable_sigterm_handler):
+@pytest.mark.parametrize("action_count", [1, 2, 10])
+async def test_process_regular(action_count, disable_sigterm_handler):
     def fn(*args, **kwargs):
         return args, kwargs
 
@@ -33,10 +34,14 @@ async def test_process_regular(disable_sigterm_handler):
     kwargs = {'k1': 'v1', 'k2': 'v2'}
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 2)
-    process_action = pa_pool.create_handler(lambda: None)
-    result = await process_action.run(fn, *args, **kwargs)
+    async with aio.Group() as group:
+        tasks = []
+        for _ in range(action_count):
+            process_action = pa_pool.create_handler(lambda: None)
+            tasks.append(group.spawn(process_action.run, fn, *args, **kwargs))
+        await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
 
-    assert result == (args, kwargs)
+    assert [t.result() for t in tasks] == [(args, kwargs)] * action_count
     await process_action.wait_closed()
 
     await pa_pool.async_close()
