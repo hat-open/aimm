@@ -120,7 +120,7 @@ class _Engine(common.Engine):
                 'args': [str(a) for a in args],
                 'kwargs': {k: str(v) for k, v in kwargs.items()}}})
         reactive.register_state_change_cb(lambda: state_cb(reactive.state))
-
+          
         reactive.update(dict(reactive.state, progress='accessing_data'))
         args, kwargs = await _derive_data_access_args(
             self._pool, args, kwargs,
