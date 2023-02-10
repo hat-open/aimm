@@ -26,7 +26,10 @@ server:
     default_rank: 1
 slave:
     parents: []
+    connect_timeout: 5
+    connect_retry_count: 5
+    connect_retry_delay: 5
 type: monitor
 ui:
-    address: http://127.0.0.1:23022
+    address: http://0.0.0.0:23022
 ...

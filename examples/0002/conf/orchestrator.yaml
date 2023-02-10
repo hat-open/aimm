@@ -75,5 +75,5 @@ log:
     version: 1
 type: orchestrator
 ui:
-    address: http://127.0.0.1:23021
+    address: http://0.0.0.0:23021
 ...

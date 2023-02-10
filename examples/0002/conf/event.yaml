@@ -1,10 +1,6 @@
 ---
-backend_engine:
-    backend:
-        module: hat.event.server.backends.sqlite
-        db_path: data/event.db
-        query_pool_size: 1
-    server_id: 1
+backend:
+    module: hat.event.server.backends.dummy
 communication:
     address: tcp+sbs://127.0.0.1:23012
 log:
@@ -25,9 +21,14 @@ log:
         - syslog
         level: INFO
     version: 1
-module_engine:
+engine:
+    server_id: 1
     modules:
       - module: hat.module
+eventer_server:
+    address: tcp+sbs://127.0.0.1:23012
+syncer_server:
+    address: tcp+sbs://127.0.0.1:23013
 monitor:
     component_address: tcp+sbs://127.0.0.1:23012
     group: event
