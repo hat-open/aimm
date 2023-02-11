@@ -8,7 +8,7 @@ import asyncio
 import contextlib
 import importlib
 import hat.monitor.client
-import hat.event.client
+import hat.event.eventer_client
 import hat.event.common
 import logging.config
 import sys
@@ -47,7 +47,7 @@ async def async_main(conf):
 
         component = hat.monitor.client.Component(
             monitor, run_monitor_component, conf, monitor)
-        component.set_enabled(True)
+        component.set_ready(True)
         _bind_resource(async_group, component)
 
         try:
@@ -55,7 +55,7 @@ async def async_main(conf):
         finally:
             await aio.uncancellable(monitor.async_close())
     elif 'event_server_address' in hat_conf:
-        client = await hat.event.client.connect(
+        client = await hat.event.eventer_client.connect(
             hat_conf['event_server_address'], list(_get_subscriptions(conf)))
         _bind_resource(async_group, client)
         await async_group.spawn(run, conf, client)
@@ -69,10 +69,10 @@ async def run_monitor_component(_, conf, monitor):
         mlog.info('running without hat event compatibility')
         return await run(conf)
     run_conf = partial(run, conf)
-    return await hat.event.client.run_client(
+    return await hat.event.eventer_client.run_eventer_client(
         monitor_client=monitor,
         server_group=conf['hat']['event_server_group'],
-        async_run_cb=run_conf,
+        run_cb=run_conf,
         subscriptions=list(_get_subscriptions(conf)))
 
 

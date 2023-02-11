@@ -77,11 +77,16 @@ async def test_process_sigterm(disable_sigterm_handler):
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 5)
     process_action = pa_pool.create_handler(lambda: None)
     async with aio.Group() as group:
-        task = group.spawn(process_action.run, fn)
+
+        async def _run():
+            with pytest.raises(Exception, match='process terminated'):
+                await process_action.run(fn)
+
+        task = group.spawn(_run)
         await asyncio.sleep(0.2)
         await process_action.async_close()
-        with pytest.raises(Exception, match='process terminated'):
-            await task
+        await task
+        assert not task.exception()
 
     await pa_pool.async_close()
 
@@ -102,11 +107,15 @@ async def test_process_sigkill():
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 0.2)
     process_action = pa_pool.create_handler(lambda: None)
     async with aio.Group() as group:
-        task = group.spawn(process_action.run, fn)
+
+        async def _run():
+            with pytest.raises(Exception, match='process terminated'):
+                await process_action.run(fn)
+
+        task = group.spawn(_run)
         await asyncio.sleep(0.2)
         await process_action.async_close()
-
-        with pytest.raises(Exception, match='process terminated'):
-            await task
+        await task
+        assert not task.exception()
 
     await pa_pool.async_close()

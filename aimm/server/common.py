@@ -2,7 +2,7 @@ from hat import aio
 from hat import util
 from typing import Any, Dict, Callable, Iterable, List, NamedTuple, Optional
 import abc
-import hat.event.client
+import hat.event.eventer_client
 import hat.event.common
 
 from aimm.common import *  # NOQA
@@ -24,7 +24,7 @@ class ProxyClient:
         client: concrete client instance
         subscription: event types proxy subscribes to"""
 
-    def __init__(self, client: hat.event.client.Client,
+    def __init__(self, client: hat.event.eventer_client.EventerClient(),
                  subscription: hat.event.common.Subscription):
         self._subscription = subscription
         self._queue = aio.Queue()
