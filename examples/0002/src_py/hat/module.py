@@ -60,27 +60,34 @@ class Module(common.Module):
         if e.event_type == (*self._gw_prefix, 'gateway', 'running'):
             if payload is False:
                 yield _register_event(
-                    ('gateway', 'gateway', 'device', 'device', 'system', 'enable'),
+                    ('gateway', 'gateway', 'device', 'device', 'system',
+                     'enable'),
                     True)
 
         elif e.event_type[0] == 'measurement':
             self._measurements = json.set_(
                 self._measurements, list(e.event_type[1:]), payload)
             if self._predict_task is None:
-                self._predict_task = self.async_group.spawn(self._predict, self._source)
+                self._predict_task = self.async_group.spawn(self._predict,
+                                                            self._source)
 
         elif e.event_type == ('aimm', 'state'):
-            if ((self._model_id is None
-                    or self._model_id not in payload['models'])
-                    and self._create_model_request_id is None):
-                self._model_id = None
-                request_ev = _register_event(
-                    ('aimm', 'create_instance'),
-                    {'model_type': 'aimm_plugins.power.StateEstimator',
-                        'args': [], 'kwargs': {}})
-                request_ev_id = request_ev.event_id
-                self._create_model_request_id = request_ev_id._asdict()
-                yield request_ev
+            if self._model_id is not None:
+                return
+            if self._model_id in payload['models']:
+                return
+            if self._create_model_request_id is not None:
+                return
+
+            self._model_id = None
+            self._create_model_request_id = str(next(self._request_gen))
+            request_ev = _register_event(
+                ('aimm', 'create_instance'),
+                {'model_type': 'aimm_plugins.power.StateEstimator',
+                    'args': [],
+                    'kwargs': {},
+                    'request_id': self._create_model_request_id})
+            yield request_ev
 
         elif e.event_type == ('aimm', 'response'):
             if payload['request_id'] == self._create_model_request_id:
@@ -90,15 +97,16 @@ class Module(common.Module):
                 if result is None:
                     return
                 bus_ids = (set(result['vm_pu']) | set(result['va_degree'])
-                            | set(result['p_mw']) | set(result['q_mvar']))
+                           | set(result['p_mw']) | set(result['q_mvar']))
                 for bus_id in bus_ids:
                     yield _register_event(
                         ('estimation', bus_id, 'v'), result['vm_pu'][bus_id])
                     yield _register_event(
-                        ('estimation', bus_id, 'va'), result['va_degree'][bus_id])
+                        ('estimation', bus_id, 'va'),
+                        result['va_degree'][bus_id])
                     yield _register_event((
                         'estimation', bus_id, 'p'), result['p_mw'][bus_id])
-                    yield self._register_event(
+                    yield _register_event(
                         ('estimation', bus_id, 'q'), result['q_mvar'][bus_id])
 
     async def _predict(self, source):
@@ -106,14 +114,14 @@ class Module(common.Module):
         try:
             if self._model_id is None:
                 return
-            ev = await self._engine.register(
+            self._predict_request_id = str(next(self._request_gen))
+            await self._engine.register(
                 source,
                 [_register_event(
                     ('aimm', 'predict', self._model_id),
                     {'args': [list(_measurements_to_arg(self._measurements))],
                      'kwargs': {},
-                     'request_id': str(next(self._request_gen))})])
-            self._predict_request_id = ev[0].event_id._asdict()
+                     'request_id': self._predict_request_id})])
         finally:
             self._predict_task = None
 

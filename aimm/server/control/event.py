@@ -192,10 +192,11 @@ class EventControl(common.Control):
 
     def _register_action_state(self, request_event, status, result=None):
         return self._client.register([
-            _register_event(self._action_state_event_type,
-                            {'request_id': request_event.event_id._asdict(),
-                             'status': status,
-                             'result': result})])
+            _register_event(
+                self._action_state_event_type,
+                {'request_id': request_event.payload.data['request_id'],
+                 'status': status,
+                 'result': result})])
 
     async def _process_arg(self, arg):
         if not (isinstance(arg, dict) and arg.get('type') == 'data_access'):

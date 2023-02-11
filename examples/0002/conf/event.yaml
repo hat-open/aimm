@@ -1,6 +1,14 @@
 ---
 backend:
-    module: hat.event.server.backends.dummy
+    db_path: data/event.db
+    module: hat.event.server.backends.lmdb
+    max_db_size: 1000000000
+    flush_period: 5
+    conditions: []
+    latest:
+        subscriptions:
+            - ['*']
+    ordered: []
 communication:
     address: tcp+sbs://127.0.0.1:23012
 log:
