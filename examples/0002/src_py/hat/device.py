@@ -7,6 +7,7 @@ import hat.event.common
 import hat.gateway.common
 
 from hat.drivers import iec104
+from hat.drivers import tcp
 
 
 mlog = logging.getLogger(__name__)
@@ -41,15 +42,7 @@ class Device(hat.gateway.common.Device):
             while True:
                 try:
                     connection = await iec104.connect(
-                        addr=iec104.Address('127.0.0.1', 20001),
-                        interrogate_cb=None,
-                        counter_interrogate_cb=None,
-                        command_cb=None,
-                        response_timeout=10,
-                        supervisory_timeout=10,
-                        test_timeout=10,
-                        send_window_size=10,
-                        receive_window_size=10)
+                        addr=tcp.Address('127.0.0.1', 20001))
                 except Exception as e:
                     mlog.error('connect failed %s', e, exc_info=e)
                 if not connection or connection.is_closed:
@@ -81,4 +74,4 @@ def _data_to_event(data):
         source_timestamp=None,
         payload=hat.event.common.EventPayload(
             type=hat.event.common.EventPayloadType.JSON,
-            data=data.value.value))
+            data=data.data.value))

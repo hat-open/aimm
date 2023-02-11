@@ -1,5 +1,6 @@
 from hat import aio
 from hat.drivers import iec104
+from hat.drivers import tcp
 import asyncio
 import pandapower.networks
 import random
@@ -21,7 +22,7 @@ async def async_main():
                                      lambda: connections.remove(connection))
 
     server = await iec104.listen(connection_cb,
-                                 iec104.Address('127.0.0.1', 20001))
+                                 tcp.Address('127.0.0.1', 20001))
     try:
         while True:
             await asyncio.sleep(10)
@@ -43,11 +44,11 @@ async def async_main():
 
             data = []
             for bus in net.res_bus.iloc:
-                data.append(_get_data(bus.name, 0, bus.p_mw))
-                data.append(_get_data(bus.name, 1, bus.q_mvar))
+                data.append(_get_msg(int(bus.name), 0, bus.p_mw))
+                data.append(_get_msg(int(bus.name), 1, bus.q_mvar))
 
             for connection in connections:
-                connection.notify_data_change(data)
+                connection.send(data)
     finally:
         server.close()
         for c in connections:
@@ -58,15 +59,17 @@ def _randomize(ref):
     return random.uniform(ref * 0.75, ref * 1.25)
 
 
-def _get_data(asdu, io, value):
-    return iec104.Data(
-        value=iec104.FloatingValue(value),
-        quality=iec104.Quality(*[False] * 5),
-        time=None,
+def _get_msg(asdu, io, value):
+    return iec104.DataMsg(
         asdu_address=asdu,
         io_address=io,
-        cause=iec104.Cause.SPONTANEOUS,
-        is_test=False)
+        data=iec104.FloatingData(
+            value=iec104.FloatingValue(value),
+            quality=iec104.MeasurementQuality(*[False] * 5)),
+        time=None,
+        cause=iec104.DataResCause.SPONTANEOUS,
+        is_test=False,
+        originator_address=0)
 
 
 if __name__ == '__main__':
