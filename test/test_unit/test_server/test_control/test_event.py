@@ -425,7 +425,7 @@ def _register_event(event_type, payload, source_timestamp=None):
 
 
 def _event(event_type, payload, source_timestamp=None,
-           event_id=hat.event.common.EventId(server=0, instance=0)):
+           event_id=hat.event.common.EventId(server=0, instance=0, session=0)):
     return hat.event.common.Event(
         event_id=event_id,
         event_type=event_type,

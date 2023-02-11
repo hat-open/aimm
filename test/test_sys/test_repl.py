@@ -72,7 +72,7 @@ async def repl_client(monkeypatch, aimm_server_proc, aimm_port):
         aimm.client.repl.input = input
         ctx.setattr(aimm.client.repl, 'input', lambda _: 'user')
         ctx.setattr(aimm.client.repl, 'getpass', lambda _: 'pass')
-        await client.connect(f'ws://127.0.0.1:{aimm_port}/ws')
+        await client.connect(f'ws://127.0.0.1:{aimm_port}')
     yield client
     await client.async_close()
 

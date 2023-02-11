@@ -19,7 +19,11 @@ async def create(conf, engine, _):
 
     srv_conf = conf['server']
     server = await juggler.listen(
-        srv_conf['host'], srv_conf['port'], control._connection_cb,
+        srv_conf['host'], srv_conf['port'],
+        connection_cb=control._connection_cb,
+        request_cb=control._request_cb,
+        index_path=None,
+        ws_path='/',
         pem_file=srv_conf.get('pem_file'),
         autoflush_delay=srv_conf.get('autoflush_delay', 0.2),
         shutdown_timeout=srv_conf.get('shutdown_timeout', 0.1))
@@ -31,6 +35,7 @@ async def create(conf, engine, _):
     control._engine = engine
     control._async_group = async_group
     control._server = server
+    control._connection_session_mapping = {}
 
     return control
 
@@ -44,25 +49,22 @@ class REPLControl(common.Control):
 
     def _connection_cb(self, connection):
         subgroup = self._async_group.create_subgroup()
-        Session(connection, self._engine, self._conf, subgroup)
+        session = Session(connection, self._engine, self._conf, subgroup)
+        self._connection_session_mapping[connection] = session
+
+    async def _request_cb(self, connection, name, data):
+        session = self._connection_session_mapping[connection]
+        return await session.handle(name, data)
 
 
 class Session(aio.Resource):
 
     def __init__(self, connection, engine, conf, async_group):
+        self._connection = connection
         self._engine = engine
-        self._user = None
         self._conf = conf
+        self._user = None
         self._async_group = async_group
-
-        self._connection = juggler.RpcConnection(connection, {
-            'login': self._login,
-            'logout': self._logout,
-            'create_instance': self._create_instance,
-            'add_instance': self._add_instance,
-            'update_instance': self._update_instance,
-            'fit': self._fit,
-            'predict': self._predict})
 
         _bind_resource(self._async_group, self._connection)
 
@@ -72,6 +74,29 @@ class Session(aio.Resource):
     def async_group(self):
         return self._async_group
 
+    async def handle(self, name, data):
+        if name == 'login':
+            return self._login(data['username'], data['password'])
+        elif name == 'logout':
+            return self._logout()
+        elif name == 'create_instance':
+            return await self._create_instance(
+                data['model_type'], data['args'], data['kwargs'])
+        elif name == 'add_instance':
+            return await self._add_instance(
+                data['model_type'], data['instance_b64'])
+        elif name == 'update_instance':
+            return await self._update_instance(
+                data['model_type'], data['instance_id'], data['instance_b64'])
+        elif name == 'fit':
+            return await self._fit(
+                data['instance_id'], data['args'], data['kwargs'])
+        elif name == 'predict':
+            return await self._predict(
+                data['instance_id'], data['args'], data['kwargs'])
+        else:
+            return {'success': False}
+
     async def _run(self):
         await self._on_state_change()
         with self._engine.subscribe_to_state_change(
@@ -80,16 +105,19 @@ class Session(aio.Resource):
 
     async def _on_state_change(self):
         if self._user:
-            self._connection.set_local_data(
-                await _state_to_json(self._engine.state))
+            self._connection.state.set(
+                [], await _generate_state(self._engine.state['models'],
+                                          self._engine.state['actions']))
+        else:
+            self._connection.state.set([], await _generate_state({}, {}))
 
     def _login(self, username, password):
         if {'username': username, 'password': password} in self._conf['users']:
             self._user = username
-            self.async_group.spawn(self._run)
+            return {'success': True}
         else:
             self.close()
-            raise Exception('login failed')
+            return {'success': False}
 
     def _logout(self):
         self._user = None
@@ -142,11 +170,11 @@ class Session(aio.Resource):
             raise Exception('unauthorized action')
 
 
-async def _state_to_json(state):
+async def _generate_state(models, actions):
     return {
         'models': {model_id: await _model_to_json(model)
-                   for model_id, model in state['models'].items()},
-        'actions': state['actions']}
+                   for model_id, model in models.items()},
+        'actions': actions}
 
 
 async def _model_to_json(model):

@@ -2,7 +2,7 @@ from hat import json
 from hat import aio
 import asyncio
 import contextlib
-import hat.event.client
+import hat.event.eventer_client
 import psutil
 import pytest
 
@@ -36,7 +36,10 @@ async def monitor_server(monitor_address, monitor_port,
                 'address': f'tcp+sbs://127.0.0.1:{master_port}',
                 'default_algorithm': 'BLESS_ONE',
                 'group_algorithms': {}},
-            'slave': {'parents': []},
+            'slave': {'parents': [],
+                      'connect_timeout': 5,
+                      'connect_retry_count': 5,
+                      'connect_retry_delay': 5},
             'ui': {'address': f'http://127.0.0.1:{ui_port}'}}
     monitor_conf_path = conf_path / 'monitor.yaml'
     json.encode_file(conf, monitor_conf_path)
@@ -63,20 +66,20 @@ def event_address(event_port):
 
 @pytest.fixture
 async def event_server(event_address, event_port, monitor_address,
-                       monitor_server, conf_path):
+                       monitor_server, conf_path, unused_tcp_port_factory):
     conf = {'type': 'event',
             'log': {'version': 1},
             'monitor': {'name': 'event',
                         'group': 'event',
                         'monitor_address': monitor_address,
                         'component_address': event_address},
-            'backend_engine': {
-                'server_id': 0,
-                'backend': {'module': 'hat.event.server.backends.sqlite',
-                            'db_path': str(conf_path / 'event.db'),
-                            'query_pool_size': 5}},
-            'module_engine': {'modules': []},
-            'communication': {'address': event_address}}
+            'backend': {
+                'module': 'hat.event.server.backends.dummy'},
+            'engine': {'server_id': 0, 'modules': []},
+            'eventer_server': {'address': event_address},
+            'syncer_server': {
+                'address': f'tcp+sbs://127.0.0.1:{unused_tcp_port_factory()}'
+            }}
     event_conf_path = conf_path / 'event.yaml'
     json.encode_file(conf, event_conf_path)
     proc = psutil.Popen(['python', '-m', 'hat.event.server',
@@ -152,7 +155,8 @@ def event_client_factory(event_address, event_server):
 
     @contextlib.asynccontextmanager
     async def factory(subscriptions):
-        client = await hat.event.client.connect(event_address, subscriptions)
+        client = await hat.event.eventer_client.connect(
+            event_address, subscriptions)
         yield client
         await client.async_close()
 

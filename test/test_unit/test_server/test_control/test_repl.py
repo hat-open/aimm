@@ -1,4 +1,5 @@
 from hat import aio
+from hat import util
 import asyncio
 import hashlib
 import pytest
@@ -38,6 +39,11 @@ class MockEngine(common.Engine):
 
     def subscribe_to_state_change(self, cb):
         self._cb = cb
+
+        def cancel():
+            self._cb = None
+        
+        return util.RegisterCallbackHandle(cancel=cancel)
 
     def create_instance(self, *args, **kwargs):
         if self._create_instance_cb:
@@ -95,7 +101,7 @@ async def test_login(conf, juggler_port, monkeypatch):
         aimm.client.repl.input = input
         ctx.setattr(aimm.client.repl, 'input', lambda _: 'user')
         ctx.setattr(aimm.client.repl, 'getpass', lambda _: 'password')
-        await client.connect(f'ws://127.0.0.1:{juggler_port}/ws')
+        await client.connect(f'ws://127.0.0.1:{juggler_port}')
     await asyncio.sleep(0.3)
     assert client.state == {'models': {}, 'actions': {}}
     await client.async_close()
@@ -108,7 +114,7 @@ async def _connect(username, password, port, monkeypatch):
         aimm.client.repl.input = input
         ctx.setattr(aimm.client.repl, 'input', lambda _: username)
         ctx.setattr(aimm.client.repl, 'getpass', lambda _: password)
-        await client.connect(f'ws://127.0.0.1:{port}/ws')
+        await client.connect(f'ws://127.0.0.1:{port}')
     return client
 
 

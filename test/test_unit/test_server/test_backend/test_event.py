@@ -13,6 +13,7 @@ class MockClient:
         self._query_result = query_result
         self._query_queue = aio.Queue()
         self._register_queue = aio.Queue()
+        self._receive_queue = aio.Queue()
 
     async def query(self, query_data):
         self._query_queue.put_nowait(query_data)
@@ -21,6 +22,9 @@ class MockClient:
     async def register_with_response(self, events):
         self._register_queue.put_nowait(events)
         return events
+
+    async def receive(self):
+        await self._receive_queue.get()
 
 
 @pytest.fixture
