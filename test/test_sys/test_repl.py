@@ -1,4 +1,3 @@
-from hat import aio
 from hat import json
 import asyncio
 import hashlib
