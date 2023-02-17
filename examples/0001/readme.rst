@@ -26,6 +26,6 @@ The example can also be ran using docker with following steps:
 * Running the image starts the AIMM server which uses port 9999 for its REPL
   interface, make sure that port is mapped
 * Run ``jupyter notebook``, open the Iris notebook and call commands in it.
-  * Optionally, jupyter notebook can be started through the same container AIMM
-    server is running in with ``docker exec <container_name> jupyter notebook
-    --allow-root --ip 0.0.0.0``. Make sure port 8888 is exposed.
+    * Optionally, jupyter notebook can be started through the same container AIMM
+      server is running in with ``docker exec <container_name> jupyter notebook
+      --allow-root --ip 0.0.0.0``. Make sure port 8888 is exposed.
