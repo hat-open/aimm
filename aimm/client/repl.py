@@ -55,6 +55,7 @@ class AIMM(aio.Resource):
         await connection.send('login',
                               {'username': username,
                                'password': password_hash.hexdigest()})
+        self._on_remote_state_change(connection.state.data)
 
         self._connection = connection
         self._group.spawn(connection.wait_closed).add_done_callback(
