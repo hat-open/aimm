@@ -1,5 +1,7 @@
-from air_supervision.modules.controller.model.common import (GenericModel,
-                                                             ReturnType)
+from air_supervision.modules.controller.model.common import (
+    GenericModel,
+    ReturnType,
+    request_id_counter)
 from hat import aio
 import csv
 import numpy
@@ -21,7 +23,8 @@ class ForecastModel(GenericModel):
         event_type = ('aimm', 'fit', self._id)
 
         x, y = await self._executor(self._ext_get_dataset)
-        data = {'args': [x.tolist(), y.tolist()], 'kwargs': kwargs}
+        data = {'args': [x.tolist(), y.tolist()], 'kwargs': kwargs,
+                'request_id': str(next(request_id_counter))}
         await self._register_event(event_type, data, ReturnType.FIT)
 
     def _ext_get_dataset(self):

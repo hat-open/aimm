@@ -4,10 +4,6 @@ log:
     formatters:
         default: {}
     handlers:
-        console:
-            class: logging.StreamHandler
-            level: INFO
-            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
             host: 127.0.0.1
@@ -18,7 +14,6 @@ log:
             queue_size: 50
     root:
         handlers:
-        - console
         - syslog
         level: INFO
     version: 1
@@ -31,6 +26,9 @@ server:
     default_rank: 1
 slave:
     parents: []
+    connect_timeout: 5
+    connect_retry_count: 5
+    connect_retry_delay: 5
 type: monitor
 ui:
     address: http://0.0.0.0:23022

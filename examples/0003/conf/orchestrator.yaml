@@ -15,17 +15,6 @@ components:
     sigint_timeout: 2
     sigkill_timeout: 2
 -   args:
-    - hat-manager
-    - --conf
-    - ./conf/manager.yaml
-    delay: 2
-    name: monitor
-    revive: false
-    start_delay: 0.5
-    create_timeout: 2
-    sigint_timeout: 2
-    sigkill_timeout: 2
--   args:
     - hat-monitor
     - --conf
     - ./conf/monitor.yaml
@@ -85,10 +74,6 @@ log:
     formatters:
         default: {}
     handlers:
-        console:
-            class: logging.StreamHandler
-            level: INFO
-            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
             host: 127.0.0.1
@@ -99,7 +84,6 @@ log:
             queue_size: 50
     root:
         handlers:
-        - console
         - syslog
         level: INFO
     version: 1

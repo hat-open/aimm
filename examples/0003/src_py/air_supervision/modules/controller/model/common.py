@@ -2,6 +2,10 @@ import abc
 import hat.aio
 import hat.event.server.common
 from enum import Enum
+from itertools import count
+
+
+request_id_counter = count(0)
 
 
 class ReturnType(Enum):
@@ -42,18 +46,20 @@ class GenericModel(abc.ABC):
         event_type = ('aimm', 'create_instance')
         data = {'model_type': self.model_type,
                 'args': [],
-                'kwargs': self.hyperparameters}
+                'kwargs': self.hyperparameters,
+                'request_id': str(next(request_id_counter))}
 
         await self._register_event(event_type, data, ReturnType.CREATE)
 
     async def predict(self, model_input):
         event_type = ('aimm', 'predict', self._id)
-        data = {'args': model_input, 'kwargs': {}}
+        data = {'args': model_input, 'kwargs': {},
+                'request_id': str(next(request_id_counter))}
 
         await self._register_event(event_type, data, ReturnType.PREDICT)
 
     async def _register_event(self, event_type, data, return_type):
-        events = await self._module._engine.register(
+        await self._module._engine.register(
             self._module._source,
             [hat.event.server.common.RegisterEvent(
                 event_type=event_type,
@@ -61,5 +67,5 @@ class GenericModel(abc.ABC):
                 payload=hat.event.server.common.EventPayload(
                     type=hat.event.server.common.EventPayloadType.JSON,
                     data=data))])
-        request_id = events[0].event_id._asdict()['instance']
+        request_id = data['request_id']
         self._module._request_ids[request_id] = (return_type, self.model_type)

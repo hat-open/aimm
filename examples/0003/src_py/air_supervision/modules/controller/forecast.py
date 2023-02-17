@@ -1,5 +1,3 @@
-import hat.aio
-import hat.event.server.common
 from air_supervision.modules.controller.common import (GenericReadingsModule,
                                                        ReadingsModuleBuilder)
 import logging
@@ -7,18 +5,12 @@ import logging
 mlog = logging.getLogger(__name__)
 json_schema_id = None
 json_schema_repo = None
-_source_id = 0
 
 
-async def create(conf, engine):
+async def create(conf, engine, source):
     builder = ReadingsModuleBuilder()
 
-    global _source_id
-    builder.source = hat.event.server.common.Source(
-        type=hat.event.server.common.SourceType.MODULE,
-        name=__name__,
-        id=_source_id)
-    _source_id += 1
+    builder.source = source
 
     builder.user_action_type = ('user_action', 'forecast', '*')
     builder.engine = engine

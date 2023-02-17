@@ -7,6 +7,3 @@ dataset_setup () {
 
 dataset_setup
 yarn install --silent
-node_modules/.bin/webpack --config webpack.config.js
-
-

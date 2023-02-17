@@ -30,7 +30,7 @@ class AirReading(hat.gateway.common.Device):
 
     async def _main_loop(self):
         column = 'value'
-        for index, value in self._df[column].iteritems():
+        for index, value in self._df[column].items():
             await asyncio.sleep(0.5)
 
             timestamp = self._df.iloc[index]['timestamp']

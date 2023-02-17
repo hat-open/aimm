@@ -14,13 +14,6 @@ backend:
     module: aimm.server.backend.sqlite
     path: data/aimm.db
 control:
-  - module: aimm.server.control.repl
-    server:
-        host: 127.0.0.1
-        port: 9999
-    users:
-        - username: user
-          password: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   - module: aimm.server.control.event
     event_prefixes:
         predict: ['aimm', 'predict']
@@ -37,10 +30,6 @@ log:
     formatters:
         default: {}
     handlers:
-        console:
-            class: logging.StreamHandler
-            level: INFO
-            stream: ext://sys.stdout
         syslog:
             class: hat.syslog.handler.SysLogHandler
             host: 127.0.0.1
@@ -51,7 +40,6 @@ log:
             queue_size: 50
     root:
         handlers:
-        - console
         - syslog
         level: INFO
     version: 1

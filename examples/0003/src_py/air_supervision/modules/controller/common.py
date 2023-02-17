@@ -4,7 +4,7 @@ from typing import Any, List, Tuple
 import abc
 import hat.aio
 import hat.event.server.common
-import hat.event.server.module_engine
+import hat.event.server.engine
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class FitLock:
 
 @dataclass
 class ReadingsModuleBuilder:
-    engine: hat.event.server.module_engine.ModuleEngine = None
+    engine: hat.event.server.engine.Engine = None
     source: hat.event.server.common.Source = None
     user_action_type: Tuple[str] = None
     model_family: str = None
@@ -82,9 +82,6 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
     def subscription(self):
         return self._subscription
 
-    async def create_session(self):
-        return Session(self._engine, self, self._async_group.create_subgroup())
-
     @abc.abstractmethod
     def transform_row(self,
                       value: float,
@@ -98,14 +95,18 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
         Returns:
             Row representation"""
 
-    def process(self, event):
+    async def process(self, source, event):
         selector = event.event_type[0]
+        generator = None
         if selector == 'aimm':
-            yield from self._process_aimm(event)
+            generator = self._process_aimm(event)
         elif selector == 'gui':
-            yield from self._process_reading(event)
+            generator = self._process_reading(event)
         elif selector == 'user_action':
-            yield from self._process_user_action(event)
+            generator = self._process_user_action(event)
+        if generator:
+            for e in generator:
+                yield e
 
     def _process_aimm(self, event):
         msg_type = event.event_type[1]
@@ -127,12 +128,12 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
     def _process_action(self, event):
         payload = event.payload.data
-        instance = payload.get('request_id')['instance']
-        if (instance not in self._request_ids
+        request_id = payload['request_id']
+        if (request_id not in self._request_ids
                 or payload.get('status') != 'DONE'):
             return
 
-        type_, model_name = self._request_ids[instance]
+        type_, model_name = self._request_ids[request_id]
 
         if type_ == model.ReturnType.CREATE:
             self._lock.created(model_name)
@@ -146,7 +147,7 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
         elif type_ == model.ReturnType.PREDICT:
             yield from self._process_predict(event)
         else:
-            del self._request_ids[instance]
+            del self._request_ids[request_id]
 
     def _process_predict(self, event):
         values, timestamps = zip(*self._readings[:self._batch_size])
@@ -212,27 +213,6 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
     def _message(self, data, type_name):
         return _register_event(('gui', 'log', self._model_family, type_name),
                                data)
-
-
-class Session(hat.event.server.common.ModuleSession):
-
-    def __init__(self, engine, module, group):
-        self._engine = engine
-        self._module = module
-        self._async_group = group
-
-    @property
-    def async_group(self):
-        return self._async_group
-
-    async def process(self, changes):
-        new_events = []
-        for event in changes:
-            for new_event in self._module.process(event):
-                proc_event = self._engine.create_process_event(
-                    self._module._source, new_event)
-                new_events.append(proc_event)
-        return new_events
 
 
 def _register_event(event_type, payload, source_timestamp=None):

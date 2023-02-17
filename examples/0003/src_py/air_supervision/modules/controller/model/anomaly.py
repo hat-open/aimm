@@ -1,5 +1,7 @@
-from air_supervision.modules.controller.model.common import (GenericModel,
-                                                             ReturnType)
+from air_supervision.modules.controller.model.common import (
+    GenericModel,
+    ReturnType,
+    request_id_counter)
 from datetime import datetime
 from hat import aio
 import csv
@@ -17,7 +19,8 @@ class AnomalyModel(GenericModel):
         event_type = ('aimm', 'fit', self._id)
 
         train_data = await self._executor(self._ext_get_dataset)
-        data = {'args': [train_data, None], 'kwargs': kwargs}
+        data = {'args': [train_data, None], 'kwargs': kwargs,
+                'request_id': str(next(request_id_counter))}
         await self._register_event(event_type, data, ReturnType.FIT)
 
     def _ext_get_dataset(self):
