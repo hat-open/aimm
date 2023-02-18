@@ -62,14 +62,14 @@ def task_format():
 
     def run(args):
         args = args or []
-        subprocess.run(["black", ".", "--line-length", "79"])
+        subprocess.run(["black", ".", "--line-length", "79", *args])
 
     return {"actions": [run], "pos_arg": "args"}
 
 
 def task_check():
     """Pre-deployment check"""
-    return {"actions": [], "task_dep": ["test", "lint"]}
+    return {"actions": [], "task_dep": ["format", "lint"]}
 
 
 def task_docs():
