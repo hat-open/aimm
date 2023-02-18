@@ -14,7 +14,7 @@ Type of the ``create_subscription`` function that the dynamically imported
 controls and backends may implement. Receives component configuration as the
 only argument and returns a subscription object.
 """
-util.register_type_alias('CreateSubscription')
+util.register_type_alias("CreateSubscription")
 
 
 class ProxyClient:
@@ -24,8 +24,11 @@ class ProxyClient:
         client: concrete client instance
         subscription: event types proxy subscribes to"""
 
-    def __init__(self, client: hat.event.eventer_client.EventerClient(),
-                 subscription: hat.event.common.Subscription):
+    def __init__(
+        self,
+        client: hat.event.eventer_client.EventerClient(),
+        subscription: hat.event.common.Subscription,
+    ):
         self._subscription = subscription
         self._queue = aio.Queue()
         self._client = client
@@ -49,16 +52,15 @@ class ProxyClient:
         self._client.register(events)
 
     async def register_with_response(
-            self,
-            events: List[hat.event.common.RegisterEvent]
-            ) -> List[hat.event.common.Event]:
+        self, events: List[hat.event.common.RegisterEvent]
+    ) -> List[hat.event.common.Event]:
         """Bulk-registers a group of new events and awaits until the
         registration is complete."""
         return await self._client.register_with_response(events)
 
-    async def query(self,
-                    query_data: hat.event.common.QueryData
-                    ) -> List[hat.event.common.Event]:
+    async def query(
+        self, query_data: hat.event.common.QueryData
+    ) -> List[hat.event.common.Event]:
         """Queries events with given query_data"""
         return await self._client.query(query_data)
 
@@ -101,15 +103,14 @@ class Engine(aio.Resource, abc.ABC):
 
     @abc.abstractmethod
     def subscribe_to_state_change(
-            self,
-            cb: Callable[[], None]) -> util.RegisterCallbackHandle:
+        self, cb: Callable[[], None]
+    ) -> util.RegisterCallbackHandle:
         """Subscribes to any changes to the engine state"""
 
     @abc.abstractmethod
-    def create_instance(self,
-                        model_type: str,
-                        *args: Any,
-                        **kwargs: Any) -> 'Action':
+    def create_instance(
+        self, model_type: str, *args: Any, **kwargs: Any
+    ) -> "Action":
         """Starts an action that creates a model instance and stores it in
         state.
 
@@ -119,9 +120,7 @@ class Engine(aio.Resource, abc.ABC):
             **kwargs: instantiation keyword arguments"""
 
     @abc.abstractmethod
-    async def add_instance(self,
-                           model_type: str,
-                           instance: Any) -> Model:
+    async def add_instance(self, model_type: str, instance: Any) -> Model:
         """Adds existing instance to the state"""
 
     @abc.abstractmethod
@@ -129,10 +128,9 @@ class Engine(aio.Resource, abc.ABC):
         """Update existing instance in the state"""
 
     @abc.abstractmethod
-    async def fit(self,
-                  instance_id: int,
-                  *args: Any,
-                  **kwargs: Any) -> 'Action':
+    async def fit(
+        self, instance_id: int, *args: Any, **kwargs: Any
+    ) -> "Action":
         """Starts an action that fits an existing model instance. The used
         fitting function is the one assigned to the model type. The instance,
         while it is being fitted, is not accessable by any of the other
@@ -148,10 +146,9 @@ class Engine(aio.Resource, abc.ABC):
                 arguments"""
 
     @abc.abstractmethod
-    async def predict(self,
-                      instance_id: int,
-                      *args: Any,
-                      **kwargs: Any) -> 'Action':
+    async def predict(
+        self, instance_id: int, *args: Any, **kwargs: Any
+    ) -> "Action":
         """Starts an action that uses an existing model instance to perform a
         prediction. The used prediction function is the one assigned to model's
         type. The instance, while prediction is called, is not accessable by
@@ -183,15 +180,14 @@ class Action(aio.Resource, abc.ABC):
         :class:`asyncio.CancelledError` in case the call was cancelled."""
 
 
-def create_backend(conf: Dict,
-                   event_client: Optional['ProxyClient'] = None
-                   ) -> 'Backend':
+def create_backend(
+    conf: Dict, event_client: Optional["ProxyClient"] = None
+) -> "Backend":
     """Placeholder of the backend's create function, needs to satisfy the given
     signature"""
 
 
-def create_backend_subscription(
-        conf: Any) -> hat.event.common.Subscription:
+def create_backend_subscription(conf: Any) -> hat.event.common.Subscription:
     """Placeholder of the backends optional create subscription function, needs
     to satisfy the given signature"""
 
@@ -228,24 +224,22 @@ class Backend(aio.Resource):
         """Replaces the old stored model with the new one, requires that a
         serialization is defined for the model type"""
 
-    def register_model_change_cb(self,
-                                 cb: Callable[[Model], None]
-                                 ) -> util.RegisterCallbackHandle:
+    def register_model_change_cb(
+        self, cb: Callable[[Model], None]
+    ) -> util.RegisterCallbackHandle:
         """Register callback for backend-side model changes. Implementation
         optional, defaults to ignoring the callback."""
         return util.RegisterCallbackHandle(cancel=lambda: None)
 
 
-def create_control(conf: Dict,
-                   engine: Engine,
-                   event_client: Optional['ProxyClient'] = None
-                   ) -> 'Control':
+def create_control(
+    conf: Dict, engine: Engine, event_client: Optional["ProxyClient"] = None
+) -> "Control":
     """Placeholder of the control's create function, needs to satisfy the given
     signature"""
 
 
-def create_control_subscription(
-        conf: Any) -> hat.event.common.Subscription:
+def create_control_subscription(conf: Any) -> hat.event.common.Subscription:
     """Placeholder of the controls optional create subscription function, needs
     to satisfy the given signature"""
 

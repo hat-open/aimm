@@ -8,23 +8,31 @@ import logging
 
 mlog = logging.getLogger(__name__)
 
-json_schema_id = 'hat-aimm://module.yaml#'
-json_schema_repo = json.SchemaRepository(json.decode("""
+json_schema_id = "hat-aimm://module.yaml#"
+json_schema_repo = json.SchemaRepository(
+    json.decode(
+        """
 ---
 id: 'hat-aimm://module.yaml#'
 type: object
 ...
-""", format=json.Format.YAML))
+""",
+        format=json.Format.YAML,
+    )
+)
 
 
 async def create(conf, engine, source):
     module = Module()
-    module._gw_prefix = ('gateway', 'gateway', 'device', 'device')
+    module._gw_prefix = ("gateway", "gateway", "device", "device")
     module._subscription = common.Subscription(
-        [('measurement', '?', '?'),
-         (*module._gw_prefix, 'gateway', 'running'),
-         ('aimm', 'state'),
-         ('aimm', 'response')])
+        [
+            ("measurement", "?", "?"),
+            (*module._gw_prefix, "gateway", "running"),
+            ("aimm", "state"),
+            ("aimm", "response"),
+        ]
+    )
 
     global _source_id
     module._source = source
@@ -43,7 +51,6 @@ async def create(conf, engine, source):
 
 
 class Module(common.Module):
-
     @property
     def async_group(self):
         return self._async_group
@@ -57,24 +64,33 @@ class Module(common.Module):
             return
 
         payload = e.payload.data
-        if e.event_type == (*self._gw_prefix, 'gateway', 'running'):
+        if e.event_type == (*self._gw_prefix, "gateway", "running"):
             if payload is False:
                 yield _register_event(
-                    ('gateway', 'gateway', 'device', 'device', 'system',
-                     'enable'),
-                    True)
+                    (
+                        "gateway",
+                        "gateway",
+                        "device",
+                        "device",
+                        "system",
+                        "enable",
+                    ),
+                    True,
+                )
 
-        elif e.event_type[0] == 'measurement':
+        elif e.event_type[0] == "measurement":
             self._measurements = json.set_(
-                self._measurements, list(e.event_type[1:]), payload)
+                self._measurements, list(e.event_type[1:]), payload
+            )
             if self._predict_task is None:
-                self._predict_task = self.async_group.spawn(self._predict,
-                                                            self._source)
+                self._predict_task = self.async_group.spawn(
+                    self._predict, self._source
+                )
 
-        elif e.event_type == ('aimm', 'state'):
+        elif e.event_type == ("aimm", "state"):
             if self._model_id is not None:
                 return
-            if self._model_id in payload['models']:
+            if self._model_id in payload["models"]:
                 return
             if self._create_model_request_id is not None:
                 return
@@ -82,32 +98,41 @@ class Module(common.Module):
             self._model_id = None
             self._create_model_request_id = str(next(self._request_gen))
             request_ev = _register_event(
-                ('aimm', 'create_instance'),
-                {'model_type': 'aimm_plugins.power.StateEstimator',
-                    'args': [],
-                    'kwargs': {},
-                    'request_id': self._create_model_request_id})
+                ("aimm", "create_instance"),
+                {
+                    "model_type": "aimm_plugins.power.StateEstimator",
+                    "args": [],
+                    "kwargs": {},
+                    "request_id": self._create_model_request_id,
+                },
+            )
             yield request_ev
 
-        elif e.event_type == ('aimm', 'response'):
-            if payload['request_id'] == self._create_model_request_id:
-                self._model_id = str(payload['result'])
-            elif payload['request_id'] == self._predict_request_id:
-                result = payload['result']
+        elif e.event_type == ("aimm", "response"):
+            if payload["request_id"] == self._create_model_request_id:
+                self._model_id = str(payload["result"])
+            elif payload["request_id"] == self._predict_request_id:
+                result = payload["result"]
                 if result is None:
                     return
-                bus_ids = (set(result['vm_pu']) | set(result['va_degree'])
-                           | set(result['p_mw']) | set(result['q_mvar']))
+                bus_ids = set(result["vm_pu"])
+                bus_ids |= set(result["va_degree"])
+                bus_ids |= set(result["p_mw"])
+                bus_ids |= set(result["q_mvar"])
                 for bus_id in bus_ids:
                     yield _register_event(
-                        ('estimation', bus_id, 'v'), result['vm_pu'][bus_id])
+                        ("estimation", bus_id, "v"), result["vm_pu"][bus_id]
+                    )
                     yield _register_event(
-                        ('estimation', bus_id, 'va'),
-                        result['va_degree'][bus_id])
-                    yield _register_event((
-                        'estimation', bus_id, 'p'), result['p_mw'][bus_id])
+                        ("estimation", bus_id, "va"),
+                        result["va_degree"][bus_id],
+                    )
                     yield _register_event(
-                        ('estimation', bus_id, 'q'), result['q_mvar'][bus_id])
+                        ("estimation", bus_id, "p"), result["p_mw"][bus_id]
+                    )
+                    yield _register_event(
+                        ("estimation", bus_id, "q"), result["q_mvar"][bus_id]
+                    )
 
     async def _predict(self, source):
         await asyncio.sleep(1)  # buffer measurements
@@ -117,11 +142,19 @@ class Module(common.Module):
             self._predict_request_id = str(next(self._request_gen))
             await self._engine.register(
                 source,
-                [_register_event(
-                    ('aimm', 'predict', self._model_id),
-                    {'args': [list(_measurements_to_arg(self._measurements))],
-                     'kwargs': {},
-                     'request_id': self._predict_request_id})])
+                [
+                    _register_event(
+                        ("aimm", "predict", self._model_id),
+                        {
+                            "args": [
+                                list(_measurements_to_arg(self._measurements))
+                            ],
+                            "kwargs": {},
+                            "request_id": self._predict_request_id,
+                        },
+                    )
+                ],
+            )
         finally:
             self._predict_task = None
 
@@ -129,16 +162,19 @@ class Module(common.Module):
 def _measurements_to_arg(measurements):
     for bus_id, bus_measurements in measurements.items():
         for m_type, value in bus_measurements.items():
-            yield {'type': m_type,
-                   'element_type': 'bus',
-                   'value': value,
-                   'std_dev': 10,
-                   'element': int(bus_id),
-                   'side': None}
+            yield {
+                "type": m_type,
+                "element_type": "bus",
+                "value": value,
+                "std_dev": 10,
+                "element": int(bus_id),
+                "side": None,
+            }
 
 
 def _register_event(event_type, payload):
     return common.RegisterEvent(
         event_type=event_type,
         source_timestamp=None,
-        payload=common.EventPayload(common.EventPayloadType.JSON, payload))
+        payload=common.EventPayload(common.EventPayloadType.JSON, payload),
+    )

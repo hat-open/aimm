@@ -20,7 +20,7 @@ def disable_sigterm_handler(monkeypatch):
             yield
 
     with monkeypatch.context() as ctx:
-        ctx.setattr(mprocess, '_sigterm_override', handler_patch)
+        ctx.setattr(mprocess, "_sigterm_override", handler_patch)
         yield
 
 
@@ -30,8 +30,8 @@ async def test_process_regular(action_count, disable_sigterm_handler):
     def fn(*args, **kwargs):
         return args, kwargs
 
-    args = ('arg1', 'arg2')
-    kwargs = {'k1': 'v1', 'k2': 'v2'}
+    args = ("arg1", "arg2")
+    kwargs = {"k1": "v1", "k2": "v2"}
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 2)
     async with aio.Group() as group:
@@ -49,7 +49,7 @@ async def test_process_regular(action_count, disable_sigterm_handler):
 
 @pytest.mark.timeout(2)
 async def test_process_exception(disable_sigterm_handler):
-    exception_text = 'test exception'
+    exception_text = "test exception"
 
     def fn():
         raise Exception(exception_text)
@@ -79,7 +79,7 @@ async def test_process_sigterm(disable_sigterm_handler):
     async with aio.Group() as group:
 
         async def _run():
-            with pytest.raises(Exception, match='process terminated'):
+            with pytest.raises(Exception, match="process terminated"):
                 await process_action.run(fn)
 
         task = group.spawn(_run)
@@ -109,7 +109,7 @@ async def test_process_sigkill():
     async with aio.Group() as group:
 
         async def _run():
-            with pytest.raises(Exception, match='process terminated'):
+            with pytest.raises(Exception, match="process terminated"):
                 await process_action.run(fn)
 
         task = group.spawn(_run)

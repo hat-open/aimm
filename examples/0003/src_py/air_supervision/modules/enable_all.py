@@ -14,8 +14,9 @@ async def create(conf, engine, source):
     module = EnableAll()
 
     module._source = source
-    module._subscription = common.Subscription([
-        ('gateway', '?', '?', '?', 'gateway', 'running')])
+    module._subscription = common.Subscription(
+        [("gateway", "?", "?", "?", "gateway", "running")]
+    )
     module._async_group = hat.aio.Group()
     module._engine = engine
 
@@ -23,7 +24,6 @@ async def create(conf, engine, source):
 
 
 class EnableAll(common.Module):
-
     @property
     def async_group(self):
         return self._async_group
@@ -35,7 +35,9 @@ class EnableAll(common.Module):
     async def process(self, source, event):
         if event.payload.data is False:
             yield common.RegisterEvent(
-                event_type=tuple([*event.event_type[:-2], 'system', 'enable']),
+                event_type=tuple([*event.event_type[:-2], "system", "enable"]),
                 source_timestamp=None,
-                payload=common.EventPayload(type=common.EventPayloadType.JSON,
-                                            data=True))
+                payload=common.EventPayload(
+                    type=common.EventPayloadType.JSON, data=True
+                ),
+            )

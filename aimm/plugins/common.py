@@ -1,9 +1,4 @@
-from typing import (Any,
-                    ByteString,
-                    Callable,
-                    Dict,
-                    NamedTuple,
-                    Optional)
+from typing import Any, ByteString, Callable, Dict, NamedTuple, Optional
 from hat import util
 import abc
 import importlib
@@ -20,15 +15,11 @@ class Model(abc.ABC):
     ``__init__`` method is treated as instantiation function."""
 
     @abc.abstractmethod
-    def fit(self,
-            *args: Any,
-            **kwargs: Any) -> Any:
+    def fit(self, *args: Any, **kwargs: Any) -> Any:
         """Fit method for model instances"""
 
     @abc.abstractmethod
-    def predict(self,
-                *args: Any,
-                **kwargs: Any) -> Any:
+    def predict(self, *args: Any, **kwargs: Any) -> Any:
         """Predict method for model instances"""
 
     @abc.abstractmethod
@@ -36,7 +27,7 @@ class Model(abc.ABC):
         """Serialize method for model instances"""
 
     @abc.abstractclassmethod
-    def deserialize(cls, instance_bytes: ByteString) -> 'Model':
+    def deserialize(cls, instance_bytes: ByteString) -> "Model":
         """Deserialize method for model instances"""
 
 
@@ -104,11 +95,11 @@ def initialize(conf: Dict):
     Args:
         conf: configuration that follows schema under id
             ``aimm://plugins/schema.yaml#``"""
-    for name in conf['names']:
+    for name in conf["names"]:
         importlib.import_module(name)
 
 
 StateCallback = Callable[[Dict], None]
 StateCallback.__doc__ = """
 Generic state callback function signature a plugin would receive"""
-util.register_type_alias('StateCallback')
+util.register_type_alias("StateCallback")

@@ -27,8 +27,8 @@ class GenericPredictionModel(aimm.plugins.Model):
         x = pd.DataFrame((x - self.mean_) / self.scale_)
         series = pd.Series(self.model.predict(x))
         rez = series.map({1: 0, -1: 1}).values.tolist()
-        x = pd.DataFrame(x*self.scale_ + self.mean_)
-        x['result'] = rez
+        x = pd.DataFrame(x * self.scale_ + self.mean_)
+        x["result"] = rez
         return x.values.tolist()
 
     def _update_hp(self, **kwargs):
@@ -53,21 +53,21 @@ class GenericPredictionModel(aimm.plugins.Model):
 
 @aimm.plugins.model
 class MultiOutputSVR(aimm.plugins.Model):
-
     def __init__(self, **kwargs):
         self.hyperparameters = {}
 
         if not self._update_hp(**kwargs):
-            self.hyperparameters = {'C': 2000}
+            self.hyperparameters = {"C": 2000}
 
         self._model = multioutput.MultiOutputRegressor(
-            svm.SVR(C=self.hyperparameters['C']))
+            svm.SVR(C=self.hyperparameters["C"])
+        )
 
     def fit(self, x, y, **kwargs):
-
         if self._update_hp(**kwargs):
             self.model = multioutput.MultiOutputRegressor(
-                svm.SVR(C=self.hyperparameters['C']))
+                svm.SVR(C=self.hyperparameters["C"])
+            )
 
         self._model.fit(x, y)
         return self
@@ -97,7 +97,6 @@ class MultiOutputSVR(aimm.plugins.Model):
 
 @aimm.plugins.model
 class linear(aimm.plugins.Model):
-
     def __init__(self, **kwargs):
         self.hyperparameters = {}
 
@@ -123,7 +122,6 @@ class linear(aimm.plugins.Model):
 
 @aimm.plugins.model
 class constant(aimm.plugins.Model):
-
     def __init__(self, **kwargs):
         self.hyperparameters = {}
 

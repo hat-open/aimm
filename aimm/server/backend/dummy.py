@@ -12,7 +12,6 @@ def create(conf, _):
 
 
 class DummyBackend(common.Backend):
-
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
@@ -22,9 +21,11 @@ class DummyBackend(common.Backend):
         return []
 
     async def create_model(self, model_type, instance):
-        return common.Model(model_type=model_type,
-                            instance=instance,
-                            instance_id=next(self._id_counter))
+        return common.Model(
+            model_type=model_type,
+            instance=instance,
+            instance_id=next(self._id_counter),
+        )
 
     async def update_model(self, model):
         return

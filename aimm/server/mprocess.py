@@ -31,11 +31,13 @@ class ProcessManager(aio.Resource):
         sigterm_timeout: number of seconds waited before sending SIGKILL if a
             child process does not terminate after SIGTERM"""
 
-    def __init__(self,
-                 max_children: int,
-                 async_group: aio.Group,
-                 check_children_period: float,
-                 sigterm_timeout: float):
+    def __init__(
+        self,
+        max_children: int,
+        async_group: aio.Group,
+        check_children_period: float,
+        sigterm_timeout: float,
+    ):
         self._max_children = max_children
         self._async_group = async_group
         self._check_children_period = check_children_period
@@ -49,7 +51,7 @@ class ProcessManager(aio.Resource):
     def async_group(self) -> aio.Group:
         return self._async_group
 
-    def create_handler(self, state_cb: StateCallback) -> 'ProcessHandler':
+    def create_handler(self, state_cb: StateCallback) -> "ProcessHandler":
         """Creates a ProcessHandler
 
         Args:
@@ -58,9 +60,12 @@ class ProcessManager(aio.Resource):
 
         Returns:
             ProcessHandler"""
-        return ProcessHandler(self._async_group.create_subgroup(),
-                              self._sigterm_timeout, state_cb,
-                              self._condition)
+        return ProcessHandler(
+            self._async_group.create_subgroup(),
+            self._sigterm_timeout,
+            state_cb,
+            self._condition,
+        )
 
     async def _condition_loop(self):
         condition = self._condition
@@ -68,8 +73,9 @@ class ProcessManager(aio.Resource):
         with contextlib.suppress(asyncio.CancelledError):
             while True:
                 async with condition:
-                    available_processes = (self._max_children
-                                           - len(process.children()))
+                    available_processes = self._max_children - len(
+                        process.children()
+                    )
                     if available_processes > 0:
                         condition.notify(available_processes)
                 await asyncio.sleep(self._check_children_period)
@@ -88,11 +94,13 @@ class ProcessHandler(aio.Resource):
             process may be created
     """
 
-    def __init__(self,
-                 async_group: aio.Group,
-                 sigterm_timeout: float,
-                 state_cb: StateCallback,
-                 condition: asyncio.Condition):
+    def __init__(
+        self,
+        async_group: aio.Group,
+        sigterm_timeout: float,
+        state_cb: StateCallback,
+        condition: asyncio.Condition,
+    ):
         self._async_group = async_group
         self._sigterm_timeout = sigterm_timeout
         self._state_cb = state_cb
@@ -137,19 +145,21 @@ class ProcessHandler(aio.Resource):
             self._process = multiprocessing.Process(
                 target=_proc_run_fn,
                 args=(self._result_pipe, fn, *args),
-                kwargs=kwargs)
+                kwargs=kwargs,
+            )
             self._process.start()
 
             async def wait_result():
                 try:
-                    result = await self._executor(_ext_closeable_recv,
-                                                  self._result_pipe)
+                    result = await self._executor(
+                        _ext_closeable_recv, self._result_pipe
+                    )
                     if result.success:
                         return result.result
                     else:
                         raise result.exception
                 except _ProcessTerminatedException:
-                    raise Exception('process terminated')
+                    raise Exception("process terminated")
 
             return await aio.uncancellable(wait_result())
         finally:
@@ -159,15 +169,17 @@ class ProcessHandler(aio.Resource):
     async def _state_loop(self):
         with contextlib.suppress(asyncio.CancelledError, ValueError):
             while True:
-                state = await self._executor(_ext_closeable_recv,
-                                             self._state_pipe)
+                state = await self._executor(
+                    _ext_closeable_recv, self._state_pipe
+                )
                 if self._state_cb:
                     self._state_cb(state)
 
     async def _cleanup(self):
         if self._process is not None:
-            await self._executor(_ext_end_process, self._process,
-                                 self._sigterm_timeout)
+            await self._executor(
+                _ext_end_process, self._process, self._sigterm_timeout
+            )
         await self._executor(_ext_close_pipe, self._result_pipe)
         await self._executor(_ext_close_pipe, self._state_pipe)
 
@@ -183,7 +195,7 @@ class _ProcessTerminatedException(Exception):
 
 
 def _plugin_sigterm_handler(frame, signum):
-    raise Exception('process terminated')
+    raise Exception("process terminated")
 
 
 @contextlib.contextmanager
@@ -228,5 +240,5 @@ def _ext_closeable_recv(pipe):
     recv_conn, _ = pipe
     value = recv_conn.recv()
     if value == _PipeSentinel.CLOSE:
-        raise _ProcessTerminatedException('pipe closed')
+        raise _ProcessTerminatedException("pipe closed")
     return value

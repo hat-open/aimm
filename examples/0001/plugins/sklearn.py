@@ -4,20 +4,19 @@ import sklearn.datasets
 import pickle
 
 
-@plugins.data_access('iris_inputs')
+@plugins.data_access("iris_inputs")
 def iris_inputs():
     return sklearn.datasets.load_iris(return_X_y=True)[0]
 
 
-@plugins.data_access('iris_outputs')
+@plugins.data_access("iris_outputs")
 def iris_outputs():
     return sklearn.datasets.load_iris(return_X_y=True)[1]
 
 
 @plugins.model
 class SVC(plugins.Model):
-
-    def __init__(self, gamma=0.001, C=100.):
+    def __init__(self, gamma=0.001, C=100.0):
         self._svc = sklearn.svm.SVC(gamma=gamma, C=C)
 
     def fit(self, X, y):

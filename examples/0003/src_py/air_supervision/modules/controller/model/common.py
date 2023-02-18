@@ -15,7 +15,6 @@ class ReturnType(Enum):
 
 
 class GenericModel(abc.ABC):
-
     def __init__(self, module, model_type, hyperparameters):
         self._module = module
 
@@ -43,29 +42,39 @@ class GenericModel(abc.ABC):
             **kwargs: matches concrete model's hyperparameters"""
 
     async def create_instance(self):
-        event_type = ('aimm', 'create_instance')
-        data = {'model_type': self.model_type,
-                'args': [],
-                'kwargs': self.hyperparameters,
-                'request_id': str(next(request_id_counter))}
+        event_type = ("aimm", "create_instance")
+        data = {
+            "model_type": self.model_type,
+            "args": [],
+            "kwargs": self.hyperparameters,
+            "request_id": str(next(request_id_counter)),
+        }
 
         await self._register_event(event_type, data, ReturnType.CREATE)
 
     async def predict(self, model_input):
-        event_type = ('aimm', 'predict', self._id)
-        data = {'args': model_input, 'kwargs': {},
-                'request_id': str(next(request_id_counter))}
+        event_type = ("aimm", "predict", self._id)
+        data = {
+            "args": model_input,
+            "kwargs": {},
+            "request_id": str(next(request_id_counter)),
+        }
 
         await self._register_event(event_type, data, ReturnType.PREDICT)
 
     async def _register_event(self, event_type, data, return_type):
         await self._module._engine.register(
             self._module._source,
-            [hat.event.server.common.RegisterEvent(
-                event_type=event_type,
-                source_timestamp=None,
-                payload=hat.event.server.common.EventPayload(
-                    type=hat.event.server.common.EventPayloadType.JSON,
-                    data=data))])
-        request_id = data['request_id']
+            [
+                hat.event.server.common.RegisterEvent(
+                    event_type=event_type,
+                    source_timestamp=None,
+                    payload=hat.event.server.common.EventPayload(
+                        type=hat.event.server.common.EventPayloadType.JSON,
+                        data=data,
+                    ),
+                )
+            ],
+        )
+        request_id = data["request_id"]
         self._module._request_ids[request_id] = (return_type, self.model_type)

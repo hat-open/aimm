@@ -5,18 +5,24 @@ from hat.gui import common
 import hat.event.common
 
 
-json_schema_id = 'hat-aimm://adapter.yaml#'
-json_schema_repo = json.SchemaRepository(json.decode("""
+json_schema_id = "hat-aimm://adapter.yaml#"
+json_schema_repo = json.SchemaRepository(
+    json.decode(
+        """
 ---
 id: 'hat-aimm://adapter.yaml#'
 type: object
 ...
-""", format=json.Format.YAML))
+""",
+        format=json.Format.YAML,
+    )
+)
 
 
 def create_subscription(conf):
-    return hat.event.common.Subscription([('measurement', '?', '?'),
-                                          ('estimation', '?', '?')])
+    return hat.event.common.Subscription(
+        [("measurement", "?", "?"), ("estimation", "?", "?")]
+    )
 
 
 async def create_adapter(conf, event_client):
@@ -30,7 +36,6 @@ async def create_adapter(conf, event_client):
 
 
 class Adapter(common.Adapter):
-
     @property
     def async_group(self):
         return self._group
@@ -43,16 +48,15 @@ class Adapter(common.Adapter):
             while True:
                 events = await self._event_client.receive()
                 for event in events:
-                    self._state = json.set_(self._state,
-                                            list(event.event_type),
-                                            event.payload.data)
+                    self._state = json.set_(
+                        self._state, list(event.event_type), event.payload.data
+                    )
                 self._change_cbs.notify()
         finally:
             self._group.close()
 
 
 class Session(common.AdapterSession):
-
     def __init__(self, adapter, client, group):
         self._adapter = adapter
         self._client = client

@@ -11,15 +11,20 @@ from hat.drivers import tcp
 
 
 mlog = logging.getLogger(__name__)
-json_schema_id = 'hat-aimm://device.yaml#'
-json_schema_repo = json.SchemaRepository(json.decode("""
+json_schema_id = "hat-aimm://device.yaml#"
+json_schema_repo = json.SchemaRepository(
+    json.decode(
+        """
 ---
 id: 'hat-aimm://device.yaml#'
 type: object
 ...
-""", format=json.Format.YAML))
+""",
+        format=json.Format.YAML,
+    )
+)
 
-device_type = 'device'
+device_type = "device"
 
 
 async def create(conf, client, event_type_prefix):
@@ -31,7 +36,6 @@ async def create(conf, client, event_type_prefix):
 
 
 class Device(hat.gateway.common.Device):
-
     @property
     def async_group(self):
         return self._async_group
@@ -42,16 +46,18 @@ class Device(hat.gateway.common.Device):
             while True:
                 try:
                     connection = await iec104.connect(
-                        addr=tcp.Address('127.0.0.1', 20001))
+                        addr=tcp.Address("127.0.0.1", 20001)
+                    )
                 except Exception as e:
-                    mlog.error('connect failed %s', e, exc_info=e)
+                    mlog.error("connect failed %s", e, exc_info=e)
                 if not connection or connection.is_closed:
                     await asyncio.sleep(3)
                     continue
                 self._conn_group = self._async_group.create_subgroup()
                 self._conn_group.spawn(self._receive_loop, connection)
-                self._conn_group.spawn(aio.call_on_cancel,
-                                       connection.async_close)
+                self._conn_group.spawn(
+                    aio.call_on_cancel, connection.async_close
+                )
                 try:
                     await connection.wait_closed()
                 finally:
@@ -68,10 +74,11 @@ class Device(hat.gateway.common.Device):
 
 def _data_to_event(data):
     bus_id = data.asdu_address
-    measurement_type = ['p', 'q', 'v', 'va'][data.io_address]
+    measurement_type = ["p", "q", "v", "va"][data.io_address]
     return hat.event.common.RegisterEvent(
-        event_type=(('measurement', str(bus_id), measurement_type)),
+        event_type=(("measurement", str(bus_id), measurement_type)),
         source_timestamp=None,
         payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON,
-            data=data.data.value))
+            type=hat.event.common.EventPayloadType.JSON, data=data.data.value
+        ),
+    )

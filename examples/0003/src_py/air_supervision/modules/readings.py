@@ -10,8 +10,9 @@ async def create(conf, engine, source):
     module = ReadingsModule()
 
     module._source = source
-    module._subscription = hat.event.server.common.Subscription([
-        ('gateway', '?', 'example', '?', 'gateway', 'reading')])
+    module._subscription = hat.event.server.common.Subscription(
+        [("gateway", "?", "example", "?", "gateway", "reading")]
+    )
     module._async_group = hat.aio.Group()
     module._engine = engine
 
@@ -19,7 +20,6 @@ async def create(conf, engine, source):
 
 
 class ReadingsModule(hat.event.server.common.Module):
-
     @property
     def async_group(self):
         return self._async_group
@@ -30,6 +30,7 @@ class ReadingsModule(hat.event.server.common.Module):
 
     async def process(self, source, event):
         yield hat.event.server.common.RegisterEvent(
-            event_type=('gui', 'system', 'timeseries', 'reading'),
+            event_type=("gui", "system", "timeseries", "reading"),
             source_timestamp=event.source_timestamp,
-            payload=event.payload)
+            payload=event.payload,
+        )

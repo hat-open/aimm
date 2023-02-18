@@ -54,21 +54,21 @@ class GenericAnomalyModel(aimm.plugins.Model):
 
 @aimm.plugins.model
 class Forest(GenericAnomalyModel):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         if not self._update_hp(**kwargs):
-            self.hyperparameters = {'contamination': 0.01}
+            self.hyperparameters = {"contamination": 0.01}
 
         self.model = IsolationForest(
-            contamination=self.hyperparameters['contamination'])
+            contamination=self.hyperparameters["contamination"]
+        )
 
     def fit(self, x, y, **kwargs):
-
         if self._update_hp(**kwargs):
             self.model = IsolationForest(
-                contamination=self.hyperparameters['contamination'])
+                contamination=self.hyperparameters["contamination"]
+            )
 
         super().fit(x, y, **kwargs)
         return self
@@ -76,22 +76,22 @@ class Forest(GenericAnomalyModel):
 
 @aimm.plugins.model
 class SVM(GenericAnomalyModel):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         if not self._update_hp(**kwargs):
-            self.hyperparameters = {'contamination': 0.05}
+            self.hyperparameters = {"contamination": 0.05}
 
         self.model = OneClassSVM(
-            nu=0.95 * self.hyperparameters['contamination'])
+            nu=0.95 * self.hyperparameters["contamination"]
+        )
         # nu=0.95 * outliers_fraction  + 0.05
 
     def fit(self, x, y, **kwargs):
-
         if self._update_hp(**kwargs):
             self.model = OneClassSVM(
-                nu=0.95 * self.hyperparameters['contamination'])
+                nu=0.95 * self.hyperparameters["contamination"]
+            )
 
         super().fit(x, y, **kwargs)
         return self
@@ -99,13 +99,11 @@ class SVM(GenericAnomalyModel):
 
 @aimm.plugins.model
 class Cluster(aimm.plugins.Model):
-
     def __init__(self, **kwargs):
         pass
 
     def fit(self, x, y, **kwargs):
-
-        data = x[['value', 'hours', 'daylight', 'DayOfTheWeek', 'WeekDay']]
+        data = x[["value", "hours", "daylight", "DayOfTheWeek", "WeekDay"]]
 
         outliers_fraction = 0.01
 
@@ -127,9 +125,9 @@ class Cluster(aimm.plugins.Model):
 
         # Not clear for me, I choose 15 centroids arbitrarily and add these
         # data to the central dataframe
-        x['cluster'] = kmeans[14].predict(data)
-        x['principal_feature1'] = data[0]
-        x['principal_feature2'] = data[1]
+        x["cluster"] = kmeans[14].predict(data)
+        x["principal_feature1"] = data[0]
+        x["principal_feature2"] = data[1]
 
         # return Series of distance between each point and his distance with
         # the closest centroid
@@ -148,9 +146,9 @@ class Cluster(aimm.plugins.Model):
         threshold = distance.nlargest(number_of_outliers).min()
         # anomaly21 contain the anomaly result of method
         # 2.1 Cluster (0:normal, 1:anomaly)
-        x['anomaly21'] = (distance >= threshold).astype(int)
+        x["anomaly21"] = (distance >= threshold).astype(int)
 
-        a = x.loc[x['anomaly21'] == 1, ['time_epoch', 'value']]  # anomaly
+        a = x.loc[x["anomaly21"] == 1, ["time_epoch", "value"]]  # anomaly
 
         return a
 
