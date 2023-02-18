@@ -160,7 +160,12 @@ async def test_create_instance():
     kwargs = {"k1": "1"}
     req_event = _event(
         ("create_instance",),
-        {"model_type": "Model1", "args": args, "kwargs": kwargs},
+        {
+            "model_type": "Model1",
+            "args": args,
+            "kwargs": kwargs,
+            "request_id": "1",
+        },
     )
     client._receive_queue.put_nowait([req_event])
     call = await create_queue.get()
@@ -176,7 +181,7 @@ async def test_create_instance():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "IN_PROGRESS",
         "result": None,
     }
@@ -186,7 +191,7 @@ async def test_create_instance():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "DONE",
         "result": 1,
     }
@@ -224,6 +229,7 @@ async def test_add_instance(plugin_teardown):
             "instance": base64.b64encode("xyz".encode("utf-8")).decode(
                 "utf-8"
             ),
+            "request_id": "1",
         },
     )
     client._receive_queue.put_nowait([req_event])
@@ -240,7 +246,7 @@ async def test_add_instance(plugin_teardown):
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "DONE",
         "result": 2,
     }
@@ -275,6 +281,7 @@ async def test_update_instance(plugin_teardown):
             "instance": base64.b64encode("xyz".encode("utf-8")).decode(
                 "utf-8"
             ),
+            "request_id": "1",
         },
     )
     client._receive_queue.put_nowait([req_event])
@@ -290,7 +297,7 @@ async def test_update_instance(plugin_teardown):
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "DONE",
         "result": None,
     }
@@ -323,7 +330,12 @@ async def test_fit():
     events = await client._register_queue.get()  # state
 
     req_event = _event(
-        ("fit", "11"), {"args": ["a", "b"], "kwargs": {"c": "d", "e": "f"}}
+        ("fit", "11"),
+        {
+            "args": ["a", "b"],
+            "kwargs": {"c": "d", "e": "f"},
+            "request_id": "1",
+        },
     )
     client._receive_queue.put_nowait([req_event])
 
@@ -332,7 +344,7 @@ async def test_fit():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "IN_PROGRESS",
         "result": None,
     }
@@ -349,7 +361,7 @@ async def test_fit():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "DONE",
         "result": None,
     }
@@ -382,7 +394,12 @@ async def test_predict():
     events = await client._register_queue.get()  # state
 
     req_event = _event(
-        ("predict", "12"), {"args": ["a", "b"], "kwargs": {"c": "d", "e": "f"}}
+        ("predict", "12"),
+        {
+            "args": ["a", "b"],
+            "kwargs": {"c": "d", "e": "f"},
+            "request_id": "1",
+        },
     )
     client._receive_queue.put_nowait([req_event])
 
@@ -391,7 +408,7 @@ async def test_predict():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "IN_PROGRESS",
         "result": None,
     }
@@ -408,7 +425,7 @@ async def test_predict():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "DONE",
         "result": "prediction",
     }
@@ -433,7 +450,9 @@ async def test_cancel():
 
     events = await client._register_queue.get()  # state
 
-    req_event = _event(("predict", "12"), {"args": [], "kwargs": {}})
+    req_event = _event(
+        ("predict", "12"), {"args": [], "kwargs": {}, "request_id": "1"}
+    )
     client._receive_queue.put_nowait([req_event])
 
     events = await client._register_queue.get()
@@ -441,16 +460,14 @@ async def test_cancel():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "IN_PROGRESS",
         "result": None,
     }
 
     future = await future_queue.get()
 
-    client._receive_queue.put_nowait(
-        [_event(("cancel",), req_event.event_id._asdict())]
-    )
+    client._receive_queue.put_nowait([_event(("cancel",), "1")])
 
     with pytest.raises(asyncio.CancelledError):
         await future
@@ -460,7 +477,7 @@ async def test_cancel():
     event = events[0]
     assert event.event_type == ("action_state",)
     assert event.payload.data == {
-        "request_id": req_event.event_id._asdict(),
+        "request_id": "1",
         "status": "CANCELLED",
         "result": None,
     }

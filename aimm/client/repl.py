@@ -133,6 +133,8 @@ class AIMM(aio.Resource):
 
     def _on_remote_state_change(self, remote_state):
         self._state = {"models": {}, "actions": {}}
+        if remote_state is None:
+            return
         self._state["models"] = {
             int(k): Model(self, k, v["model_type"])
             for k, v in remote_state["models"].items()

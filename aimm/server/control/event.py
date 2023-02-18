@@ -96,14 +96,14 @@ class EventControl(common.Control):
             }
             action = self._engine.create_instance(model_type, *args, **kwargs)
             self._register_action_state(event, "IN_PROGRESS")
-            self._in_progress[event.event_id] = action
+            self._in_progress[data["request_id"]] = action
             try:
                 model = await action.wait_result()
                 self._register_action_state(event, "DONE", model.instance_id)
             except asyncio.CancelledError:
                 self._register_action_state(event, "CANCELLED")
             finally:
-                del self._in_progress[event.event_id]
+                del self._in_progress[data["request_id"]]
         except Exception as e:
             mlog.warning(
                 "instance creation failed with exception %s", e, exc_info=e
@@ -162,14 +162,14 @@ class EventControl(common.Control):
 
             action = self._engine.fit(instance_id, *args, **kwargs)
             self._register_action_state(event, "IN_PROGRESS")
-            self._in_progress[event.event_id] = action
+            self._in_progress[data["request_id"]] = action
             try:
                 await action.wait_result()
                 self._register_action_state(event, "DONE")
             except asyncio.CancelledError:
                 self._register_action_state(event, "CANCELLED")
             finally:
-                del self._in_progress[event.event_id]
+                del self._in_progress[data["request_id"]]
         except Exception as e:
             mlog.warning("fitting failed with exception %s", e, exc_info=e)
             self._register_action_state(event, "FAILED")
@@ -189,19 +189,19 @@ class EventControl(common.Control):
 
             action = self._engine.predict(instance_id, *args, **kwargs)
             self._register_action_state(event, "IN_PROGRESS")
-            self._in_progress[event.event_id] = action
+            self._in_progress[data["request_id"]] = action
             try:
                 prediction = await action.wait_result()
                 self._register_action_state(event, "DONE", prediction)
             except asyncio.CancelledError:
                 self._register_action_state(event, "CANCELLED")
             finally:
-                del self._in_progress[event.event_id]
+                del self._in_progress[data["request_id"]]
         except Exception as e:
             mlog.warning("prediction failed with exception %s", e, exc_info=e)
 
     def _cancel(self, event):
-        request_event_id = hat.event.common.EventId(**event.payload.data)
+        request_event_id = event.payload.data
         if request_event_id in self._in_progress:
             self._in_progress[request_event_id].close()
 
