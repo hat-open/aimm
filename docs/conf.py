@@ -14,7 +14,7 @@ with open(root / "VERSION") as fh:
 extensions = [
     "sphinxcontrib.programoutput",
     "sphinx.ext.autodoc",
-    "sphinxcontrib.napoleon",
+    "sphinx.ext.napoleon",
     "sphinx_rtd_theme",
 ]
 
