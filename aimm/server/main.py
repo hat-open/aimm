@@ -1,4 +1,3 @@
-from functools import partial
 from hat import aio
 from hat import json
 from pathlib import Path
@@ -8,7 +7,7 @@ import asyncio
 import contextlib
 import importlib
 import hat.monitor.client
-import hat.event.eventer_client
+import hat.event.eventer.client
 import hat.event.common
 import logging.config
 import sys
@@ -38,24 +37,17 @@ def main():
 
 
 async def async_main(conf):
-    async_group = aio.Group()
     hat_conf = conf.get("hat") or {}
     if "monitor" in hat_conf:
         monitor = await hat.monitor.client.connect(hat_conf["monitor"])
-        _bind_resource(async_group, monitor)
-
         component = hat.monitor.client.Component(
-            monitor, run_monitor_component, conf, monitor
+            monitor, run_monitor_component, conf
         )
         component.set_ready(True)
-        _bind_resource(async_group, component)
-
-        try:
-            await async_group.wait_closing()
-        finally:
-            await aio.uncancellable(monitor.async_close())
+        await component.wait_closed()
     elif "event_server_address" in hat_conf:
-        client = await hat.event.eventer_client.connect(
+        async_group = aio.Group()
+        client = await hat.event.eventer.client.connect(
             hat_conf["event_server_address"], list(_get_subscriptions(conf))
         )
         _bind_resource(async_group, client)
@@ -65,17 +57,24 @@ async def async_main(conf):
         await run(conf)
 
 
-async def run_monitor_component(_, conf, monitor):
+async def run_monitor_component(monitor, conf):
     if "event_server_group" not in conf["hat"]:
         mlog.info("running without hat event compatibility")
         return await run(conf)
-    run_conf = partial(run, conf)
-    return await hat.event.eventer_client.run_eventer_client(
-        monitor_client=monitor,
-        server_group=conf["hat"]["event_server_group"],
-        run_cb=run_conf,
-        subscriptions=list(_get_subscriptions(conf)),
-    )
+
+    async with aio.Group() as group:
+
+        def runner_cb(client):
+            group.spawn(run, conf, client)
+            return group
+
+        component = hat.event.eventer.client.Component(
+            monitor_client=monitor.client,
+            server_group=conf["hat"]["event_server_group"],
+            component_cb=runner_cb,
+            subscriptions=list(_get_subscriptions(conf)),
+        )
+        await component.wait_closed()
 
 
 async def run(conf, client=None):

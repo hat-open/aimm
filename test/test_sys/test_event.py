@@ -2,7 +2,7 @@ from hat import json
 from hat import aio
 import asyncio
 import contextlib
-import hat.event.eventer_client
+import hat.event.eventer.client
 import psutil
 import pytest
 
@@ -190,7 +190,7 @@ async def aimm_server_proc(event_server, monitor_address, conf_path):
 def event_client_factory(event_address, event_server):
     @contextlib.asynccontextmanager
     async def factory(subscriptions):
-        client = await hat.event.eventer_client.connect(
+        client = await hat.event.eventer.client.connect(
             event_address, subscriptions
         )
         yield client
@@ -224,7 +224,12 @@ async def test_create_instance(aimm_server_proc, event_client_factory):
             [
                 _register_event(
                     ("create_instance",),
-                    {"model_type": model_type, "args": args, "kwargs": kwargs},
+                    {
+                        "model_type": model_type,
+                        "args": args,
+                        "kwargs": kwargs,
+                        "request_id": 1,
+                    },
                 )
             ]
         )
@@ -266,7 +271,12 @@ async def _create_instance(client, model_type):
         [
             _register_event(
                 ("create_instance",),
-                {"model_type": model_type, "args": args, "kwargs": kwargs},
+                {
+                    "model_type": model_type,
+                    "args": args,
+                    "kwargs": kwargs,
+                    "request_id": 1,
+                },
             )
         ]
     )
@@ -302,7 +312,8 @@ async def test_fit(aimm_server_proc, event_client_factory):
         await client.register_with_response(
             [
                 _register_event(
-                    ("fit", str(model_id)), {"args": args, "kwargs": kwargs}
+                    ("fit", str(model_id)),
+                    {"args": args, "kwargs": kwargs, "request_id": 1},
                 )
             ]
         )
@@ -350,7 +361,7 @@ async def test_predict(aimm_server_proc, event_client_factory):
             [
                 _register_event(
                     ("predict", str(model_id)),
-                    {"args": args, "kwargs": kwargs},
+                    {"args": args, "kwargs": kwargs, "request_id": 1},
                 )
             ]
         )
@@ -387,7 +398,11 @@ async def test_cancel(aimm_server_proc, event_client_factory):
             [
                 _register_event(
                     ("predict", str(model_id)),
-                    {"args": [10], "kwargs": {}},  # sleep 10 seconds
+                    {
+                        "args": [10],
+                        "kwargs": {},
+                        "request_id": "1",
+                    },  # sleep 10 seconds
                 )
             ]
         )
@@ -414,7 +429,7 @@ async def test_cancel(aimm_server_proc, event_client_factory):
             assert event_queue.empty()
 
         await client.register_with_response(
-            [_register_event(("cancel",), request.event_id._asdict())]
+            [_register_event(("cancel",), "1")]
         )
 
         events = await client.receive()
