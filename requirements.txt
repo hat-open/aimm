@@ -4,6 +4,7 @@ appdirs==1.4.4
 async-timeout==4.0.2
 attrs==23.1.0
 black==23.7.0
+build==0.10.0
 cffi==1.15.1
 cfgv==3.3.1
 charset-normalizer==3.2.0
@@ -51,6 +52,7 @@ psutil==5.9.5
 pycodestyle==2.11.0
 pycparser==2.21
 pyflakes==3.1.0
+pyproject_hooks==1.0.0
 pyrsistent==0.19.3
 pyserial==3.5
 pytest==7.4.0
