@@ -1,0 +1,35 @@
+---
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+master:
+    address: tcp+sbs://127.0.0.1:23011
+    default_algorithm: BLESS_ALL
+    group_algorithms: {}
+server:
+    address: tcp+sbs://127.0.0.1:23010
+    default_rank: 1
+slave:
+    parents: []
+    connect_timeout: 5
+    connect_retry_count: 5
+    connect_retry_delay: 5
+type: monitor
+ui:
+    address: http://0.0.0.0:23022
+...

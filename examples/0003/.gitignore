@@ -1,0 +1,8 @@
+node_modules/
+build/
+data/
+dataset/
+.venv
+__pycache__/
+
+.ipynb_checkpoints/

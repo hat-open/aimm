@@ -1,0 +1,44 @@
+---
+backend:
+    db_path: data/event.db
+    module: hat.event.server.backends.lmdb
+    max_db_size: 1000000000
+    flush_period: 5
+    conditions: []
+    latest:
+        subscriptions:
+            - ['*']
+    ordered: []
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+engine:
+    server_id: 1
+    modules:
+      - module: hat.module
+eventer_server:
+    address: tcp+sbs://127.0.0.1:23012
+syncer_server:
+    address: tcp+sbs://127.0.0.1:23013
+monitor:
+    component_address: tcp+sbs://127.0.0.1:23012
+    group: event
+    monitor_address: tcp+sbs://127.0.0.1:23010
+    name: event
+type: event
+...

@@ -1,0 +1,90 @@
+---
+type: orchestrator
+ui:
+    address: http://0.0.0.0:23021
+components:
+-   args:
+    - hat-syslog
+    - --conf
+    - ./conf/syslog.yaml
+    delay: 0
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-monitor
+    - --conf
+    - ./conf/monitor.yaml
+    delay: 0
+    name: monitor
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-event
+    - --conf
+    - ./conf/event.yaml
+    delay: 1
+    name: event
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-gateway
+    - --conf
+    - ./conf/gateway.yaml
+    delay: 2
+    name: gateway
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - hat-gui
+    - --conf
+    - ./conf/gui.yaml
+    delay: 3
+    name: gui
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+-   args:
+    - aimm-server
+    - --conf
+    - ./conf/aimm.yaml
+    delay: 3
+    name: aimm
+    revive: false
+    start_delay: 0.5
+    create_timeout: 2
+    sigint_timeout: 2
+    sigkill_timeout: 2
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+...

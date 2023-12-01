@@ -1,0 +1,10 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/backend/sqlite.yaml#'
+type: object
+required:
+    - path
+properties:
+    path:
+        type: string
+...

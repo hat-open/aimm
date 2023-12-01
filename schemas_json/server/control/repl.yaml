@@ -1,0 +1,33 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/control/repl.yaml#'
+type: object
+required:
+    - server
+    - users
+properties:
+    type:
+        const: repl
+    server:
+        type: object
+        required:
+            - host
+            - port
+        properties:
+            host:
+                type: string
+            port:
+                type: integer
+    users:
+        type: array
+        items:
+            type: object
+            required:
+                - username
+                - password
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+...

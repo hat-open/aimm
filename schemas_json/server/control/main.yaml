@@ -1,0 +1,12 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/control/main.yaml#'
+type: array
+items:
+    type: object
+    required:
+        - module
+    properties:
+        module:
+            type: string
+...
