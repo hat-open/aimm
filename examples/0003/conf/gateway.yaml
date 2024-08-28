@@ -1,10 +1,13 @@
 ---
+name: gateway
+event_server:
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
 devices:
     - module: air_supervision.devices.air_readings
       name: device
       dataset_path: dataset/ambient_temperature_system_failure.csv
-event_server_group: event
-gateway_name: gateway
 log:
     disable_existing_loggers: false
     formatters:
@@ -23,10 +26,4 @@ log:
         - syslog
         level: INFO
     version: 1
-monitor:
-    component_address: null
-    group: gateway
-    monitor_address: tcp+sbs://127.0.0.1:23010
-    name: gateway
-type: gateway
 ...

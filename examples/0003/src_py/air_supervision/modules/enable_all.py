@@ -1,4 +1,4 @@
-from hat.event.server import common
+from hat.event import common
 import hat.aio
 import logging
 
@@ -6,21 +6,20 @@ import logging
 mlog = logging.getLogger(__name__)
 
 
-json_schema_id = None
-json_schema_repo = None
-
-
 async def create(conf, engine, source):
     module = EnableAll()
 
     module._source = source
-    module._subscription = common.Subscription(
-        [("gateway", "?", "?", "?", "gateway", "running")]
+    module._subscription = common.create_subscription(
+        [("event", "?", "eventer", "gateway")]
     )
     module._async_group = hat.aio.Group()
     module._engine = engine
 
     return module
+
+
+info = common.ModuleInfo(create=create)
 
 
 class EnableAll(common.Module):
@@ -33,11 +32,11 @@ class EnableAll(common.Module):
         return self._subscription
 
     async def process(self, source, event):
-        if event.payload.data is False:
-            yield common.RegisterEvent(
-                event_type=tuple([*event.event_type[:-2], "system", "enable"]),
-                source_timestamp=None,
-                payload=common.EventPayload(
-                    type=common.EventPayloadType.JSON, data=True
-                ),
-            )
+        if event.payload.data == "CONNECTED":
+            return [
+                common.RegisterEvent(
+                    type=("gateway", "example", "device", "system", "enable"),
+                    source_timestamp=None,
+                    payload=common.EventPayloadJson(data=True),
+                )
+            ]

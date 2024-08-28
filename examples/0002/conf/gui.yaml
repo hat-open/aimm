@@ -1,5 +1,31 @@
 ---
-type: gui
+name: gui
+event_server:
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
+address:
+    host: 0.0.0.0
+    port: 23023
+adapters:
+    - module: hat.adapter
+      name: adapter
+views:
+    - name: login
+      builtin: login
+      conf: null
+    - name: grid
+      view_path: ./view/grid
+      conf: null
+initial_view: login
+users:
+    - name: user
+      password:
+          hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
+          salt: 497b53087260002cd62ffabc94267437
+      roles:
+          - user_role
+      view: grid
 log:
     disable_existing_loggers: false
     formatters:
@@ -18,30 +44,4 @@ log:
         - syslog
         level: INFO
     version: 1
-monitor:
-    component_address: null
-    group: gui
-    monitor_address: tcp+sbs://127.0.0.1:23010
-    name: gui
-event_server_group: event
-adapters:
-  - module: hat.adapter
-    name: adapter
-views:
-  - name: login
-    view_path: ./view/login
-    conf_path: null
-  - name: grid
-    view_path: ./view/grid
-    conf_path: null
-address: http://0.0.0.0:23023
-initial_view: login
-users:
-  - name: user
-    password:
-        hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
-        salt: 497b53087260002cd62ffabc94267437
-    roles:
-        - user_role
-    view: grid
 ...

@@ -4,7 +4,7 @@ from pathlib import Path
 root = Path(__file__).parents[1]
 
 project = "AIMM"
-copyright = "2021, Zlatan Sičanica"
+copyright = "2024, Zlatan Sičanica"
 author = "Zlatan Sičanica"
 
 

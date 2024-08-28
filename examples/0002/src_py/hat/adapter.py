@@ -1,3 +1,5 @@
+import logging
+
 from hat import aio
 from hat import util
 from hat import json
@@ -5,34 +7,27 @@ from hat.gui import common
 import hat.event.common
 
 
-json_schema_id = "hat-aimm://adapter.yaml#"
-json_schema_repo = json.SchemaRepository(
-    json.decode(
-        """
----
-id: 'hat-aimm://adapter.yaml#'
-type: object
-...
-""",
-        format=json.Format.YAML,
-    )
-)
+mlog = logging.getLogger(__name__)
 
 
 def create_subscription(conf):
-    return hat.event.common.Subscription(
+    return hat.event.common.create_subscription(
         [("measurement", "?", "?"), ("estimation", "?", "?")]
     )
 
 
 async def create_adapter(conf, event_client):
     adapter = Adapter()
-    adapter._state = {}
+    adapter._state = {"measurement": [], "estimation": []}
     adapter._event_client = event_client
     adapter._change_cbs = util.CallbackRegistry()
     adapter._group = aio.Group()
-    adapter._group.spawn(adapter._run)
     return adapter
+
+
+info = common.AdapterInfo(
+    create_subscription=create_subscription, create_adapter=create_adapter
+)
 
 
 class Adapter(common.Adapter):
@@ -40,27 +35,26 @@ class Adapter(common.Adapter):
     def async_group(self):
         return self._group
 
-    async def create_session(self, client):
-        return Session(self, client, self._group.create_subgroup())
+    async def process_events(self, events):
+        for event in events:
+            reading_kind, index, measurement_kind = event.type
+            self._state = json.set_(
+                self._state,
+                [reading_kind, int(index), measurement_kind],
+                event.payload.data,
+            )
+        self._change_cbs.notify()
 
-    async def _run(self):
-        try:
-            while True:
-                events = await self._event_client.receive()
-                for event in events:
-                    self._state = json.set_(
-                        self._state, list(event.event_type), event.payload.data
-                    )
-                self._change_cbs.notify()
-        finally:
-            self._group.close()
+    async def create_session(self, user, roles, state, notify_cb):
+        return Session(self, state, self._group.create_subgroup())
 
 
 class Session(common.AdapterSession):
-    def __init__(self, adapter, client, group):
+    def __init__(self, adapter, state, group):
         self._adapter = adapter
-        self._client = client
+        self._state = state
         self._group = group
+
         self._group.spawn(self._run)
         self._on_change()
         adapter._change_cbs.register(self._on_change)
@@ -69,14 +63,13 @@ class Session(common.AdapterSession):
     def async_group(self):
         return self._group
 
+    def process_request(self, name, data):
+        pass
+
     async def _run(self):
         self._on_change()
         with self._adapter._change_cbs.register(self._on_change):
-            try:
-                await self.async_group.wait_closing()
-            finally:
-                self._client.close()
+            await self.async_group.wait_closing()
 
     def _on_change(self):
-        if self._client.is_open:
-            self._client.set_local_data(self._adapter._state)
+        self._state.set([], self._adapter._state)

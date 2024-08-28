@@ -4,7 +4,18 @@ id: 'aimm://server/hat.yaml#'
 type: object
 properties:
     monitor:
-        '$ref': 'hat-monitor://client.yaml#'
+        type: object
+        required:
+            - monitor_address
+            - name
+            - group
+        properties:
+            monitor_address:
+                type: string
+            name:
+                type: string
+            group:
+                type: string
     event_server_group:
         type: string
     event_server_address:

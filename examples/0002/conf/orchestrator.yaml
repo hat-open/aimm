@@ -1,9 +1,9 @@
 ---
 components:
 -   args:
-    - hat-syslog
-    - --conf
-    - ./conf/syslog.yaml
+    - hat-syslog-server
+    - --db-path
+    - ./data/syslog.db
     delay: 0
     name: syslog
     revive: false
@@ -12,18 +12,7 @@ components:
     sigint_timeout: 2
     sigkill_timeout: 3
 -   args:
-    - hat-monitor
-    - --conf
-    - ./conf/monitor.yaml
-    delay: 0
-    name: monitor
-    revive: false
-    start_delay: 1
-    create_timeout: 5
-    sigint_timeout: 2
-    sigkill_timeout: 3
--   args:
-    - hat-event
+    - hat-event-server
     - --conf
     - ./conf/event.yaml
     delay: 1
@@ -45,7 +34,7 @@ components:
     sigint_timeout: 2
     sigkill_timeout: 3
 -   args:
-    - hat-gui
+    - hat-gui-server
     - --conf
     - ./conf/gui.yaml
     delay: 3
@@ -75,5 +64,6 @@ log:
     version: 1
 type: orchestrator
 ui:
-    address: http://0.0.0.0:23021
+    host: 0.0.0.0
+    port: 23021
 ...

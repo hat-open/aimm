@@ -13,7 +13,7 @@ mlog = logging.getLogger(__name__)
 
 
 def create_subscription(conf):
-    return hat.event.common.Subscription(
+    return hat.event.common.create_subscription(
         [tuple([*p, "*"]) for p in conf["event_prefixes"].values()]
     )
 
@@ -65,7 +65,7 @@ class EventControl(common.Control):
             if action_prefix not in self._event_prefixes:
                 return False
             return hat.event.common.matches_query_type(
-                event.event_type, self._event_prefixes[action_prefix] + ["*"]
+                event.type, self._event_prefixes[action_prefix] + ["*"]
             )
 
         with contextlib.suppress(asyncio.CancelledError):
@@ -129,7 +129,7 @@ class EventControl(common.Control):
     async def _update_instance(self, event):
         try:
             event_prefix = self._event_prefixes.get("update_instance")
-            instance_id = int(event.event_type[len(event_prefix)])
+            instance_id = int(event.type[len(event_prefix)])
             data = event.payload.data
             model_type = data["model_type"]
             model = common.Model(
@@ -151,7 +151,7 @@ class EventControl(common.Control):
         try:
             event_prefix = self._event_prefixes["fit"]
             data = event.payload.data
-            instance_id = int(event.event_type[len(event_prefix)])
+            instance_id = int(event.type[len(event_prefix)])
             if instance_id not in self._engine.state["models"]:
                 raise ValueError("instance {instance_id} not in state")
             args = [await self._process_arg(a) for a in data["args"]]
@@ -178,7 +178,7 @@ class EventControl(common.Control):
         try:
             event_prefix = self._event_prefixes["predict"]
             data = event.payload.data
-            instance_id = int(event.event_type[len(event_prefix)])
+            instance_id = int(event.type[len(event_prefix)])
             if instance_id not in self._engine.state["models"]:
                 raise ValueError("instance {instance_id} not in state")
             args = [await self._process_arg(a) for a in data["args"]]
@@ -246,9 +246,7 @@ def _state_to_json(engine):
 
 def _register_event(event_type, payload, source_timestamp=None):
     return hat.event.common.RegisterEvent(
-        event_type=tuple(event_type),
+        type=tuple(event_type),
         source_timestamp=source_timestamp,
-        payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON, data=payload
-        ),
+        payload=hat.event.common.EventPayloadJson(payload),
     )

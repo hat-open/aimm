@@ -1,12 +1,16 @@
+from functools import partial
 from hat import aio
 from hat import json
+from hat.drivers import tcp
 from pathlib import Path
+from urllib.parse import urlparse
 import appdirs
 import argparse
 import asyncio
 import contextlib
 import importlib
-import hat.monitor.client
+import hat.monitor.component
+import hat.event.component
 import hat.event.eventer.client
 import hat.event.common
 import logging.config
@@ -38,46 +42,45 @@ def main():
 
 async def async_main(conf):
     hat_conf = conf.get("hat") or {}
-    if "monitor" in hat_conf:
-        monitor = await hat.monitor.client.connect(hat_conf["monitor"])
-        component = hat.monitor.client.Component(
-            monitor, run_monitor_component, conf
-        )
-        component.set_ready(True)
+    subscriptions = list(_get_subscriptions(conf))
+    if monitor_conf := hat_conf.get("monitor"):
+        runner = partial(run, conf)
+        if event_server_group := hat_conf.get("event_server_group"):
+            component = await hat.event.component.connect(
+                _parse_tcp(monitor_conf["monitor_address"]),
+                monitor_conf["name"],
+                monitor_conf["group"],
+                event_server_group,
+                runner,
+                eventer_kwargs={"subscriptions": subscriptions},
+            )
+        else:
+            mlog.info("running without hat event compatibility")
+            component = await hat.monitor.component.connect(
+                _parse_tcp(monitor_conf["monitor_address"]),
+                monitor_conf["name"],
+                monitor_conf["group"],
+                runner,
+            )
+        await component.set_ready(True)
         await component.wait_closed()
     elif "event_server_address" in hat_conf:
         async_group = aio.Group()
         client = await hat.event.eventer.client.connect(
-            hat_conf["event_server_address"], list(_get_subscriptions(conf))
+            _parse_tcp(hat_conf["event_server_address"]),
+            "aimm_client",
+            subscriptions=subscriptions,
         )
         _bind_resource(async_group, client)
-        await async_group.spawn(run, conf, client)
+        await async_group.spawn(
+            run, conf=conf, component=None, server_data=None, client=client
+        )
     else:
         mlog.debug("running without hat compatibility")
         await run(conf)
 
 
-async def run_monitor_component(monitor, conf):
-    if "event_server_group" not in conf["hat"]:
-        mlog.info("running without hat event compatibility")
-        return await run(conf)
-
-    async with aio.Group() as group:
-
-        def runner_cb(client):
-            group.spawn(run, conf, client)
-            return group
-
-        component = hat.event.eventer.client.Component(
-            monitor_client=monitor.client,
-            server_group=conf["hat"]["event_server_group"],
-            component_cb=runner_cb,
-            subscriptions=list(_get_subscriptions(conf)),
-        )
-        await component.wait_closed()
-
-
-async def run(conf, client=None):
+async def run(conf, component=None, server_data=None, client=None):
     group = aio.Group()
 
     try:
@@ -104,7 +107,9 @@ async def run(conf, client=None):
                 proxies.append(proxy)
 
         if proxies:
-            group.spawn(_recv_loop, proxies, client)
+            # TODO: filthy hack for sake of bw compatibility without too much
+            #  refactoring, to be corrected ASAP
+            client._events_cb = partial(_events_cb, proxies)
 
         await group.wait_closing()
     finally:
@@ -139,15 +144,13 @@ async def _create_control(conf, engine, client):
     return await module.create(conf, engine, proxy), proxy
 
 
-async def _recv_loop(proxies, client):
-    while True:
-        events = await client.receive()
-        for proxy in proxies:
-            proxy_events = [
-                e for e in events if proxy.subscription.matches(e.event_type)
-            ]
-            if proxy_events:
-                proxy.notify(proxy_events)
+async def _events_cb(proxies, _, events):
+    for proxy in proxies:
+        proxy_events = [
+            e for e in events if proxy.subscription.matches(e.type)
+        ]
+        if proxy_events:
+            proxy.notify(proxy_events)
 
 
 def _create_parser():
@@ -171,6 +174,11 @@ def _bind_resource(async_group, resource):
     async_group.spawn(
         aio.call_on_done, resource.wait_closing(), async_group.close
     )
+
+
+def _parse_tcp(address: str):
+    url = urlparse(address)
+    return tcp.Address(host=url.hostname, port=url.port)
 
 
 if __name__ == "__main__":

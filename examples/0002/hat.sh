@@ -2,6 +2,5 @@
 
 export PYTHONPATH=src_py
 
-python src_py/fetch_view.py
-
+mkdir -p data
 python -m hat.orchestrator.main --conf ./conf/orchestrator.yaml

@@ -103,7 +103,7 @@ class MockEngine(common.Engine):
 
 
 def assert_event(event, event_type, payload, source_timestamp=None):
-    assert event.event_type == event_type
+    assert event.type == event_type
     assert event.source_timestamp == source_timestamp
     assert event.payload.data == payload
 
@@ -179,7 +179,7 @@ async def test_create_instance():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "IN_PROGRESS",
@@ -189,7 +189,7 @@ async def test_create_instance():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "DONE",
@@ -244,7 +244,7 @@ async def test_add_instance(plugin_teardown):
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "DONE",
@@ -295,7 +295,7 @@ async def test_update_instance(plugin_teardown):
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "DONE",
@@ -342,7 +342,7 @@ async def test_fit():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "IN_PROGRESS",
@@ -359,7 +359,7 @@ async def test_fit():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "DONE",
@@ -406,7 +406,7 @@ async def test_predict():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "IN_PROGRESS",
@@ -423,7 +423,7 @@ async def test_predict():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "DONE",
@@ -458,7 +458,7 @@ async def test_cancel():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "IN_PROGRESS",
@@ -475,7 +475,7 @@ async def test_cancel():
     events = await client._register_queue.get()
     assert len(events) == 1
     event = events[0]
-    assert event.event_type == ("action_state",)
+    assert event.type == ("action_state",)
     assert event.payload.data == {
         "request_id": "1",
         "status": "CANCELLED",
@@ -486,11 +486,9 @@ async def test_cancel():
 
 def _register_event(event_type, payload, source_timestamp=None):
     return hat.event.common.RegisterEvent(
-        event_type=event_type,
+        type=event_type,
         source_timestamp=source_timestamp,
-        payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON, data=payload
-        ),
+        payload=hat.event.common.EventPayload(payload),
     )
 
 
@@ -501,11 +499,9 @@ def _event(
     event_id=hat.event.common.EventId(server=0, instance=0, session=0),
 ):
     return hat.event.common.Event(
-        event_id=event_id,
-        event_type=event_type,
+        id=event_id,
+        type=event_type,
         timestamp=hat.event.common.now(),
         source_timestamp=source_timestamp,
-        payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON, data=payload
-        ),
+        payload=hat.event.common.EventPayloadJson(payload),
     )

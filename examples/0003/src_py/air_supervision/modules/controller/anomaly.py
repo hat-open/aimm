@@ -4,12 +4,11 @@ from air_supervision.modules.controller.common import (
     GenericReadingsModule,
     ReadingsModuleBuilder,
 )
+from hat.event import common
 
 import logging
 
 mlog = logging.getLogger(__name__)
-json_schema_id = None
-json_schema_repo = None
 
 
 async def create(conf, engine, source):
@@ -26,6 +25,9 @@ async def create(conf, engine, source):
     builder.min_readings = 24
 
     return AnomalyModule(builder)
+
+
+info = common.ModuleInfo(create=create)
 
 
 class AnomalyModule(GenericReadingsModule):

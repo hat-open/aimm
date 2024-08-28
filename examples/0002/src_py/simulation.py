@@ -50,7 +50,7 @@ async def async_main():
                 data.append(_get_msg(int(bus.name), 1, bus.q_mvar))
 
             for connection in connections:
-                connection.send(data)
+                await connection.send(data)
     finally:
         server.close()
         for c in connections:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, List, Tuple
 import abc
 import hat.aio
-import hat.event.server.common
+import hat.event.common
 import hat.event.server.engine
 import logging
 
@@ -41,7 +41,7 @@ class FitLock:
 @dataclass
 class ReadingsModuleBuilder:
     engine: hat.event.server.engine.Engine = None
-    source: hat.event.server.common.Source = None
+    source: hat.event.common.Source = None
     user_action_type: Tuple[str] = None
     model_family: str = None
     supported_models: List[str] = None
@@ -49,7 +49,7 @@ class ReadingsModuleBuilder:
     min_readings: int = 0
 
 
-class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
+class GenericReadingsModule(hat.event.common.Module, abc.ABC):
     def __init__(self, builder: ReadingsModuleBuilder):
         self._engine = builder.engine
         self._source = builder.source
@@ -58,7 +58,7 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
         self._batch_size = builder.batch_size
         self._min_readings = builder.min_readings
 
-        self._subscription = hat.event.server.common.Subscription(
+        self._subscription = hat.event.common.create_subscription(
             [
                 builder.user_action_type,
                 ("aimm", "*"),
@@ -96,20 +96,18 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
             Row representation"""
 
     async def process(self, source, event):
-        selector = event.event_type[0]
-        generator = None
+        events = []
+        selector = event.type[0]
         if selector == "aimm":
-            generator = self._process_aimm(event)
+            events = list(self._process_aimm(event))
         elif selector == "gui":
-            generator = self._process_reading(event)
+            events = list(self._process_reading(event))
         elif selector == "user_action":
-            generator = self._process_user_action(event)
-        if generator:
-            for e in generator:
-                yield e
+            events = list(self._process_user_action(event))
+        return events
 
     def _process_aimm(self, event):
-        msg_type = event.event_type[1]
+        msg_type = event.type[1]
         if msg_type == "state":
             yield from self._update_model_ids(event)
         elif msg_type == "action":
@@ -181,12 +179,11 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
         current_model = self._models[self._lock.current_model]
         self._async_group.spawn(current_model.predict, [model_input])
 
-        self._readings = self._readings[
-            (len(self._readings) - self._min_readings) :
-        ]
+        total_readings = len(self._readings)
+        self._readings = self._readings[total_readings - self._min_readings :]
 
     def _process_user_action(self, event):
-        user_action = event.event_type[-1]
+        user_action = event.type[-1]
         if user_action == "setting_change":
             self._process_setting_change(event)
         elif user_action == "model_change":
@@ -220,10 +217,8 @@ class GenericReadingsModule(hat.event.server.common.Module, abc.ABC):
 
 
 def _register_event(event_type, payload, source_timestamp=None):
-    return hat.event.server.common.RegisterEvent(
-        event_type=event_type,
+    return hat.event.common.RegisterEvent(
+        type=event_type,
         source_timestamp=source_timestamp,
-        payload=hat.event.server.common.EventPayload(
-            type=hat.event.server.common.EventPayloadType.JSON, data=payload
-        ),
+        payload=hat.event.common.EventPayloadJson(data=payload),
     )

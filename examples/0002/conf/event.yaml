@@ -1,14 +1,22 @@
 ---
+name: event
+server_id: 0
 backend:
     db_path: data/event.db
-    module: hat.event.server.backends.lmdb
-    max_db_size: 1000000000
+    identifier: null
+    module: hat.event.backends.lmdb
     flush_period: 5
+    cleanup_period: 5
     conditions: []
     latest:
         subscriptions:
             - ['*']
-    ordered: []
+    timeseries: []
+modules:
+    - module: hat.module
+eventer_server:
+    host: 127.0.0.1
+    port: 23012
 log:
     disable_existing_loggers: false
     formatters:
@@ -27,18 +35,4 @@ log:
         - syslog
         level: INFO
     version: 1
-engine:
-    server_id: 1
-    modules:
-      - module: hat.module
-eventer_server:
-    address: tcp+sbs://127.0.0.1:23012
-syncer_server:
-    address: tcp+sbs://127.0.0.1:23013
-monitor:
-    component_address: tcp+sbs://127.0.0.1:23012
-    group: event
-    monitor_address: tcp+sbs://127.0.0.1:23010
-    name: event
-type: event
 ...

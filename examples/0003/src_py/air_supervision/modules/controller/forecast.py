@@ -2,6 +2,7 @@ from air_supervision.modules.controller.common import (
     GenericReadingsModule,
     ReadingsModuleBuilder,
 )
+from hat.event import common
 import logging
 
 mlog = logging.getLogger(__name__)
@@ -23,6 +24,9 @@ async def create(conf, engine, source):
     builder.min_readings = 24
 
     return ForecastModule(builder)
+
+
+info = common.ModuleInfo(create=create)
 
 
 class ForecastModule(GenericReadingsModule):

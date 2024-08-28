@@ -8,12 +8,9 @@ import logging
 
 mlog = logging.getLogger(__name__)
 
-json_schema_id = None
-json_schema_repo = None
-
 
 async def create_subscription(conf):
-    return hat.event.common.Subscription(
+    return hat.event.common.create_subscription(
         [("gui", "system", "timeseries", "*"), ("gui", "log", "*")]
     )
 
@@ -30,8 +27,12 @@ async def create_adapter(conf, event_client):
     adapter._series_timestamps = {"reading": [], "anomaly": [], "forecast": []}
 
     adapter._state_change_cb_registry = hat.util.CallbackRegistry()
-    adapter._async_group.spawn(adapter._main_loop)
     return adapter
+
+
+info = hat.gui.common.AdapterInfo(
+    create_subscription=create_subscription, create_adapter=create_adapter
+)
 
 
 class Adapter(hat.gui.common.Adapter):
@@ -39,15 +40,13 @@ class Adapter(hat.gui.common.Adapter):
     def async_group(self):
         return self._async_group
 
-    async def create_session(self, juggler_client):
-        self._session = Session(
-            self, juggler_client, self._async_group.create_subgroup()
+    async def create_session(self, user, roles, state, notify_cb):
+        session = Session(
+            self, state, notify_cb, self._async_group.create_subgroup()
         )
-        # self._sessions.add(session)
-        return self._session
-
-    def subscribe_to_state_change(self, callback):
-        return self._state_change_cb_registry.register(callback)
+        self._state_change_cb_registry.register(session._on_state_change)
+        session._on_state_change()
+        return session
 
     def truncate_lists(self, vals, tss):
         """
@@ -79,69 +78,62 @@ class Adapter(hat.gui.common.Adapter):
 
         return vals_new, tss_new
 
-    async def _main_loop(self):
-        while True:
-            try:
-                events = await self._event_client.receive()
-            except Exception as e:
-                mlog.warning("Unexpected exception %s", e, exc_info=e)
-                break
-            for event in events:
-                if event.event_type[1] == "log":
-                    """
-                    Additional data for GUI. Just pass it through, JS will
-                    handle it.
-                    """
+    async def process_events(self, events):
+        for event in events:
+            if event.type[1] == "log":
+                """
+                Additional data for GUI. Just pass it through, JS will handle
+                it.
+                """
 
-                    self._info[event.event_type[2]] = dict(
-                        self._info[event.event_type[2]],
-                        **{event.event_type[3]: event.payload.data}
-                    )
+                self._info[event.type[2]] = dict(
+                    self._info[event.type[2]],
+                    **{event.type[3]: event.payload.data}
+                )
 
+            else:
+                """
+                # Data is from reading OR forecast OR anomaly
+
+                Data has the following structure:
+                {
+                    'timestamp': datetime.datetime(...),
+                    'value': original y value,
+                    'result': result from model
+                }
+
+                Anomaly:
+                    'result' is a number 0 or 1, save 'value' if 'result' == 1
+                Forecast:
+                    'result' is a predicted value y,always save 'value'
+                Reading:
+                    'result' DOESN'T EXIST
+                """
+
+                series_id = event.type[-1]
+
+                timestamp = datetime.strptime(
+                    event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
+                )
+
+                if series_id == "anomaly":
+                    value = event.payload.data["value"]
+                    if event.payload.data["result"] <= 0:
+                        continue
+                elif series_id == "reading":
+                    value = event.payload.data["value"]
                 else:
-                    """
-                    # Data is from reading OR forecast OR anomaly
+                    value = event.payload.data["result"]
 
-                    Data has the following structure:
-                    {
-                        'timestamp': datetime.datetime(...),
-                        'value': original y value,
-                        'result': result from model
-                    }
-
-                    Anomaly:
-                        'result' is a number 0 or 1, save 'value' if
-                        'result' == 1
-                    Forecast:
-                        'result' is a predicted value y,always save 'value'
-                    Reading:
-                        'result' DOESN'T EXIST
-                    """
-
-                    series_id = event.event_type[-1]
-
-                    timestamp = datetime.strptime(
-                        event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
-                    )
-
-                    if series_id == "anomaly":
-                        value = event.payload.data["value"]
-                        if event.payload.data["result"] <= 0:
-                            continue
-                    elif series_id == "reading":
-                        value = event.payload.data["value"]
-                    else:
-                        value = event.payload.data["result"]
-
-                    self._series_values = dict(
-                        self._series_values,
-                        **{series_id: self._series_values[series_id] + [value]}
-                    )
-                    series_t = self._series_timestamps[series_id]
-                    self._series_timestamps = dict(
-                        self._series_timestamps,
-                        **{series_id: series_t + [timestamp]}
-                    )
+                self._series_values = dict(
+                    self._series_values,
+                    **{series_id: self._series_values[series_id] + [value]}
+                )
+                series_t = self._series_timestamps[series_id]
+                self._series_timestamps = dict(
+                    self._series_timestamps,
+                    **{series_id: series_t + [timestamp]}
+                )
 
             reading_v = self._series_values["reading"]
             reading_t = self._series_timestamps["reading"]
@@ -177,63 +169,42 @@ class Adapter(hat.gui.common.Adapter):
             self._series_values["anomaly"] = anomaly_v
             self._series_timestamps["anomaly"] = anomaly_t
 
-            if self._session:
-                self._session._on_state_change()
             self._state_change_cb_registry.notify()
 
 
 class Session(hat.gui.common.AdapterSession):
-    def __init__(self, adapter, juggler_client, group):
+    def __init__(self, adapter, state, notify_cb, group):
         self._adapter = adapter
-        self._juggler_client = juggler_client
+        self._state = state
+        self._notify_cb = notify_cb
         self._async_group = group
-        self._async_group.spawn(self._run)
 
-    async def _run(self):
-        """This function is periodically triggered on state change.
-        It refreshes state dictionary and loops through events
-        Adapter received from JS.If such events exist,
+    async def process_request(self, name, data):
+        """Refreshes state dictionary and loops through events
+        Adapter received from JS. If such events exist,
         adapter passes them to the Module (creates new events for Module
         component).
         """
-
-        try:
-            self._on_state_change()
-            with self._adapter.subscribe_to_state_change(
-                self._on_state_change
-            ):
-                while True:
-                    data = await self._juggler_client.receive()
-                    if data["action"] == "setting_change":
-                        event_type = (
-                            "user_action",
-                            data["type"],
-                            "setting_change",
-                        )
-                    elif data["action"] == "model_change":
-                        event_type = (
-                            "user_action",
-                            data["type"],
-                            "model_change",
-                        )
-                    event = hat.event.common.RegisterEvent(
-                        event_type=event_type,
-                        source_timestamp=None,
-                        payload=hat.event.common.EventPayload(
-                            type=hat.event.common.EventPayloadType.JSON,
-                            data=data,
-                        ),
-                    )
-                    self._adapter._event_client.register(([event]))
-        finally:
-            await self.wait_closing()
+        event_type = {
+            "setting_change": ("user_action", data["type"], "setting_change"),
+            "model_change": ("user_action", data["type"], "model_change"),
+        }[data["action"]]
+        event = hat.event.common.RegisterEvent(
+            type=event_type,
+            source_timestamp=None,
+            payload=hat.event.common.EventPayloadJson(
+                data=data,
+            ),
+        )
+        await self._adapter._event_client.register(([event]))
 
     @property
     def async_group(self):
         return self._async_group
 
     def _on_state_change(self):
-        self._juggler_client.set_local_data(
+        self._state.set(
+            [],
             {
                 "values": self._adapter._series_values,
                 "timestamps": {
@@ -254,5 +225,5 @@ class Session(hat.gui.common.AdapterSession):
                     "anomaly": self._adapter._info["anomaly"],
                     "forecast": self._adapter._info["forecast"],
                 },
-            }
+            },
         )

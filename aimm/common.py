@@ -1,5 +1,4 @@
 from hat import json
-from hat import util
 from pathlib import Path
 import hat.monitor.common
 import logging
@@ -23,4 +22,3 @@ JSON = typing.Union[
     None, bool, int, float, str, typing.List["JSON"], typing.Dict[str, "JSON"]
 ]
 """JSON serializable data"""
-util.register_type_alias("JSON")

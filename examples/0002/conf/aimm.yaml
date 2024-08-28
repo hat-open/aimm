@@ -35,10 +35,5 @@ plugins:
     names:
         - aimm_plugins.power
 hat:
-    monitor:
-        name: 'aimm'
-        group: 'aimm'
-        monitor_address: 'tcp+sbs://127.0.0.1:23010'
-        component_address: null
-    event_server_group: 'event'
+    event_server_address: 'tcp+sbs://127.0.0.1:23012'
 ...

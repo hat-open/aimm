@@ -1,10 +1,8 @@
 from typing import Any, ByteString, Callable, Dict, NamedTuple, Optional
-from hat import util
+from aimm.common import *  # NOQA
 import abc
 import importlib
 import logging
-
-from aimm.common import *  # NOQA
 
 
 mlog = logging.getLogger(__name__)
@@ -26,7 +24,8 @@ class Model(abc.ABC):
     def serialize(self) -> ByteString:
         """Serialize method for model instances"""
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def deserialize(cls, instance_bytes: ByteString) -> "Model":
         """Deserialize method for model instances"""
 
@@ -102,4 +101,3 @@ def initialize(conf: Dict):
 StateCallback = Callable[[Dict], None]
 StateCallback.__doc__ = """
 Generic state callback function signature a plugin would receive"""
-util.register_type_alias("StateCallback")

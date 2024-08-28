@@ -17,9 +17,10 @@ mlog = logging.getLogger(__name__)
 
 StateCallback = Callable[[Any], None]
 
+mp_context = multiprocessing.get_context("fork")
+
 
 class ProcessManager(aio.Resource):
-
     """Class used to create :class:`ProcessHandler` objects and limit the
     amount of concurrently active child processes.
 
@@ -106,8 +107,8 @@ class ProcessHandler(aio.Resource):
         self._state_cb = state_cb
         self._condition = condition
 
-        self._result_pipe = multiprocessing.Pipe(False)
-        self._state_pipe = multiprocessing.Pipe(False)
+        self._result_pipe = mp_context.Pipe(False)
+        self._state_pipe = mp_context.Pipe(False)
 
         self._process = None
         self._executor = aio.create_executor()
@@ -142,7 +143,7 @@ class ProcessHandler(aio.Resource):
         await self._condition.acquire()
         try:
             await self._condition.wait()
-            self._process = multiprocessing.Process(
+            self._process = mp_context.Process(
                 target=_proc_run_fn,
                 args=(self._result_pipe, fn, *args),
                 kwargs=kwargs,

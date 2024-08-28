@@ -1,13 +1,13 @@
 import asyncio
+import logging
+
 import hat.aio
 import hat.event.common
 import hat.gateway.common
 import pandas
 
 
-json_schema_id = None
-json_schema_repo = None
-device_type = "example"
+mlog = logging.getLogger(__name__)
 
 
 async def create(conf, event_client, event_type_prefix):
@@ -22,10 +22,16 @@ async def create(conf, event_client, event_type_prefix):
     return device
 
 
+info = hat.gateway.common.DeviceInfo(type="example", create=create)
+
+
 class AirReading(hat.gateway.common.Device):
     @property
     def async_group(self):
         return self._async_group
+
+    async def process_events(self, events):
+        pass
 
     async def _main_loop(self):
         column = "value"
@@ -35,18 +41,17 @@ class AirReading(hat.gateway.common.Device):
             timestamp = self._df.iloc[index]["timestamp"]
             value = (float(value) - 32) * 5 / 9
 
-            self._event_client.register(
+            await self._event_client.register(
                 [
                     hat.event.common.RegisterEvent(
-                        event_type=(
+                        type=(
                             *self._event_type_prefix,
                             "gateway",
                             "reading",
                         ),
                         source_timestamp=hat.event.common.Timestamp(index, 0),
-                        payload=hat.event.common.EventPayload(
-                            type=hat.event.common.EventPayloadType.JSON,
-                            data={"timestamp": timestamp, "value": value},
+                        payload=hat.event.common.EventPayloadJson(
+                            {"timestamp": timestamp, "value": value},
                         ),
                     )
                 ]

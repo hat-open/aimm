@@ -46,7 +46,7 @@ async def test_create_model(string_plugins):
     events = await mock_client._register_queue.get()
     assert len(events) == 1
     ev = events[0]
-    assert ev.event_type == ("model", "1")
+    assert ev.type == ("model", "1")
     assert ev.source_timestamp is None
     exp_instance_bytes = "instance".encode("utf-8")
     assert ev.payload.data == {
@@ -88,7 +88,7 @@ async def test_update_model(string_plugins):
     events = await mock_client._register_queue.get()
     assert len(events) == 1
     ev = events[0]
-    assert ev.event_type == ("model", "1")
+    assert ev.type == ("model", "1")
     assert ev.source_timestamp is None
     exp_instance_bytes = "instance2".encode("utf-8")
     assert ev.payload.data == {

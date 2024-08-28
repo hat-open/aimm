@@ -21,8 +21,8 @@ def factory(model_type, model_name, module):
     elif model_type == "forecast":
         params = {
             "MultiOutputSVR": {"C": 2000, "svm1": 1, "svm2": 2},
-            "Linear": {"contamination": 0.3, "cluster1": 1, "cluster2": 3},
-            "Constant": {"contamination2": 0.3, "other_test_p": 1, "third": 4},
+            "linear": {"contamination": 0.3, "cluster1": 1, "cluster2": 3},
+            "constant": {"contamination2": 0.3, "other_test_p": 1, "third": 4},
         }[model_name]
         return forecast.ForecastModel(
             module, f"{_forecast_prefix}.{model_name}", params

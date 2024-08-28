@@ -28,7 +28,7 @@ export function plot() {
         yaxis: {
             title: 'Temperature',
             showline: false,
-            range: [16, 30]
+            range: [0, 30]
         }
     };
     const config = {
@@ -78,7 +78,11 @@ export function plot() {
 
     function on_radio_switch(model_type,prediction_type){
         console.log("Picked: " + model_type);
-        hat.conn.send('timeseries', {'action': 'model_change','type':prediction_type, 'model': model_type});
+        hat.send(
+            'timeseries',
+            'model-change',
+            {'action': 'model_change','type':prediction_type, 'model': model_type}
+        );
     }
 
     function change_button_color(model_type,prediction_type){
@@ -92,7 +96,7 @@ export function plot() {
     }
 
     const generate_setting_inputs = function (prediction_type) {
-	if (!r.get('remote','timeseries','info',prediction_type,'setting')) return;
+	if (!r.get('remote','timeseries','info',prediction_type,'setting')) return [];
 
 	var cur_model_name = prediction_type === 'anomaly'? cur_anomaly_model_name:cur_forecast_model_name;
 

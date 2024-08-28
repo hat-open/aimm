@@ -2,7 +2,6 @@ import logging
 import asyncio
 
 from hat import aio
-from hat import json
 import hat.event.common
 import hat.gateway.common
 
@@ -11,20 +10,6 @@ from hat.drivers import tcp
 
 
 mlog = logging.getLogger(__name__)
-json_schema_id = "hat-aimm://device.yaml#"
-json_schema_repo = json.SchemaRepository(
-    json.decode(
-        """
----
-id: 'hat-aimm://device.yaml#'
-type: object
-...
-""",
-        format=json.Format.YAML,
-    )
-)
-
-device_type = "device"
 
 
 async def create(conf, client, event_type_prefix):
@@ -35,10 +20,16 @@ async def create(conf, client, event_type_prefix):
     return device
 
 
+info = hat.gateway.common.DeviceInfo(type="device", create=create)
+
+
 class Device(hat.gateway.common.Device):
     @property
     def async_group(self):
         return self._async_group
+
+    async def process_events(self, events):
+        pass
 
     async def _connection_loop(self):
         try:
@@ -69,16 +60,16 @@ class Device(hat.gateway.common.Device):
     async def _receive_loop(self, connection):
         while True:
             data_list = await connection.receive()
-            self._event_client.register([_data_to_event(i) for i in data_list])
+            await self._event_client.register(
+                [_data_to_event(i) for i in data_list]
+            )
 
 
 def _data_to_event(data):
     bus_id = data.asdu_address
     measurement_type = ["p", "q", "v", "va"][data.io_address]
     return hat.event.common.RegisterEvent(
-        event_type=(("measurement", str(bus_id), measurement_type)),
+        type=(("measurement", str(bus_id), measurement_type)),
         source_timestamp=None,
-        payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON, data=data.data.value
-        ),
+        payload=hat.event.common.EventPayloadJson(data.data.value),
     )

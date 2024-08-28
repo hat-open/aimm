@@ -38,10 +38,10 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         "appdirs>=1.4.4,<1.5",
-        "hat-aio>=0.7.8,<0.8",
-        "hat-json>=0.5.19,<0.6",
-        "hat-monitor>=0.7.2,<0.8",
-        "hat-event>=0.8.8,<0.9",
-        "psutil>=5.9.5,<5.10",
+        "hat-aio>=0.7.10,<0.8",
+        "hat-json>=0.5.28,<0.6",
+        "hat-monitor>=0.8.10,<0.9",
+        "hat-event>=0.9.9,<0.10",
+        "psutil>=6.0.0,<6.1",
     ],
 )

@@ -14,7 +14,6 @@ Type of the ``create_subscription`` function that the dynamically imported
 controls and backends may implement. Receives component configuration as the
 only argument and returns a subscription object.
 """
-util.register_type_alias("CreateSubscription")
 
 
 class ProxyClient:
@@ -26,12 +25,13 @@ class ProxyClient:
 
     def __init__(
         self,
-        client: hat.event.eventer.client.Client(),
+        client: hat.event.eventer.client.Client,
         subscription: hat.event.common.Subscription,
     ):
         self._subscription = subscription
         self._queue = aio.Queue()
         self._client = client
+        self._group = aio.Group()
 
     @property
     def subscription(self) -> hat.event.common.Subscription:
@@ -49,20 +49,20 @@ class ProxyClient:
     def register(self, events: List[hat.event.common.RegisterEvent]):
         """Bulk-registers a group of new events without waiting for the
         registration to complete."""
-        self._client.register(events)
+        self._group.spawn(self._client.register, events, False)
 
     async def register_with_response(
         self, events: List[hat.event.common.RegisterEvent]
     ) -> List[hat.event.common.Event]:
         """Bulk-registers a group of new events and awaits until the
         registration is complete."""
-        return await self._client.register_with_response(events)
+        return await self._client.register(events, with_response=True)
 
     async def query(
-        self, query_data: hat.event.common.QueryData
+        self, query_data: hat.event.common.QueryParams
     ) -> List[hat.event.common.Event]:
         """Queries events with given query_data"""
-        return await self._client.query(query_data)
+        return (await self._client.query(query_data)).events
 
 
 class Model(NamedTuple):
@@ -193,7 +193,6 @@ def create_backend_subscription(conf: Any) -> hat.event.common.Subscription:
 
 
 class Backend(aio.Resource):
-
     """Backend interface. In order to integrate in the aimm server, create a
     module with the implementation and function ``create`` that creates a
     backend instance. The function should have a signature as the
@@ -245,7 +244,6 @@ def create_control_subscription(conf: Any) -> hat.event.common.Subscription:
 
 
 class Control(aio.Resource):
-
     """Control interface. In order to integrate in the aimm server, create a
     module with the implementation and function ``create`` that creates a
     control instance and should have a signature as the :func:`create_control`

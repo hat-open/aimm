@@ -1,6 +1,6 @@
 import abc
 import hat.aio
-import hat.event.server.common
+import hat.event.common
 from enum import Enum
 from itertools import count
 
@@ -66,13 +66,10 @@ class GenericModel(abc.ABC):
         await self._module._engine.register(
             self._module._source,
             [
-                hat.event.server.common.RegisterEvent(
-                    event_type=event_type,
+                hat.event.common.RegisterEvent(
+                    type=event_type,
                     source_timestamp=None,
-                    payload=hat.event.server.common.EventPayload(
-                        type=hat.event.server.common.EventPayloadType.JSON,
-                        data=data,
-                    ),
+                    payload=hat.event.common.EventPayloadJson(data),
                 )
             ],
         )

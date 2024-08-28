@@ -1,6 +1,6 @@
 from hat import aio
 from hat import json
-from hat.event.server import common
+from hat.event import common
 import asyncio
 import itertools
 import logging
@@ -8,27 +8,14 @@ import logging
 
 mlog = logging.getLogger(__name__)
 
-json_schema_id = "hat-aimm://module.yaml#"
-json_schema_repo = json.SchemaRepository(
-    json.decode(
-        """
----
-id: 'hat-aimm://module.yaml#'
-type: object
-...
-""",
-        format=json.Format.YAML,
-    )
-)
-
 
 async def create(conf, engine, source):
     module = Module()
     module._gw_prefix = ("gateway", "gateway", "device", "device")
-    module._subscription = common.Subscription(
+    module._subscription = common.create_subscription(
         [
             ("measurement", "?", "?"),
-            (*module._gw_prefix, "gateway", "running"),
+            ("event", "?", "eventer", "gateway"),
             ("aimm", "state"),
             ("aimm", "response"),
         ]
@@ -50,6 +37,9 @@ async def create(conf, engine, source):
     return module
 
 
+info = common.ModuleInfo(create=create)
+
+
 class Module(common.Module):
     @property
     def async_group(self):
@@ -60,15 +50,19 @@ class Module(common.Module):
         return self._subscription
 
     async def process(self, source, e):
+        return [
+            event async for event in self._async_generator_process(source, e)
+        ]
+
+    async def _async_generator_process(self, source, e):
         if source == self._source:
             return
 
         payload = e.payload.data
-        if e.event_type == (*self._gw_prefix, "gateway", "running"):
-            if payload is False:
+        if e.type == ("event", "0", "eventer", "gateway"):
+            if payload == "CONNECTED":
                 yield _register_event(
                     (
-                        "gateway",
                         "gateway",
                         "device",
                         "device",
@@ -78,16 +72,16 @@ class Module(common.Module):
                     True,
                 )
 
-        elif e.event_type[0] == "measurement":
+        elif e.type[0] == "measurement":
             self._measurements = json.set_(
-                self._measurements, list(e.event_type[1:]), payload
+                self._measurements, list(e.type[1:]), payload
             )
             if self._predict_task is None:
                 self._predict_task = self.async_group.spawn(
                     self._predict, self._source
                 )
 
-        elif e.event_type == ("aimm", "state"):
+        elif e.type == ("aimm", "state"):
             if self._model_id is not None:
                 return
             if self._model_id in payload["models"]:
@@ -108,7 +102,7 @@ class Module(common.Module):
             )
             yield request_ev
 
-        elif e.event_type == ("aimm", "response"):
+        elif e.type == ("aimm", "response"):
             if payload["request_id"] == self._create_model_request_id:
                 self._model_id = str(payload["result"])
             elif payload["request_id"] == self._predict_request_id:
@@ -174,7 +168,7 @@ def _measurements_to_arg(measurements):
 
 def _register_event(event_type, payload):
     return common.RegisterEvent(
-        event_type=event_type,
+        type=event_type,
         source_timestamp=None,
-        payload=common.EventPayload(common.EventPayloadType.JSON, payload),
+        payload=common.EventPayloadJson(payload),
     )

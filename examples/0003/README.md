@@ -8,7 +8,7 @@ Hat aimm anomaly example.
 To run the example on your machine, install all of the pip dependencies and run
 `install.sh`. There is also a Dockerfile available, that can be used to generate a
 docker image and use it to run the example. The example uses ports 23020 to 23023, where
-the main GUI app is on 23023.
+the main GUI app is on 23023 (credentials are `user1` and `pass1`).
 
 
 ## Implementation

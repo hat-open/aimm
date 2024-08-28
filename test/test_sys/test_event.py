@@ -1,8 +1,10 @@
 from hat import json
 from hat import aio
+from hat.drivers import tcp
 import asyncio
 import contextlib
 import hat.event.eventer.client
+import hat.event.common
 import psutil
 import pytest
 
@@ -20,32 +22,27 @@ def monitor_port(unused_tcp_port_factory):
 
 
 @pytest.fixture
-def monitor_address(monitor_port):
-    return f"tcp+sbs://127.0.0.1:{monitor_port}"
-
-
-@pytest.fixture
-async def monitor_server(
-    monitor_address, monitor_port, unused_tcp_port_factory, conf_path
-):
+async def monitor_server(monitor_port, unused_tcp_port_factory, conf_path):
     master_port = unused_tcp_port_factory()
     ui_port = unused_tcp_port_factory()
     conf = {
         "type": "monitor",
         "log": {"version": 1},
-        "server": {"address": monitor_address, "default_rank": 1},
-        "master": {
-            "address": f"tcp+sbs://127.0.0.1:{master_port}",
-            "default_algorithm": "BLESS_ONE",
-            "group_algorithms": {},
+        "default_algorithm": "BLESS_ONE",
+        "group_algorithms": {},
+        "server": {
+            "host": "127.0.0.1",
+            "port": monitor_port,
+            "default_rank": 1,
         },
+        "master": {"host": "127.0.0.1", "port": master_port},
         "slave": {
             "parents": [],
             "connect_timeout": 5,
             "connect_retry_count": 5,
             "connect_retry_delay": 5,
         },
-        "ui": {"address": f"http://127.0.0.1:{ui_port}"},
+        "ui": {"host": "127.0.0.1", "port": ui_port},
     }
     monitor_conf_path = conf_path / "monitor.yaml"
     json.encode_file(conf, monitor_conf_path)
@@ -73,34 +70,27 @@ def event_port(unused_tcp_port_factory):
 
 
 @pytest.fixture
-def event_address(event_port):
-    return f"tcp+sbs://127.0.0.1:{event_port}"
-
-
-@pytest.fixture
 async def event_server(
-    event_address,
     event_port,
-    monitor_address,
     monitor_server,
+    monitor_port,
     conf_path,
     unused_tcp_port_factory,
 ):
     conf = {
         "type": "event",
         "log": {"version": 1},
-        "monitor": {
-            "name": "event",
+        "name": "event-server",
+        "server_id": 0,
+        "backend": {"module": "hat.event.backends.dummy"},
+        "modules": [],
+        "eventer_server": {"host": "127.0.0.1", "port": event_port},
+        "monitor_component": {
             "group": "event",
-            "monitor_address": monitor_address,
-            "component_address": event_address,
+            "host": "127.0.0.1",
+            "port": monitor_port,
         },
-        "backend": {"module": "hat.event.server.backends.dummy"},
-        "engine": {"server_id": 0, "modules": []},
-        "eventer_server": {"address": event_address},
-        "syncer_server": {
-            "address": f"tcp+sbs://127.0.0.1:{unused_tcp_port_factory()}"
-        },
+        "synced_restart_engine": False,
     }
     event_conf_path = conf_path / "event.yaml"
     json.encode_file(conf, event_conf_path)
@@ -116,7 +106,7 @@ async def event_server(
         proc.wait()
 
 
-def simple_conf(monitor_address):
+def simple_conf(monitor_port):
     return {
         "log": {
             "version": 1,
@@ -164,7 +154,7 @@ def simple_conf(monitor_address):
             "monitor": {
                 "name": "aimm",
                 "group": "aimm",
-                "monitor_address": monitor_address,
+                "monitor_address": f"tcp+sbs://127.0.0.1:{monitor_port}",
                 "component_address": None,
             },
             "event_server_group": "event",
@@ -173,8 +163,8 @@ def simple_conf(monitor_address):
 
 
 @pytest.fixture
-async def aimm_server_proc(event_server, monitor_address, conf_path):
-    conf = simple_conf(monitor_address)
+async def aimm_server_proc(monitor_port, event_server, conf_path):
+    conf = simple_conf(monitor_port)
     aimm_conf_path = conf_path / "aimm.yaml"
     json.encode_file(conf, aimm_conf_path)
     proc = psutil.Popen(
@@ -187,20 +177,28 @@ async def aimm_server_proc(event_server, monitor_address, conf_path):
 
 
 @pytest.fixture
-def event_client_factory(event_address, event_server):
+def event_client_factory(event_port):
     @contextlib.asynccontextmanager
     async def factory(subscriptions):
+        queue = aio.Queue()
+
+        async def events_cb(_, events):
+            queue.put_nowait(events)
+
         client = await hat.event.eventer.client.connect(
-            event_address, subscriptions
+            tcp.Address(host="127.0.0.1", port=event_port),
+            "sys-test-client",
+            subscriptions=subscriptions,
+            events_cb=events_cb,
         )
-        yield client
+        yield client, queue
         await client.async_close()
 
     return factory
 
 
 def assert_event(event, event_type, payload, source_timestamp=None):
-    assert event.event_type == event_type
+    assert event.type == event_type
     assert event.source_timestamp == source_timestamp
     assert event.payload.data == payload
 
@@ -217,10 +215,10 @@ async def test_create_instance(aimm_server_proc, event_client_factory):
 
     async with event_client_factory(
         [("aimm", "action_state"), ("aimm", "model", "*")]
-    ) as client:
+    ) as (client, events_queue):
         args = ["a1", "a2"]
         kwargs = {"k1": "1", "k2": "2"}
-        await client.register_with_response(
+        await client.register(
             [
                 _register_event(
                     ("create_instance",),
@@ -231,32 +229,33 @@ async def test_create_instance(aimm_server_proc, event_client_factory):
                         "request_id": 1,
                     },
                 )
-            ]
+            ],
+            with_response=True,
         )
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
         assert payload["status"] == "IN_PROGRESS"
         assert payload["result"] is None
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "model", "1")
+        assert event.type == ("aimm", "model", "1")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"type", "instance"}
         assert payload["type"] == model_type
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
@@ -264,10 +263,10 @@ async def test_create_instance(aimm_server_proc, event_client_factory):
         assert payload["result"] == 1
 
 
-async def _create_instance(client, model_type):
+async def _create_instance(client, model_type, events_queue):
     args = ["a1", "a2"]
     kwargs = {"k1": "1", "k2": "2"}
-    await client.register_with_response(
+    await client.register(
         [
             _register_event(
                 ("create_instance",),
@@ -278,19 +277,20 @@ async def _create_instance(client, model_type):
                     "request_id": 1,
                 },
             )
-        ]
+        ],
+        with_response=True,
     )
 
-    events = await client.receive()
+    events = await events_queue.get()
     event = events[0]
     assert event.payload.data["status"] == "IN_PROGRESS"
 
-    events = await client.receive()
+    events = await events_queue.get()
     event = events[0]
     payload = event.payload.data
-    assert event.event_type == ("aimm", "model", "1")
+    assert event.type == ("aimm", "model", "1")
 
-    events = await client.receive()
+    events = await events_queue.get()
     event = events[0]
     payload = event.payload.data
     assert payload["status"] == "DONE"
@@ -304,42 +304,43 @@ async def test_fit(aimm_server_proc, event_client_factory):
 
     async with event_client_factory(
         [("aimm", "action_state"), ("aimm", "model", "*")]
-    ) as client:
-        model_id = await _create_instance(client, model_type)
+    ) as (client, events_queue):
+        model_id = await _create_instance(client, model_type, events_queue)
 
         args = ["a3", "a4"]
         kwargs = {"k3": "3", "k4": "4"}
-        await client.register_with_response(
+        await client.register(
             [
                 _register_event(
                     ("fit", str(model_id)),
                     {"args": args, "kwargs": kwargs, "request_id": 1},
                 )
-            ]
+            ],
+            with_response=True,
         )
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
         assert payload["status"] == "IN_PROGRESS"
         assert payload["result"] is None
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "model", str(model_id))
+        assert event.type == ("aimm", "model", str(model_id))
         assert event.source_timestamp is None
         assert event.payload.data["type"] == model_type
         assert event.payload.data["instance"] is not None
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
@@ -352,34 +353,35 @@ async def test_predict(aimm_server_proc, event_client_factory):
 
     async with event_client_factory(
         [("aimm", "action_state"), ("aimm", "model", "*")]
-    ) as client:
-        model_id = await _create_instance(client, model_type)
+    ) as (client, events_queue):
+        model_id = await _create_instance(client, model_type, events_queue)
 
         args = ["a3", "a4"]
         kwargs = {"k3": "3", "k4": "4"}
-        await client.register_with_response(
+        await client.register(
             [
                 _register_event(
                     ("predict", str(model_id)),
                     {"args": args, "kwargs": kwargs, "request_id": 1},
                 )
-            ]
+            ],
+            with_response=True,
         )
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
         assert payload["status"] == "IN_PROGRESS"
         assert payload["result"] is None
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
@@ -392,9 +394,9 @@ async def test_cancel(aimm_server_proc, event_client_factory):
 
     async with event_client_factory(
         [("aimm", "action_state"), ("aimm", "model", "*")]
-    ) as client:
-        model_id = await _create_instance(client, model_type)
-        request = await client.register_with_response(
+    ) as (client, events_queue):
+        model_id = await _create_instance(client, model_type, events_queue)
+        request = await client.register(
             [
                 _register_event(
                     ("predict", str(model_id)),
@@ -404,14 +406,15 @@ async def test_cancel(aimm_server_proc, event_client_factory):
                         "request_id": "1",
                     },  # sleep 10 seconds
                 )
-            ]
+            ],
+            with_response=True,
         )
         request = request[0]
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
@@ -421,21 +424,21 @@ async def test_cancel(aimm_server_proc, event_client_factory):
         event_queue = aio.Queue()
 
         async def wait_events():
-            event_queue.put_nowait(await client.receive())
+            event_queue.put_nowait(await events_queue.get())
 
         async with aio.Group() as group:
             group.spawn(wait_events)
             await asyncio.sleep(2)
             assert event_queue.empty()
 
-        await client.register_with_response(
-            [_register_event(("cancel",), "1")]
+        await client.register(
+            [_register_event(("cancel",), "1")], with_response=True
         )
 
-        events = await client.receive()
+        events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
-        assert event.event_type == ("aimm", "action_state")
+        assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
         assert set(payload.keys()) == {"request_id", "status", "result"}
@@ -446,7 +449,7 @@ async def test_cancel(aimm_server_proc, event_client_factory):
 def _listens_on(proc, port):
     return port in (
         conn.laddr.port
-        for conn in proc.connections()
+        for conn in proc.net_connections()
         if conn.status == "LISTEN"
     )
 
@@ -461,9 +464,7 @@ def _connected_to(proc, port):
 
 def _register_event(event_type, payload):
     return hat.event.common.RegisterEvent(
-        event_type=event_type,
+        type=event_type,
         source_timestamp=None,
-        payload=hat.event.common.EventPayload(
-            type=hat.event.common.EventPayloadType.JSON, data=payload
-        ),
+        payload=hat.event.common.EventPayloadJson(payload),
     )

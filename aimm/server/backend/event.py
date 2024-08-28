@@ -9,7 +9,9 @@ from aimm import plugins
 
 
 def create_subscription(conf):
-    return hat.event.common.Subscription([tuple([*conf["model_prefix"], "*"])])
+    return hat.event.common.create_subscription(
+        [tuple([*conf["model_prefix"], "*"])]
+    )
 
 
 async def create(conf, event_client):
@@ -39,8 +41,8 @@ class EventBackend(common.Backend):
 
     async def get_models(self):
         events = await self._client.query(
-            hat.event.common.QueryData(
-                event_types=[(*self._model_prefix, "*")], unique_type=True
+            hat.event.common.QueryLatestParams(
+                event_types=[(*self._model_prefix, "*")]
             )
         )
         return [await self._event_to_model(e) for e in events]
@@ -78,11 +80,10 @@ class EventBackend(common.Backend):
             )
         ).decode("utf-8")
         return hat.event.common.RegisterEvent(
-            event_type=(*self._model_prefix, str(model.instance_id)),
+            type=(*self._model_prefix, str(model.instance_id)),
             source_timestamp=None,
-            payload=hat.event.common.EventPayload(
-                type=hat.event.common.EventPayloadType.JSON,
-                data={"type": model.model_type, "instance": instance_b64},
+            payload=hat.event.common.EventPayloadJson(
+                {"type": model.model_type, "instance": instance_b64},
             ),
         )
 
@@ -94,6 +95,6 @@ class EventBackend(common.Backend):
         )
         return common.Model(
             instance=instance,
-            instance_id=int(event.event_type[len(self._model_prefix)]),
+            instance_id=int(event.type[len(self._model_prefix)]),
             model_type=event.payload.data["type"],
         )

@@ -4,7 +4,6 @@ specified by the REPL control."""
 from getpass import getpass
 from hat import aio
 from hat import juggler
-from hat import util
 import base64
 import hashlib
 import numpy
@@ -46,19 +45,20 @@ class AIMM(aio.Resource):
         """Connects to the specified remote address. Login data is received
         from a user prompt. Passwords are hashed with SHA-256 before sending
         login request."""
-        connection = await juggler.connect(address)
         self._address = address
 
         username = input("Username: ")
         password_hash = hashlib.sha256()
         password_hash.update(getpass("Password: ").encode("utf-8"))
+
+        connection = await juggler.connect(address)
         await connection.send(
             "login",
             {"username": username, "password": password_hash.hexdigest()},
         )
-        self._on_remote_state_change(connection.state.data)
-
         self._connection = connection
+
+        self._on_remote_state_change(connection.state.data)
         self._group.spawn(connection.wait_closed).add_done_callback(
             lambda _: self._clear_connection()
         )
@@ -132,15 +132,14 @@ class AIMM(aio.Resource):
         self._connection = None
 
     def _on_remote_state_change(self, remote_state):
-        self._state = {"models": {}, "actions": {}}
         if remote_state is None:
             return
-        self._state["models"] = {
-            int(k): Model(self, k, v["model_type"])
-            for k, v in remote_state["models"].items()
-        }
-        self._state["actions"] = {
-            int(k): v for k, v in remote_state["actions"].items()
+        self._state = {
+            "models": {
+                int(k): Model(self, k, v["model_type"])
+                for k, v in remote_state["models"].items()
+            },
+            "actions": {int(k): v for k, v in remote_state["actions"].items()},
         }
 
 
@@ -190,7 +189,6 @@ PluginArg = typing.Union[
     JSON,
 ]
 """Represents a generic, plugin-specific argument"""
-util.register_type_alias("PluginArg")
 
 
 def _arg_to_json(arg):
