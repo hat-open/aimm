@@ -79,7 +79,26 @@ async def event_server(
 ):
     conf = {
         "type": "event",
-        "log": {"version": 1},
+        "log": {
+            "disable_existing_loggers": False,
+            "formatters": {"default": {}},
+            "handlers": {
+                "syslog": {
+                    "class": "hat.syslog.handler.SysLogHandler",
+                    "comm_type": "TCP",
+                    "formatter": "default",
+                    "host": "127.0.0.1",
+                    "level": "INFO",
+                    "port": 6514,
+                    "queue_size": 10,
+                }
+            },
+            "root": {
+                "handlers": ["syslog"],
+                "level": "INFO",
+            },
+            "version": 1,
+        },
         "name": "event-server",
         "server_id": 0,
         "backend": {"module": "hat.event.backends.dummy"},
