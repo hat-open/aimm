@@ -134,12 +134,15 @@ class HatRunner(aio.Resource):
             mlog.error("unhandled exception in hat runner: %s", e, exc_info=e)
         finally:
             self.close()
-            if self._aimm_runner:
-                await aio.uncancellable(self._aimm_runner.async_close())
-            if self._hat_component:
-                await aio.uncancellable(self._hat_component.async_close())
-            if self._eventer_client:
-                await aio.uncancellable(self._eventer_client.async_close())
+            await aio.uncancellable(self._cleanup())
+
+    async def _cleanup(self):
+        if self._aimm_runner:
+            await self._aimm_runner.async_close()
+        if self._hat_component:
+            await self._hat_component.async_close()
+        if self._eventer_client:
+            await self._eventer_client.async_close()
 
     def _create_aimm_runner(self, eventer_client):
         self._aimm_runner = AIMMRunner(
