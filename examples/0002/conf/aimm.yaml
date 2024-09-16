@@ -1,4 +1,5 @@
 ---
+name: aimm
 log:
     disable_existing_loggers: false
     formatters:
@@ -35,5 +36,7 @@ plugins:
     names:
         - aimm_plugins.power
 hat:
-    event_server_address: 'tcp+sbs://127.0.0.1:23012'
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
 ...

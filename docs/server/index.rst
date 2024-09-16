@@ -41,12 +41,12 @@ contains the options that allow this integration.
 
 Connection to monitor is the minimal requirement in order to integrate to the
 Hat network and the configuration parameters are as specified by the `monitor
-client documentation`_. Additionally, if ``event_server_group`` field is set,
-AIMM server will also attempt to connect to event server with in the given
-group. If these properties are configured but the server cannot connect to
-Hat components, it will halt and wait until it manages to connect.
+documentation`_. Additionally, if ``event_server_group`` field is set, AIMM
+server will also attempt to connect to event server with in the given group.
+If these properties are configured but the server cannot connect to Hat
+components, it will halt and wait until it manages to connect.
 
-.. _monitor client documentation: https://hat-monitor.hat-open.com/py_api/hat/monitor/client.html
+.. _monitor documentation: https://hat-monitor.hat-open.com/
 
 Since AIMM server supports dynamic imports of different backend and control
 implementations that may use the event server connection to receive and
@@ -60,15 +60,9 @@ subscriptions. It should have the following type:
 A combined list of all these subscriptions is then used as the global
 subscription of the entire server. If the ``get_subscriptions`` function is
 provided, the component implementation will receive an instance of a
-:class:`aimm.server.common.ProxyClient`, which is an object with an interface
-similar to the regular `Hat event client`_, but is actually notified of the new
-events by the real event client when events it subscribes to are received. It
-has the following signature:
+:class:`hat.event.eventer.Client`, as specified `here`_.
 
-.. _Hat event client: https://hat-event.hat-open.com/py_api/hat/event/client.html#hat.event.client.Client
-
-.. autoclass:: aimm.server.common.ProxyClient
-    :members:
+.. _here: https://hat-event.hat-open.com/py_api/hat/event/eventer.html#Client
 
 Architecture
 ------------

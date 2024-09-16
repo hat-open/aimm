@@ -1,6 +1,9 @@
 ---
+name: aimm
 hat:
-    event_server_address: tcp+sbs://127.0.0.1:23012
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
 engine:
     sigterm_timeout: 5
     max_children: 5

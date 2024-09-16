@@ -1,5 +1,4 @@
 import os
-import sys
 from hat import json
 from pathlib import Path
 import subprocess
@@ -82,17 +81,9 @@ def task_docs():
     return {"actions": [run], "pos_arg": "args", "task_dep": ["schemas_json"]}
 
 
-def task_build():
-    """Build package"""
-    return {
-        "actions": [[sys.executable, "setup.py", "build"]],
-        "task_dep": ["schemas_json"],
-    }
-
-
 def task_dist():
     """Generate dist"""
     return {
-        "actions": [[sys.executable, "-m", "build"]],
-        "task_dep": ["build"],
+        "actions": [["poetry", "build"]],
+        "task_dep": ["schemas_json"],
     }

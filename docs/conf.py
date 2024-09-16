@@ -1,4 +1,5 @@
 from pathlib import Path
+import importlib.metadata
 
 
 root = Path(__file__).parents[1]
@@ -6,10 +7,7 @@ root = Path(__file__).parents[1]
 project = "AIMM"
 copyright = "2024, Zlatan Sičanica"
 author = "Zlatan Sičanica"
-
-
-with open(root / "VERSION") as fh:
-    version = fh.read()[:-1]
+version = importlib.metadata.version(project)
 
 extensions = [
     "sphinxcontrib.programoutput",

@@ -19,7 +19,7 @@ All backend implementations need to implement the following interface:
 .. autoclass:: aimm.server.common.Backend
     :members:
 .. autofunction:: aimm.server.common.create_backend
-.. autofunction:: aimm.server.common.create_backend_subscription
+.. autofunction:: aimm.server.common.create_subscription
 
 Only one instance of a backend can be configured on a aimm server and its
 configuration depends on the concrete implementation of the interface. Two

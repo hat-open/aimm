@@ -20,7 +20,8 @@ All control implementations should implement the following interface:
 .. autoclass:: aimm.server.common.Control
     :members:
 .. autofunction:: aimm.server.common.create_control
-.. autofunction:: aimm.server.common.create_control_subscription
+.. autofunction:: aimm.server.common.create_subscription
+    :no-index:
 
 .. toctree::
     :maxdepth: 1

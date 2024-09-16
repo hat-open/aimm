@@ -11,11 +11,14 @@ from typing import (
     Collection,
 )
 import abc
+import aimm.common
 import hat.event.eventer.client
 import hat.event.common
 import logging
 
 mlog = logging.getLogger(__name__)
+
+json_schema_repo = aimm.common.json_schema_repo
 
 
 CreateSubscription = Callable[[Dict], hat.event.common.Subscription]
