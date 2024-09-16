@@ -171,24 +171,9 @@ def aimm_conf(hat_conf):
             "check_children_period": 3,
         },
         "backend": {
-            "module": "aimm.server.backend.event",
-            "model_prefix": ["aimm", "model"],
+            "module": "aimm.server.backend.dummy",
         },
-        "control": [
-            {
-                "module": "aimm.server.control.event",
-                "event_prefixes": {
-                    "create_instance": ["create_instance"],
-                    "add_instance": ["add_instance"],
-                    "update_instance": ["update_instance"],
-                    "fit": ["fit"],
-                    "predict": ["predict"],
-                    "cancel": ["cancel"],
-                },
-                "state_event_type": ["aimm", "state"],
-                "action_state_event_type": ["aimm", "action_state"],
-            }
-        ],
+        "control": [],
         "plugins": {"names": ["test_sys.plugins.basic"]},
         "name": "sys-test-event",
     }
