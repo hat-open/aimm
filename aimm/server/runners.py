@@ -32,7 +32,14 @@ class MainRunner(aio.Resource):
             child_runner = AIMMRunner(
                 self._conf, self._group.create_subgroup(), client=None
             )
-        await child_runner.wait_closing()
+            _bind_resource(self._group, child_runner)
+        try:
+            await child_runner.wait_closing()
+        except Exception as e:
+            mlog.error("main runner loop error: %s", e, exc_info=e)
+        finally:
+            self.close()
+            await aio.uncancellable(child_runner.async_close())
 
 
 class HatRunner(aio.Resource):
@@ -42,6 +49,7 @@ class HatRunner(aio.Resource):
 
         self._aimm_runner = None
         self._hat_component = None
+        self._eventer_client = None
 
         self._subscriptions = []
         self._backend_subscription = None
@@ -104,19 +112,34 @@ class HatRunner(aio.Resource):
                     runner_cb=lambda _: self._create_aimm_runner(None),
                 )
             await self._hat_component.set_ready(True)
+            _bind_resource(self._group, self._hat_component)
         elif eventer_conf := hat_conf.get("eventer_server"):
 
             async def on_eventer_events(_, events):
                 await self._on_events(events)
 
-            eventer_client = await hat.event.eventer.connect(
+            self._eventer_client = await hat.event.eventer.connect(
                 addr=tcp.Address(eventer_conf["host"], eventer_conf["port"]),
                 client_name=self._conf["name"],
                 status_cb=None,
                 events_cb=on_eventer_events,
                 subscriptions=self._subscriptions,
             )
-            self._create_aimm_runner(eventer_client)
+            _bind_resource(self._group, self._eventer_client)
+            self._create_aimm_runner(self._eventer_client)
+
+        try:
+            await self._group.wait_closing()
+        except Exception as e:
+            mlog.error("unhandled exception in hat runner: %s", e, exc_info=e)
+        finally:
+            self.close()
+            if self._aimm_runner:
+                await aio.uncancellable(self._aimm_runner.async_close())
+            if self._hat_component:
+                await aio.uncancellable(self._hat_component.async_close())
+            if self._eventer_client:
+                await aio.uncancellable(self._eventer_client.async_close())
 
     def _create_aimm_runner(self, eventer_client):
         self._aimm_runner = AIMMRunner(
@@ -124,6 +147,7 @@ class HatRunner(aio.Resource):
             group=self._group.create_subgroup(),
             client=eventer_client,
         )
+        _bind_resource(self._group, self._aimm_runner)
         return self._aimm_runner
 
     async def _on_events(self, events):
@@ -166,12 +190,14 @@ class AIMMRunner(aio.Resource):
 
     async def _run(self):
         async for resource in self._create_resources():
-            self._group.spawn(aio.call_on_cancel, resource.async_close)
-            self._group.spawn(
-                aio.call_on_done, resource.wait_closing(), self._group.close
-            )
+            _bind_resource(self._group, resource)
 
-        await self._group.wait_closing()
+        try:
+            await self._group.wait_closing()
+        except Exception as e:
+            mlog.error("error in aimm runner: %s", e, exc_info=e)
+        finally:
+            self.close()
 
     async def _create_resources(self):
         self._backend = await self._create_backend(self._conf["backend"])
@@ -189,12 +215,19 @@ class AIMMRunner(aio.Resource):
 
     async def _create_backend(self, backend_conf):
         module = importlib.import_module(backend_conf["module"])
-        backend = await module.create(backend_conf, self._client)
+        backend = await aio.call(module.create, backend_conf, self._client)
         self._module_map[self._conf["backend"]["module"]] = backend
         return backend
 
     async def _create_control(self, control_conf, engine):
         module = importlib.import_module(control_conf["module"])
-        control = await module.create(control_conf, engine, self._client)
+        control = await aio.call(
+            module.create, control_conf, engine, self._client
+        )
         self._module_map[control_conf["module"]] = control
         return control
+
+
+def _bind_resource(group, resource):
+    group.spawn(aio.call_on_cancel, resource.async_close)
+    group.spawn(aio.call_on_done, resource.wait_closing(), group.close)
