@@ -17,6 +17,7 @@ mlog = logging.getLogger(__name__)
 
 StateCallback = Callable[[Any], None]
 
+# TODO: switch to spawn
 mp_context = multiprocessing.get_context("fork")
 
 

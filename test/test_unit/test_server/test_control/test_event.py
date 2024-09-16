@@ -15,11 +15,8 @@ class MockClient:
         self._register_queue = aio.Queue()
         self._receive_queue = aio.Queue()
 
-    def register(self, events):
+    async def register(self, events, with_response=False):
         self._register_queue.put_nowait(events)
-
-    async def receive(self):
-        return await self._receive_queue.get()
 
 
 class MockEngine(common.Engine):
@@ -155,6 +152,7 @@ async def test_create_instance():
     engine = MockEngine(create_instance_cb=create_instance_cb)
     control = await aimm.server.control.event.create(conf(), engine, client)
     events = await client._register_queue.get()  # state
+    assert events is not None and list(events) != []
 
     args = ["a1", "a2"]
     kwargs = {"k1": "1"}
@@ -167,7 +165,7 @@ async def test_create_instance():
             "request_id": "1",
         },
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
     call = await create_queue.get()
     assert call["model_type"] == "Model1"
     assert call["args"] == tuple(args)
@@ -232,7 +230,7 @@ async def test_add_instance(plugin_teardown):
             "request_id": "1",
         },
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
 
     call = await add_queue.get()
     assert call["model_type"] == "Model1"
@@ -284,7 +282,7 @@ async def test_update_instance(plugin_teardown):
             "request_id": "1",
         },
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
 
     call = await update_queue.get()
     assert call["model"] == common.Model(
@@ -337,7 +335,7 @@ async def test_fit():
             "request_id": "1",
         },
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
 
     events = await client._register_queue.get()
     assert len(events) == 1
@@ -401,7 +399,7 @@ async def test_predict():
             "request_id": "1",
         },
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
 
     events = await client._register_queue.get()
     assert len(events) == 1
@@ -453,7 +451,7 @@ async def test_cancel():
     req_event = _event(
         ("predict", "12"), {"args": [], "kwargs": {}, "request_id": "1"}
     )
-    client._receive_queue.put_nowait([req_event])
+    await control.process_events([req_event])
 
     events = await client._register_queue.get()
     assert len(events) == 1
@@ -467,7 +465,7 @@ async def test_cancel():
 
     future = await future_queue.get()
 
-    client._receive_queue.put_nowait([_event(("cancel",), "1")])
+    await control.process_events([_event(("cancel",), "1")])
 
     with pytest.raises(asyncio.CancelledError):
         await future

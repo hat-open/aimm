@@ -3,14 +3,15 @@ $schema: 'http://json-schema.org/schema#'
 id: 'aimm://server/main.yaml#'
 type: object
 required:
-    - log
+    - name
     - engine
     - backend
     - control
     - plugins
+    - log
 properties:
-    log:
-        type: object
+    name:
+        type: string
     engine:
         '$ref': 'aimm://server/engine.yaml#'
     backend:
@@ -21,4 +22,6 @@ properties:
         '$ref': 'aimm://plugins.yaml#'
     hat:
         '$ref': 'aimm://server/hat.yaml#'
+    log:
+        type: object
 ...

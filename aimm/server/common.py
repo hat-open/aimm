@@ -1,11 +1,21 @@
 from hat import aio
 from hat import util
-from typing import Any, Dict, Callable, Iterable, List, NamedTuple, Optional
+from typing import (
+    Any,
+    Dict,
+    Callable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Collection,
+)
 import abc
 import hat.event.eventer.client
 import hat.event.common
+import logging
 
-from aimm.common import *  # NOQA
+mlog = logging.getLogger(__name__)
 
 
 CreateSubscription = Callable[[Dict], hat.event.common.Subscription]
@@ -14,55 +24,6 @@ Type of the ``create_subscription`` function that the dynamically imported
 controls and backends may implement. Receives component configuration as the
 only argument and returns a subscription object.
 """
-
-
-class ProxyClient:
-    """Event client proxy
-
-    Args:
-        client: concrete client instance
-        subscription: event types proxy subscribes to"""
-
-    def __init__(
-        self,
-        client: hat.event.eventer.client.Client,
-        subscription: hat.event.common.Subscription,
-    ):
-        self._subscription = subscription
-        self._queue = aio.Queue()
-        self._client = client
-        self._group = aio.Group()
-
-    @property
-    def subscription(self) -> hat.event.common.Subscription:
-        """event types the proxy subscribes to"""
-        return self._subscription
-
-    def notify(self, events: List[hat.event.common.Event]):
-        """Informs proxy of newly received events."""
-        self._queue.put_nowait(events)
-
-    async def receive(self) -> List[hat.event.common.Event]:
-        """Receives notified events."""
-        return await self._queue.get()
-
-    def register(self, events: List[hat.event.common.RegisterEvent]):
-        """Bulk-registers a group of new events without waiting for the
-        registration to complete."""
-        self._group.spawn(self._client.register, events, False)
-
-    async def register_with_response(
-        self, events: List[hat.event.common.RegisterEvent]
-    ) -> List[hat.event.common.Event]:
-        """Bulk-registers a group of new events and awaits until the
-        registration is complete."""
-        return await self._client.register(events, with_response=True)
-
-    async def query(
-        self, query_data: hat.event.common.QueryParams
-    ) -> List[hat.event.common.Event]:
-        """Queries events with given query_data"""
-        return (await self._client.query(query_data)).events
 
 
 class Model(NamedTuple):
@@ -95,7 +56,8 @@ class DataAccess(NamedTuple):
 class Engine(aio.Resource, abc.ABC):
     """Engine interface"""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def state(self) -> Dict:
         """Engine state, contains references to all models and actions. It's
         never modified in-place, instead :meth:`subscribe_to_state_change`
@@ -180,16 +142,16 @@ class Action(aio.Resource, abc.ABC):
         :class:`asyncio.CancelledError` in case the call was cancelled."""
 
 
+def create_subscription(conf: Any) -> list[hat.event.common.EventType]:
+    """Placeholder of the backends and controls optional create subscription
+    function, needs to satisfy the given signature"""
+
+
 def create_backend(
-    conf: Dict, event_client: Optional["ProxyClient"] = None
+    conf: Dict, event_client: Optional[hat.event.eventer.client.Client] = None
 ) -> "Backend":
     """Placeholder of the backend's create function, needs to satisfy the given
     signature"""
-
-
-def create_backend_subscription(conf: Any) -> hat.event.common.Subscription:
-    """Placeholder of the backends optional create subscription function, needs
-    to satisfy the given signature"""
 
 
 class Backend(aio.Resource):
@@ -200,8 +162,8 @@ class Backend(aio.Resource):
 
     The ``event_client`` argument is not ``None`` if backend module also
     contains function named ``create_subscription`` with the same signature as
-    the :func:`create_backend_subscription`. The function receives the same
-    backend configuration the ``create`` function would receive and returns the
+    the :func:`create_subscription`. The function receives the same backend
+    configuration the ``create`` function would receive and returns the
     subscription object for the backend.
     """
 
@@ -230,17 +192,22 @@ class Backend(aio.Resource):
         optional, defaults to ignoring the callback."""
         return util.RegisterCallbackHandle(cancel=lambda: None)
 
+    async def process_events(self, events: hat.event.common.Event):
+        """Implementation optional. Called when event client receives events
+        matched by subscription from `create_backend_subscription`. Ignores
+        events by default, with a warning log."""
+        mlog.warning(
+            "received events when no process_event method was implemented"
+        )
+
 
 def create_control(
-    conf: Dict, engine: Engine, event_client: Optional["ProxyClient"] = None
+    conf: Dict,
+    engine: Engine,
+    event_client: Optional[hat.event.eventer.client.Client] = None,
 ) -> "Control":
     """Placeholder of the control's create function, needs to satisfy the given
     signature"""
-
-
-def create_control_subscription(conf: Any) -> hat.event.common.Subscription:
-    """Placeholder of the controls optional create subscription function, needs
-    to satisfy the given signature"""
 
 
 class Control(aio.Resource):
@@ -251,7 +218,15 @@ class Control(aio.Resource):
 
     The ``event_client`` argument is not ``None`` if control module also
     contains function named ``create_subscription`` with the same signature as
-    the :func:`create_control_subscription`.  The function receives the same
-    control configuration the ``create`` function would receive and returns the
-    list of subscriptions ``ProxyClient`` should subscribe to.
+    the :func:`create_subscription`.  The function receives the same control
+    configuration the ``create`` function would receive and returns the list of
+    subscriptions ``ProxyClient`` should subscribe to.
     """
+
+    async def process_events(self, events: Collection[hat.event.common.Event]):
+        """Implementation optional. Called when event client receives events
+        matched by subscription from `create_backend_subscription`. Ignores
+        events by default, with a warning log."""
+        mlog.warning(
+            "received events when no process_event method was implemented"
+        )

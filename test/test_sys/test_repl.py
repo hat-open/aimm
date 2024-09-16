@@ -58,6 +58,7 @@ def simple_conf(aimm_port, backend_path):
             }
         ],
         "plugins": {"names": ["test_sys.plugins.basic"]},
+        "name": "sys-test-repl",
     }
 
 

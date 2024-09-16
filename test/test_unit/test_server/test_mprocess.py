@@ -37,7 +37,7 @@ async def test_process_regular(action_count, disable_sigterm_handler):
     async with aio.Group() as group:
         tasks = []
         for _ in range(action_count):
-            process_action = pa_pool.create_handler(lambda: None)
+            process_action = pa_pool.create_handler(lambda _: None)
             tasks.append(group.spawn(process_action.run, fn, *args, **kwargs))
         await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
 
@@ -55,7 +55,7 @@ async def test_process_exception(disable_sigterm_handler):
         raise Exception(exception_text)
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 2)
-    process_action = pa_pool.create_handler(lambda: None)
+    process_action = pa_pool.create_handler(lambda _: None)
 
     with pytest.raises(Exception, match=exception_text):
         await process_action.run(fn)
@@ -75,7 +75,7 @@ async def test_process_sigterm(disable_sigterm_handler):
         queue.put_nowait(state)
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 5)
-    process_action = pa_pool.create_handler(lambda: None)
+    process_action = pa_pool.create_handler(lambda _: None)
     async with aio.Group() as group:
 
         async def _run():
@@ -105,7 +105,7 @@ async def test_process_sigkill():
         queue.put_nowait(state)
 
     pa_pool = mprocess.ProcessManager(1, aio.Group(), 0.1, 0.2)
-    process_action = pa_pool.create_handler(lambda: None)
+    process_action = pa_pool.create_handler(lambda _: None)
     async with aio.Group() as group:
 
         async def _run():

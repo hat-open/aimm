@@ -9,9 +9,7 @@ from aimm import plugins
 
 
 def create_subscription(conf):
-    return hat.event.common.create_subscription(
-        [tuple([*conf["model_prefix"], "*"])]
-    )
+    return [tuple([*conf["model_prefix"], "*"])]
 
 
 async def create(conf, event_client):
@@ -23,7 +21,6 @@ async def create(conf, event_client):
     backend._cbs = util.CallbackRegistry()
     backend._async_group = aio.Group()
     backend._client = event_client
-    backend._async_group.spawn(backend._event_loop)
 
     models = await backend.get_models()
     backend._id_counter = itertools.count(
@@ -40,12 +37,12 @@ class EventBackend(common.Backend):
         return self._async_group
 
     async def get_models(self):
-        events = await self._client.query(
+        query_result = await self._client.query(
             hat.event.common.QueryLatestParams(
                 event_types=[(*self._model_prefix, "*")]
             )
         )
-        return [await self._event_to_model(e) for e in events]
+        return [await self._event_to_model(e) for e in query_result.events]
 
     async def create_model(self, model_type, instance):
         model = common.Model(
@@ -62,16 +59,12 @@ class EventBackend(common.Backend):
     def register_model_change_cb(self, cb):
         self._cbs.register(cb)
 
-    async def _event_loop(self):
-        while True:
-            events = await self._client.receive()
-            for event in events:
-                self._cbs.notify(await self._event_to_model(event))
+    async def process_events(self, events):
+        for event in events:
+            self._cbs.notify(await self._event_to_model(event))
 
     async def _register_model(self, model):
-        await self._client.register_with_response(
-            [await self._model_to_event(model)]
-        )
+        await self._client.register([await self._model_to_event(model)])
 
     async def _model_to_event(self, model):
         instance_b64 = base64.b64encode(

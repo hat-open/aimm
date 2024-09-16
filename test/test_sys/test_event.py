@@ -17,66 +17,12 @@ def conf_path(tmp_path):
 
 
 @pytest.fixture
-def monitor_port(unused_tcp_port_factory):
-    return unused_tcp_port_factory()
-
-
-@pytest.fixture
-async def monitor_server(monitor_port, unused_tcp_port_factory, conf_path):
-    master_port = unused_tcp_port_factory()
-    ui_port = unused_tcp_port_factory()
-    conf = {
-        "type": "monitor",
-        "log": {"version": 1},
-        "default_algorithm": "BLESS_ONE",
-        "group_algorithms": {},
-        "server": {
-            "host": "127.0.0.1",
-            "port": monitor_port,
-            "default_rank": 1,
-        },
-        "master": {"host": "127.0.0.1", "port": master_port},
-        "slave": {
-            "parents": [],
-            "connect_timeout": 5,
-            "connect_retry_count": 5,
-            "connect_retry_delay": 5,
-        },
-        "ui": {"host": "127.0.0.1", "port": ui_port},
-    }
-    monitor_conf_path = conf_path / "monitor.yaml"
-    json.encode_file(conf, monitor_conf_path)
-    proc = psutil.Popen(
-        [
-            "python",
-            "-m",
-            "hat.monitor.server",
-            "--conf",
-            str(monitor_conf_path),
-        ]
-    )
-    try:
-        while not _listens_on(proc, monitor_port):
-            await asyncio.sleep(0.1)
-        yield proc
-    finally:
-        proc.kill()
-        proc.wait()
-
-
-@pytest.fixture
 def event_port(unused_tcp_port_factory):
     return unused_tcp_port_factory()
 
 
 @pytest.fixture
-async def event_server(
-    event_port,
-    monitor_server,
-    monitor_port,
-    conf_path,
-    unused_tcp_port_factory,
-):
+async def event_server(event_port, conf_path):
     conf = {
         "type": "event",
         "log": {
@@ -104,11 +50,6 @@ async def event_server(
         "backend": {"module": "hat.event.backends.dummy"},
         "modules": [],
         "eventer_server": {"host": "127.0.0.1", "port": event_port},
-        "monitor_component": {
-            "group": "event",
-            "host": "127.0.0.1",
-            "port": monitor_port,
-        },
         "synced_restart_engine": False,
     }
     event_conf_path = conf_path / "event.yaml"
@@ -125,7 +66,7 @@ async def event_server(
         proc.wait()
 
 
-def simple_conf(monitor_port):
+def simple_conf(event_port):
     return {
         "log": {
             "version": 1,
@@ -169,21 +110,14 @@ def simple_conf(monitor_port):
             }
         ],
         "plugins": {"names": ["test_sys.plugins.basic"]},
-        "hat": {
-            "monitor": {
-                "name": "aimm",
-                "group": "aimm",
-                "monitor_address": f"tcp+sbs://127.0.0.1:{monitor_port}",
-                "component_address": None,
-            },
-            "event_server_group": "event",
-        },
+        "hat": {"eventer_server": {"host": "127.0.0.1", "port": event_port}},
+        "name": "sys-test-event",
     }
 
 
 @pytest.fixture
-async def aimm_server_proc(monitor_port, event_server, conf_path):
-    conf = simple_conf(monitor_port)
+async def aimm_server_proc(event_port, event_server, conf_path):
+    conf = simple_conf(event_port)
     aimm_conf_path = conf_path / "aimm.yaml"
     json.encode_file(conf, aimm_conf_path)
     proc = psutil.Popen(
@@ -214,19 +148,6 @@ def event_client_factory(event_port):
         await client.async_close()
 
     return factory
-
-
-def assert_event(event, event_type, payload, source_timestamp=None):
-    assert event.type == event_type
-    assert event.source_timestamp == source_timestamp
-    assert event.payload.data == payload
-
-
-async def test_connects(aimm_server_proc, monitor_port, event_port):
-    while not _connected_to(aimm_server_proc, monitor_port):
-        await asyncio.sleep(0.1)
-    while not _connected_to(aimm_server_proc, event_port):
-        await asyncio.sleep(0.1)
 
 
 async def test_create_instance(aimm_server_proc, event_client_factory):
@@ -470,14 +391,6 @@ def _listens_on(proc, port):
         conn.laddr.port
         for conn in proc.net_connections()
         if conn.status == "LISTEN"
-    )
-
-
-def _connected_to(proc, port):
-    return port in (
-        conn.raddr.port
-        for conn in proc.connections()
-        if conn.status == "ESTABLISHED"
     )
 
 

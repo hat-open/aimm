@@ -1,3 +1,4 @@
+import hat.event.common
 from hat import aio
 import base64
 import pytest
@@ -8,8 +9,12 @@ from aimm import plugins
 
 
 class MockClient:
-    def __init__(self, query_result=[]):
+    def __init__(self, query_result=None):
         self._query_result = query_result
+        if query_result is None:
+            self._query_result = hat.event.common.QueryResult(
+                events=[], more_follows=False
+            )
         self._query_queue = aio.Queue()
         self._register_queue = aio.Queue()
         self._receive_queue = aio.Queue()
@@ -18,12 +23,9 @@ class MockClient:
         self._query_queue.put_nowait(query_data)
         return self._query_result
 
-    async def register_with_response(self, events):
+    async def register(self, events, with_response=False):
         self._register_queue.put_nowait(events)
         return events
-
-    async def receive(self):
-        await self._receive_queue.get()
 
 
 @pytest.fixture
@@ -63,7 +65,9 @@ async def test_get_models(string_plugins):
 
     await backend.create_model("type", "instance")
     events = await mock_client._register_queue.get()
-    mock_client._query_result = events
+    mock_client._query_result = hat.event.common.QueryResult(
+        events=events, more_follows=False
+    )
 
     models = await backend.get_models()
     assert len(models) == 1
