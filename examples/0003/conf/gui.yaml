@@ -19,10 +19,10 @@ views:
     conf: null
 initial_view: login
 users:
-  - name: user1
+  - name: user
     password:
-        hash: 0927f26c1e200037ef44e622d39d5b7c201690c85b9aa86545d6583ecff2b02f
-        salt: 7af08c40f25d800fa3d1ab3f8199adbd
+        hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
+        salt: 497b53087260002cd62ffabc94267437
     roles:
         - user
     view: main

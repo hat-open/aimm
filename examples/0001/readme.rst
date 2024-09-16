@@ -14,8 +14,7 @@ While the server is running, start a jupyter notebook process and host the
 ``Iris.ipynb`` notebook. The notebook shows examples of how AIMM service can be
 used to run plugins.
 
-When prompted for login, the username is ``user`` and password is an empty
-string.
+When prompted for login, the username is ``user`` and password is ``pass``.
 
 Running through docker
 ----------------------
