@@ -26,26 +26,23 @@ class MainRunner(aio.Resource):
 
     async def _run(self):
         if "hat" in self._conf:
-            child_runner = HatRunner(self._conf, self._group.create_subgroup())
+            child_runner = HatRunner(self._conf)
         else:
             mlog.debug("running without hat compatibility")
-            child_runner = AIMMRunner(
-                self._conf, self._group.create_subgroup(), client=None
-            )
+            child_runner = AIMMRunner(self._conf, client=None)
             _bind_resource(self._group, child_runner)
         try:
             await child_runner.wait_closing()
         except Exception as e:
             mlog.error("main runner loop error: %s", e, exc_info=e)
         finally:
-            self.close()
             await aio.uncancellable(child_runner.async_close())
 
 
 class HatRunner(aio.Resource):
-    def __init__(self, conf, group):
+    def __init__(self, conf):
         self._conf = conf
-        self._group = group
+        self._group = aio.Group()
 
         self._aimm_runner = None
         self._hat_component = None
@@ -133,7 +130,6 @@ class HatRunner(aio.Resource):
         except Exception as e:
             mlog.error("unhandled exception in hat runner: %s", e, exc_info=e)
         finally:
-            self.close()
             await aio.uncancellable(self._cleanup())
 
     async def _cleanup(self):
@@ -145,11 +141,7 @@ class HatRunner(aio.Resource):
             await self._eventer_client.async_close()
 
     def _create_aimm_runner(self, eventer_client):
-        self._aimm_runner = AIMMRunner(
-            conf=self._conf,
-            group=self._group.create_subgroup(),
-            client=eventer_client,
-        )
+        self._aimm_runner = AIMMRunner(conf=self._conf, client=eventer_client)
         _bind_resource(self._group, self._aimm_runner)
         return self._aimm_runner
 
@@ -169,9 +161,9 @@ class HatRunner(aio.Resource):
 
 
 class AIMMRunner(aio.Resource):
-    def __init__(self, conf, group, client):
+    def __init__(self, conf, client):
         self._conf = conf
-        self._group = group
+        self._group = aio.Group()
         self._client = client
         self._module_map = {}
 
@@ -199,8 +191,6 @@ class AIMMRunner(aio.Resource):
             await self._group.wait_closing()
         except Exception as e:
             mlog.error("error in aimm runner: %s", e, exc_info=e)
-        finally:
-            self.close()
 
     async def _create_resources(self):
         self._backend = await self._create_backend(self._conf["backend"])

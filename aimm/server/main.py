@@ -31,7 +31,10 @@ def main():
 
 async def async_main(conf):
     runner = aimm.server.runners.MainRunner(conf)
-    await runner.wait_closing()
+    try:
+        await runner.wait_closing()
+    finally:
+        await aio.uncancellable(runner.async_close())
 
 
 def _create_parser():
