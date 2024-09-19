@@ -12,18 +12,13 @@ from hat.drivers import tcp
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf, client, event_type_prefix):
-    device = Device()
-    device._async_group = aio.Group()
-    device._event_client = client
-    device._async_group.spawn(device._connection_loop)
-    return device
-
-
-info = hat.gateway.common.DeviceInfo(type="device", create=create)
-
-
 class Device(hat.gateway.common.Device):
+
+    def __init__(self, _, client, __):
+        self._async_group = aio.Group()
+        self._event_client = client
+        self._async_group.spawn(self._connection_loop)
+
     @property
     def async_group(self):
         return self._async_group
@@ -65,11 +60,14 @@ class Device(hat.gateway.common.Device):
             )
 
 
+info = hat.gateway.common.DeviceInfo(type="device", create=Device)
+
+
 def _data_to_event(data):
     bus_id = data.asdu_address
     measurement_type = ["p", "q", "v", "va"][data.io_address]
     return hat.event.common.RegisterEvent(
-        type=(("measurement", str(bus_id), measurement_type)),
+        type=("measurement", str(bus_id), measurement_type),
         source_timestamp=None,
         payload=hat.event.common.EventPayloadJson(data.data.value),
     )

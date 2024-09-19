@@ -9,38 +9,28 @@ import logging
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf, engine, source):
-    module = Module()
-    module._gw_prefix = ("gateway", "gateway", "device", "device")
-    module._subscription = common.create_subscription(
-        [
+class Module(common.Module):
+    def __init__(self, _, engine, source):
+        self._gw_prefix = ("gateway", "gateway", "device", "device")
+        self._subscription = common.create_subscription([
             ("measurement", "?", "?"),
             ("event", "?", "eventer", "gateway"),
             ("aimm", "state"),
             ("aimm", "response"),
-        ]
-    )
+        ])
 
-    global _source_id
-    module._source = source
+        self._source = source
 
-    module._async_group = aio.Group()
-    module._engine = engine
-    module._model_id = None
-    module._create_model_request_id = None
-    module._predict_request_id = None
-    module._measurements = {}
+        self._async_group = aio.Group()
+        self._engine = engine
+        self._model_id = None
+        self._create_model_request_id = None
+        self._predict_request_id = None
+        self._measurements = {}
 
-    module._predict_task = None
-    module._request_gen = itertools.count(1)
+        self._predict_task = None
+        self._request_gen = itertools.count(1)
 
-    return module
-
-
-info = common.ModuleInfo(create=create)
-
-
-class Module(common.Module):
     @property
     def async_group(self):
         return self._async_group
@@ -164,6 +154,9 @@ def _measurements_to_arg(measurements):
                 "element": int(bus_id),
                 "side": None,
             }
+
+
+info = common.ModuleInfo(create=Module)
 
 
 def _register_event(event_type, payload):
