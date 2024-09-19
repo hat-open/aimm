@@ -14,13 +14,15 @@ import aimm.server.engine
 class MockEngine(common.Engine):
     def __init__(
         self,
-        state={"models": {}, "actions": {}},
+        state=None,
         create_instance_cb=None,
         add_instance_cb=None,
         update_instance_cb=None,
         fit_cb=None,
         predict_cb=None,
     ):
+        if state is None:
+            state = {"models": {}, "actions": {}}
         self._state = state
         self._cb = lambda: None
         self._create_instance_cb = create_instance_cb

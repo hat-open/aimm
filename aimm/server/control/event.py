@@ -21,26 +21,24 @@ async def create(conf, engine, event_client):
         raise ValueError(
             "attempting to create event control without hat compatibility"
         )
-
-    control = EventControl()
-
-    control._client = event_client
-    control._engine = engine
-    control._async_group = aio.Group()
-    control._event_prefixes = conf["event_prefixes"]
-    control._state_event_type = conf["state_event_type"]
-    control._action_state_event_type = conf["action_state_event_type"]
-    control._executor = aio.create_executor()
-    control._notified_state = {}
-    control._in_progress = {}
-
-    control._notify_state()
-    control._engine.subscribe_to_state_change(control._notify_state)
-
-    return control
+    return EventControl(conf, engine, event_client)
 
 
 class EventControl(common.Control):
+    def __init__(self, conf, engine, event_client):
+        self._client = event_client
+        self._engine = engine
+        self._async_group = aio.Group()
+        self._event_prefixes = conf["event_prefixes"]
+        self._state_event_type = conf["state_event_type"]
+        self._action_state_event_type = conf["action_state_event_type"]
+        self._executor = aio.create_executor()
+        self._notified_state = {}
+        self._in_progress = {}
+
+        self._notify_state()
+        self._engine.subscribe_to_state_change(self._notify_state)
+
     @property
     def async_group(self) -> aio.Group:
         """Async group"""

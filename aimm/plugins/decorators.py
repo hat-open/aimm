@@ -169,9 +169,6 @@ def serialize(model_types: List[str]) -> Callable:
 
     Args:
         model_types: types of models supported by the decorated function
-        instance_arg_name: if set, indicates under which argument name to pass
-            the concrete model instance. If not set, it is passed in the first
-            positional argument
 
     Returns:
         Decorated function"""
@@ -231,13 +228,26 @@ def model(cls: Type) -> Type:
     """
 
     model_type = f"{cls.__module__}.{cls.__name__}"
+
     _declare("instantiate", model_type, common.InstantiatePlugin(cls))
-    _declare("fit", model_type, common.FitPlugin(cls.fit))
-    _declare("predict", model_type, common.PredictPlugin(cls.predict))
-    _declare("serialize", model_type, common.SerializePlugin(cls.serialize))
-    _declare(
-        "deserialize", model_type, common.DeserializePlugin(cls.deserialize)
-    )
+
+    fit_fn = getattr(cls, "fit")
+    if isinstance(fit_fn, Callable):
+        _declare("fit", model_type, common.FitPlugin(fit_fn))
+
+    predict_fn = getattr(cls, "predict")
+    if isinstance(predict_fn, Callable):
+        _declare("predict", model_type, common.PredictPlugin(predict_fn))
+
+    serialize_fn = getattr(cls, "serialize")
+    if isinstance(serialize_fn, Callable):
+        _declare("serialize", model_type, common.SerializePlugin(serialize_fn))
+
+    deserialize_fn = getattr(cls, "deserialize")
+    if isinstance(deserialize_fn, Callable):
+        _declare(
+            "deserialize", model_type, common.DeserializePlugin(deserialize_fn)
+        )
 
     return cls
 

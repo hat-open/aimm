@@ -15,41 +15,41 @@ mlog = logging.getLogger(__name__)
 
 async def create(conf, engine, _):
     common.json_schema_repo.validate("aimm://server/control/repl.yaml#", conf)
-    control = REPLControl()
-
-    srv_conf = conf["server"]
-    server = await juggler.listen(
-        srv_conf["host"],
-        srv_conf["port"],
-        connection_cb=control._connection_cb,
-        request_cb=control._request_cb,
-        index_path=None,
-        ws_path="/",
-        pem_file=srv_conf.get("pem_file"),
-        autoflush_delay=srv_conf.get("autoflush_delay", 0.2),
-        shutdown_timeout=srv_conf.get("shutdown_timeout", 0.1),
-    )
-
-    async_group = aio.Group()
-    _bind_resource(async_group, server)
-
-    control._conf = conf
-    control._engine = engine
-    control._async_group = async_group
-    control._server = server
-    control._connection_session_mapping = {}
-
+    control = REPLControl(conf, engine)
     return control
 
 
 class REPLControl(common.Control):
+    def __init__(self, conf, engine):
+        self._conf = conf
+        self._engine = engine
+        self._group = aio.Group()
+        self._connection_session_mapping = {}
+
+        self._group.spawn(self._run, conf["server"])
+
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
-        return self._async_group
+        return self._group
+
+    async def _run(self, conf):
+        server = await juggler.listen(
+            conf["host"],
+            conf["port"],
+            connection_cb=self._connection_cb,
+            request_cb=self._request_cb,
+            index_path=None,
+            ws_path="/",
+            pem_file=conf.get("pem_file"),
+            autoflush_delay=conf.get("autoflush_delay", 0.2),
+            shutdown_timeout=conf.get("shutdown_timeout", 0.1),
+        )
+        _bind_resource(self._group, server)
+        await server.wait_closing()
 
     def _connection_cb(self, connection):
-        subgroup = self._async_group.create_subgroup()
+        subgroup = self._group.create_subgroup()
         session = Session(connection, self._engine, self._conf, subgroup)
         self._connection_session_mapping[connection] = session
 

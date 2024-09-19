@@ -4,7 +4,7 @@ import pytest
 from aimm import plugins
 
 
-def pytest_configure(config):
+def pytest_configure():
     aio.init_asyncio()
 
 

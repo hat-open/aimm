@@ -152,16 +152,13 @@ class ProcessHandler(aio.Resource):
             self._process.start()
 
             async def wait_result():
-                try:
-                    result = await self._executor(
-                        _ext_closeable_recv, self._result_pipe
-                    )
-                    if result.success:
-                        return result.result
-                    else:
-                        raise result.exception
-                except _ProcessTerminatedException:
-                    raise Exception("process terminated")
+                result = await self._executor(
+                    _ext_closeable_recv, self._result_pipe
+                )
+                if result.success:
+                    return result.result
+                else:
+                    raise result.exception
 
             return await aio.uncancellable(wait_result())
         finally:
@@ -186,22 +183,8 @@ class ProcessHandler(aio.Resource):
         await self._executor(_ext_close_pipe, self._state_pipe)
 
 
-class _Result(NamedTuple):
-    success: bool
-    result: Optional[Any] = None
-    exception: Optional[Exception] = None
-
-
-class _ProcessTerminatedException(Exception):
-    pass
-
-
-def _plugin_sigterm_handler(frame, signum):
-    raise Exception("process terminated")
-
-
 @contextlib.contextmanager
-def _sigterm_override():
+def sigterm_override():
     try:
         signal.signal(signal.SIGTERM, _plugin_sigterm_handler)
         yield
@@ -209,9 +192,23 @@ def _sigterm_override():
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
+class _Result(NamedTuple):
+    success: bool
+    result: Optional[Any] = None
+    exception: Optional[Exception] = None
+
+
+class ProcessTerminatedException(Exception):
+    pass
+
+
+def _plugin_sigterm_handler(_, __):
+    raise ProcessTerminatedException("process sigterm")
+
+
 def _proc_run_fn(pipe, fn, *args, **kwargs):
     try:
-        with _sigterm_override():
+        with sigterm_override():
             result = _Result(success=True, result=fn(*args, **kwargs))
     except Exception as e:
         result = _Result(success=False, exception=e)
@@ -242,5 +239,5 @@ def _ext_closeable_recv(pipe):
     recv_conn, _ = pipe
     value = recv_conn.recv()
     if value == _PipeSentinel.CLOSE:
-        raise _ProcessTerminatedException("pipe closed")
+        raise ProcessTerminatedException("pipe closed")
     return value

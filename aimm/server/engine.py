@@ -14,50 +14,44 @@ from aimm.server import mprocess
 mlog = logging.getLogger(__name__)
 
 
-async def create(
-    conf: typing.Dict, backend: common.Backend, group: aio.Group
-) -> common.Engine:
+async def create(conf: typing.Dict, backend: common.Backend) -> common.Engine:
     """Create engine
 
     Args:
         conf: configuration that follows schema with id
             ``aimm://server/schema.yaml#/definitions/engine``
         backend: backend
-        group: async group
 
     Returns:
         engine
     """
-    engine = _Engine()
-
-    models = await backend.get_models()
-
-    engine._group = group
-    engine._backend = backend
-    engine._conf = conf
-    engine._state = {
-        "actions": {},
-        "models": {model.instance_id: model for model in models},
-    }
-    engine._locks = {
-        instance_id: asyncio.Lock() for instance_id in engine._state["models"]
-    }
-
-    engine._action_id_gen = itertools.count(1)
-
-    engine._pool = mprocess.ProcessManager(
-        conf["max_children"],
-        group.create_subgroup(),
-        conf["check_children_period"],
-        conf["sigterm_timeout"],
-    )
-    engine._callback_registry = util.CallbackRegistry()
-
+    engine = _Engine(conf, backend)
+    await engine.start()
     return engine
 
 
 class _Engine(common.Engine):
     """Engine implementation, use :func:`create` to instantiate"""
+
+    def __init__(self, conf, backend):
+        self._group = aio.Group()
+        self._backend = backend
+        self._conf = conf
+        self._state = {"actions": {}, "models": {}}
+        self._locks = {
+            instance_id: asyncio.Lock()
+            for instance_id in self._state["models"]
+        }
+
+        self._action_id_gen = itertools.count(1)
+
+        self._pool = mprocess.ProcessManager(
+            conf["max_children"],
+            self._group.create_subgroup(),
+            conf["check_children_period"],
+            conf["sigterm_timeout"],
+        )
+        self._callback_registry = util.CallbackRegistry()
 
     @property
     def async_group(self):
@@ -67,13 +61,20 @@ class _Engine(common.Engine):
     def state(self):
         return self._state
 
+    async def start(self):
+        models = await self._backend.get_models()
+        self._state = {
+            "actions": {},
+            "models": {model.instance_id: model for model in models},
+        }
+
     def subscribe_to_state_change(self, cb):
         return self._callback_registry.register(cb)
 
     def create_instance(self, model_type, *args, **kwargs):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
-        return _Action(
+        return create_action(
             self._group.create_subgroup(),
             self._act_create_instance,
             model_type,
@@ -95,7 +96,7 @@ class _Engine(common.Engine):
     def fit(self, instance_id, *args, **kwargs):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
-        return _Action(
+        return create_action(
             self._group.create_subgroup(),
             self._act_fit,
             instance_id,
@@ -107,7 +108,7 @@ class _Engine(common.Engine):
     def predict(self, instance_id, *args, **kwargs):
         action_id = next(self._action_id_gen)
         state_cb = partial(self._update_action, action_id)
-        return _Action(
+        return create_action(
             self._group.create_subgroup(),
             self._act_predict,
             instance_id,
@@ -203,13 +204,8 @@ class _Engine(common.Engine):
                 *args,
                 **kwargs
             )
-        new_model = model._replace(instance=instance)
-
-        reactive.update(dict(reactive.state, progress="storing"))
-        await self._backend.update_model(new_model)
-
+        new_model = await self._update_model(instance, model, reactive)
         reactive.update(dict(reactive.state, progress="complete"))
-        self._set_model(new_model)
         return new_model
 
     async def _act_predict(self, instance_id, args, kwargs, state_cb):
@@ -235,7 +231,8 @@ class _Engine(common.Engine):
         )
         async with self._locks[instance_id]:
             model = self.state["models"][instance_id]
-            prediction = await handler.run(
+            reactive.update(dict(reactive.state, progress="executing"))
+            instance, prediction = await handler.run(
                 plugins.exec_predict,
                 model.model_type,
                 model.instance,
@@ -243,8 +240,27 @@ class _Engine(common.Engine):
                 *args,
                 **kwargs
             )
+        await self._update_model(instance, model, reactive)
         reactive.update(dict(reactive.state, progress="complete"))
         return prediction
+
+    async def _update_model(self, instance, model, reactive):
+        new_model = common.Model(
+            instance=instance,
+            model_type=model.model_type,
+            instance_id=model.instance_id,
+        )
+        reactive.update(dict(reactive.state, progress="storing"))
+        await self._backend.update_model(new_model)
+
+        self._set_model(new_model)
+        return new_model
+
+
+def create_action(
+    async_group: aio.Group, fn: typing.Callable, *args, **kwargs
+) -> common.Action:
+    return _Action(async_group, fn, *args, **kwargs)
 
 
 class _Action(common.Action):

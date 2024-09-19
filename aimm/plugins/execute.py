@@ -50,15 +50,16 @@ def exec_predict(
     state_cb: common.StateCallback = lambda state: None,
     *args: Any,
     **kwargs: Any
-) -> Any:
+) -> tuple[Any, Any]:
     """Uses a loaded plugin to perform a prediction with a given model
-    instance"""
+    instance. Also returns the instance because it might be altered during the
+    prediction, e.g. with reinforcement learning models."""
     plugin = decorators.get_predict(model_type)
     kwargs = _kwargs_add_state_cb(plugin.state_cb_arg_name, state_cb, kwargs)
     args, kwargs = _args_add_instance(
         plugin.instance_arg_name, instance, args, kwargs
     )
-    return plugin.function(*args, **kwargs)
+    return instance, plugin.function(*args, **kwargs)
 
 
 def exec_serialize(model_type: str, instance: Any) -> ByteString:

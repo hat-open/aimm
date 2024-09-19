@@ -13,9 +13,11 @@ async def backend(tmp_path):
 
 
 async def test_create(tmp_path):
-    backend = await sqlite.create({"path": str(tmp_path / "backend.db")}, None)
-    assert backend
-    await backend.async_close()
+    backend_object = await sqlite.create(
+        {"path": str(tmp_path / "backend.db")}, None
+    )
+    assert backend_object
+    await backend_object.async_close()
 
 
 async def test_models(backend, plugin_teardown):

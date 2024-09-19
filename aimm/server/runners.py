@@ -197,7 +197,7 @@ class AIMMRunner(aio.Resource):
         yield self._backend
 
         self._engine = await aimm.server.engine.create(
-            self._conf["engine"], self._backend, self._group.create_subgroup()
+            self._conf["engine"], self._backend
         )
         yield self._engine
 

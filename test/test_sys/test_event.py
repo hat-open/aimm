@@ -227,7 +227,6 @@ async def _create_instance(client, model_type, events_queue):
 
     events = await events_queue.get()
     event = events[0]
-    payload = event.payload.data
     assert event.type == ("aimm", "model", "1")
 
     events = await events_queue.get()
@@ -321,6 +320,14 @@ async def test_predict(aimm_server_proc, event_client_factory):
         events = await events_queue.get()
         assert len(events) == 1
         event = events[0]
+        assert event.type == ("aimm", "model", str(model_id))
+        assert event.source_timestamp is None
+        assert event.payload.data["type"] == model_type
+        assert event.payload.data["instance"] is not None
+
+        events = await events_queue.get()
+        assert len(events) == 1
+        event = events[0]
         assert event.type == ("aimm", "action_state")
         assert event.source_timestamp is None
         payload = event.payload.data
@@ -336,7 +343,7 @@ async def test_cancel(aimm_server_proc, event_client_factory):
         [("aimm", "action_state"), ("aimm", "model", "*")]
     ) as (client, events_queue):
         model_id = await _create_instance(client, model_type, events_queue)
-        request = await client.register(
+        await client.register(
             [
                 _register_event(
                     ("predict", str(model_id)),
@@ -349,7 +356,6 @@ async def test_cancel(aimm_server_proc, event_client_factory):
             ],
             with_response=True,
         )
-        request = request[0]
 
         events = await events_queue.get()
         assert len(events) == 1

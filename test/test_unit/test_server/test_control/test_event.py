@@ -15,20 +15,22 @@ class MockClient:
         self._register_queue = aio.Queue()
         self._receive_queue = aio.Queue()
 
-    async def register(self, events, with_response=False):
+    async def register(self, events, _=False):
         self._register_queue.put_nowait(events)
 
 
 class MockEngine(common.Engine):
     def __init__(
         self,
-        state={"models": {}, "actions": {}},
+        state=None,
         create_instance_cb=None,
         add_instance_cb=None,
         update_instance_cb=None,
         fit_cb=None,
         predict_cb=None,
     ):
+        if state is None:
+            state = {"models": {}, "actions": {}}
         self._state = state
         self._cb = None
         self._create_instance_cb = create_instance_cb
@@ -57,7 +59,7 @@ class MockEngine(common.Engine):
 
     def create_instance(self, *args, **kwargs):
         if self._create_instance_cb:
-            return aimm.server.engine._Action(
+            return aimm.server.engine.create_action(
                 self._group.create_subgroup(),
                 aio.call,
                 self._create_instance_cb,
@@ -78,7 +80,7 @@ class MockEngine(common.Engine):
 
     def fit(self, *args, **kwargs):
         if self._fit_cb:
-            return aimm.server.engine._Action(
+            return aimm.server.engine.create_action(
                 self._group.create_subgroup(),
                 aio.call,
                 self._fit_cb,
@@ -89,7 +91,7 @@ class MockEngine(common.Engine):
 
     def predict(self, *args, **kwargs):
         if self._predict_cb:
-            return aimm.server.engine._Action(
+            return aimm.server.engine.create_action(
                 self._group.create_subgroup(),
                 aio.call,
                 self._predict_cb,
@@ -136,13 +138,13 @@ async def test_state():
 async def test_create_instance():
     create_queue = aio.Queue()
 
-    async def create_instance_cb(model_type, *args, **kwargs):
+    async def create_instance_cb(model_type, *c_args, **c_kwargs):
         complete_future = asyncio.Future()
         create_queue.put_nowait(
             {
                 "model_type": model_type,
-                "args": args,
-                "kwargs": kwargs,
+                "args": c_args,
+                "kwargs": c_kwargs,
                 "complete_future": complete_future,
             }
         )
@@ -218,7 +220,7 @@ async def test_add_instance(plugin_teardown):
     client = MockClient()
     engine = MockEngine(add_instance_cb=add_instance_cb)
     control = await aimm.server.control.event.create(conf(), engine, client)
-    events = await client._register_queue.get()  # state
+    await client._register_queue.get()  # state
 
     req_event = _event(
         ("add_instance",),
@@ -270,7 +272,7 @@ async def test_update_instance(plugin_teardown):
     client = MockClient()
     engine = MockEngine(update_instance_cb=update_instance_cb)
     control = await aimm.server.control.event.create(conf(), engine, client)
-    events = await client._register_queue.get()  # state
+    await client._register_queue.get()  # state
 
     req_event = _event(
         ("update_instance", "10"),
@@ -320,12 +322,12 @@ async def test_fit():
 
     client = MockClient()
     engine = MockEngine(
-        {"models": {11: common.Model("M", None, 11)}, "actions": {}},
+        {"models": {11: common.Model("M", "test", 11)}, "actions": {}},
         fit_cb=fit_cb,
     )
     control = await aimm.server.control.event.create(conf(), engine, client)
 
-    events = await client._register_queue.get()  # state
+    await client._register_queue.get()  # state
 
     req_event = _event(
         ("fit", "11"),
@@ -384,12 +386,12 @@ async def test_predict():
 
     client = MockClient()
     engine = MockEngine(
-        {"models": {12: common.Model("M", None, 12)}, "actions": {}},
+        {"models": {12: common.Model("M", "test", 12)}, "actions": {}},
         predict_cb=predict_cb,
     )
     control = await aimm.server.control.event.create(conf(), engine, client)
 
-    events = await client._register_queue.get()  # state
+    await client._register_queue.get()  # state
 
     req_event = _event(
         ("predict", "12"),
@@ -434,19 +436,19 @@ async def test_predict():
 async def test_cancel():
     future_queue = aio.Queue()
 
-    async def predict_cb(model_id, *args, **kwargs):
+    async def predict_cb(_, *__, **___):
         done_future = asyncio.Future()
         future_queue.put_nowait(done_future)
         return await done_future
 
     client = MockClient()
     engine = MockEngine(
-        {"models": {12: common.Model("M", None, 12)}, "actions": {}},
+        {"models": {12: common.Model("M", "test", 12)}, "actions": {}},
         predict_cb=predict_cb,
     )
     control = await aimm.server.control.event.create(conf(), engine, client)
 
-    events = await client._register_queue.get()  # state
+    await client._register_queue.get()  # state
 
     req_event = _event(
         ("predict", "12"), {"args": [], "kwargs": {}, "request_id": "1"}

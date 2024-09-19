@@ -11,10 +11,11 @@ from typing import (
     Collection,
 )
 import abc
-import aimm.common
 import hat.event.eventer.client
 import hat.event.common
 import logging
+
+import aimm.common
 
 mlog = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ only argument and returns a subscription object.
 
 class Model(NamedTuple):
     """Server's representation of objects returned by
-    :func:`plugins.exec_instantiate`. Contains all metadata neccessary to
+    :func:`plugins.exec_instantiate`. Contains all metadata necessary to
     identify and perform other actions with it."""
 
     instance: Any
@@ -49,7 +50,7 @@ class DataAccess(NamedTuple):
     docstrings."""
 
     name: str
-    """name of the data acces type, used to identify which plugin to use"""
+    """name of the data access type, used to identify which plugin to use"""
     args: Iterable
     """positional arguments to be passed to the plugin call"""
     kwargs: Dict[str, Any]
@@ -93,12 +94,10 @@ class Engine(aio.Resource, abc.ABC):
         """Update existing instance in the state"""
 
     @abc.abstractmethod
-    async def fit(
-        self, instance_id: int, *args: Any, **kwargs: Any
-    ) -> "Action":
+    def fit(self, instance_id: int, *args: Any, **kwargs: Any) -> "Action":
         """Starts an action that fits an existing model instance. The used
         fitting function is the one assigned to the model type. The instance,
-        while it is being fitted, is not accessable by any of the other
+        while it is being fitted, is not accessible by any of the other
         functions that would use it (other calls to fit, predictions, etc.).
 
         Args:
@@ -111,12 +110,10 @@ class Engine(aio.Resource, abc.ABC):
                 arguments"""
 
     @abc.abstractmethod
-    async def predict(
-        self, instance_id: int, *args: Any, **kwargs: Any
-    ) -> "Action":
+    def predict(self, instance_id: int, *args: Any, **kwargs: Any) -> "Action":
         """Starts an action that uses an existing model instance to perform a
         prediction. The used prediction function is the one assigned to model's
-        type. The instance, while prediction is called, is not accessable by
+        type. The instance, while prediction is called, is not accessible by
         any of the other functions that would use it (other calls to predict,
         fittings, etc.).  If instance has changed while predicting, it is
         updated in the state and database.
@@ -131,7 +128,7 @@ class Engine(aio.Resource, abc.ABC):
                 arguments
 
         Returns:
-            Reference to task of the managable predict call, result of it is
+            Reference to task of the manageable predict call, result of it is
             the model's prediction"""
 
 
@@ -157,7 +154,7 @@ def create_backend(
     signature"""
 
 
-class Backend(aio.Resource):
+class Backend(aio.Resource, abc.ABC):
     """Backend interface. In order to integrate in the aimm server, create a
     module with the implementation and function ``create`` that creates a
     backend instance. The function should have a signature as the
@@ -172,7 +169,7 @@ class Backend(aio.Resource):
 
     @abc.abstractmethod
     async def get_models(self) -> List[Model]:
-        """Get all persisted models, requries that a deserialization function
+        """Get all persisted models, requires that a deserialization function
         is defined for all persisted types
 
         Returns:
@@ -213,7 +210,7 @@ def create_control(
     signature"""
 
 
-class Control(aio.Resource):
+class Control(aio.Resource, abc.ABC):
     """Control interface. In order to integrate in the aimm server, create a
     module with the implementation and function ``create`` that creates a
     control instance and should have a signature as the :func:`create_control`

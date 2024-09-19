@@ -4,14 +4,15 @@ import itertools
 from aimm.server import common
 
 
-def create(conf, _):
-    backend = DummyBackend()
-    backend._group = aio.Group()
-    backend._id_counter = itertools.count(1)
-    return backend
+def create(_, __):
+    return DummyBackend()
 
 
 class DummyBackend(common.Backend):
+    def __init__(self):
+        self._group = aio.Group()
+        self._id_counter = itertools.count(1)
+
     @property
     def async_group(self) -> aio.Group:
         """Async group"""

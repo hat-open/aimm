@@ -6,6 +6,7 @@ import itertools
 
 from aimm.server import common
 from aimm import plugins
+from aimm.server.common import Model
 
 
 def create_subscription(conf):
@@ -14,29 +15,33 @@ def create_subscription(conf):
 
 async def create(conf, event_client):
     common.json_schema_repo.validate("aimm://server/backend/event.yaml#", conf)
-    backend = EventBackend()
-
-    backend._model_prefix = conf["model_prefix"]
-    backend._executor = aio.create_executor()
-    backend._cbs = util.CallbackRegistry()
-    backend._async_group = aio.Group()
-    backend._client = event_client
-
-    models = await backend.get_models()
-    backend._id_counter = itertools.count(
-        max((model.instance_id for model in models), default=1)
-    )
+    backend = EventBackend(conf, event_client)
+    await backend.start()
 
     return backend
 
 
 class EventBackend(common.Backend):
+    def __init__(self, conf, event_client):
+        self._model_prefix = conf["model_prefix"]
+        self._executor = aio.create_executor()
+        self._cbs = util.CallbackRegistry()
+        self._group = aio.Group()
+        self._client = event_client
+        self._id_counter = None
+
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
-        return self._async_group
+        return self._group
 
-    async def get_models(self):
+    async def start(self):
+        models = await self.get_models()
+        self._id_counter = itertools.count(
+            max((model.instance_id for model in models), default=1)
+        )
+
+    async def get_models(self) -> list[Model]:
         query_result = await self._client.query(
             hat.event.common.QueryLatestParams(
                 event_types=[(*self._model_prefix, "*")]

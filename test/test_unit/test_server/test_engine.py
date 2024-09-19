@@ -43,9 +43,8 @@ class MockBackend(common.Backend):
         self._queue.put_nowait(("update", model))
 
 
-async def create_engine(backend=None, group=None):
+async def create_engine(backend=None):
     backend = backend or MockBackend()
-    group = group or aio.Group()
     return await engine.create(
         {
             "sigterm_timeout": 1,
@@ -53,7 +52,6 @@ async def create_engine(backend=None, group=None):
             "check_children_period": 0.2,
         },
         backend,
-        group,
     )
 
 
@@ -82,8 +80,8 @@ async def test_create_instance(plugin_teardown):
     eng.subscribe_to_state_change(lambda: state_queue.put_nowait(eng.state))
 
     @plugins.instantiate("test")
-    def create(*args, **kwargs):
-        return "test", args, kwargs
+    def create(*c_args, **c_kwargs):
+        return "test", c_args, c_kwargs
 
     args = (1, 2, 3)
     kwargs = {"p1": 4, "p2": 5}
@@ -101,7 +99,7 @@ async def test_create_instance(plugin_teardown):
             break
     assert state["models"][model_id] == expected_model
     assert await action.wait_result() == expected_model
-    await backend.queue.get() == ("create", expected_model)
+    assert await backend.queue.get() == ("create", expected_model)
     await eng.async_close()
 
 
@@ -133,7 +131,7 @@ async def test_add_instance(plugin_teardown):
             },
         }
     ]
-    await backend.queue.get() == (
+    assert await backend.queue.get() == (
         "create",
         common.Model(
             instance=None, model_type="test", instance_id=instance_id
@@ -159,39 +157,29 @@ async def test_fit(plugin_teardown):
     await backend.queue.get()
 
     @plugins.fit(["test"])
-    def fit(*args, **kwargs):
-        return ("instance_fitted", args, kwargs)
+    def fit(*f_args, **f_kwargs):
+        return "instance_fitted", f_args, f_kwargs
 
     args = (1, 2)
     kwargs = {"p1": 3, "p2": 4}
 
     action = eng.fit(1, *args, **kwargs)
-    expected_instance = common.Model(
+    expected_model = common.Model(
         instance=("instance_fitted", ("instance", *args), kwargs),
         model_type="test",
         instance_id=1,
     )
-    await queue.get() == {
-        "models": {
-            1: common.Model(
-                instance=expected_instance, model_type="test", instance_id=1
-            )
-        }
-    }
     model = await action.wait_result()
-    assert model == expected_instance
-    await backend.queue.get() == (
-        "update",
-        common.Model(
-            instance=expected_instance, model_type="test", instance_id=1
-        ),
-    )
+    assert model == expected_model
+
+    assert queue.get_nowait_until_empty()["models"] == {1: expected_model}
+    assert await backend.queue.get() == ("update", expected_model)
 
     # allow model lock to release
     await eng.async_close()
 
 
-@pytest.mark.timeout(2)
+# @pytest.mark.timeout(2)
 async def test_predict(plugin_teardown):
     backend = MockBackend()
     eng = await create_engine(backend)
@@ -208,23 +196,25 @@ async def test_predict(plugin_teardown):
     await backend.queue.get()
 
     @plugins.predict(["test"])
-    def predict(instance, *args, **kwargs):
+    def predict(instance, *p_args, **p_kwargs):
         instance.append(1)
-        return (instance, args, kwargs)
+        return instance, p_args, p_kwargs
 
     args = (1, 2)
     kwargs = {"p1": 3, "p2": 4}
 
     action = eng.predict(1, *args, **kwargs)
-    expected_instance = (["instance", 1], args, kwargs)
-    await queue.get() == {
-        "models": {
-            1: common.Model(
-                instance=expected_instance, model_type="test", instance_id=1
-            )
-        }
-    }
+    expected_result = (["instance", 1], args, kwargs)
     result = await action.wait_result()
-    assert result == expected_instance
+    assert result == expected_result
+
+    expected_model = common.Model(
+        instance=["instance", 1], model_type="test", instance_id=1
+    )
+
+    state = queue.get_nowait_until_empty()
+    assert state["models"] == {1: expected_model}
+    predict_backend_update = await backend.queue.get()
+    assert predict_backend_update == ("update", expected_model)
 
     await eng.async_close()

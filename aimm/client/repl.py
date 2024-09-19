@@ -2,8 +2,10 @@
 specified by the REPL control."""
 
 from getpass import getpass
+
 from hat import aio
 from hat import juggler
+from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed
 import base64
 import hashlib
 import numpy
@@ -41,7 +43,7 @@ class AIMM(aio.Resource):
         """Current state reported from the AIMM server"""
         return self._state
 
-    async def connect(self, address: str, autoflush_delay: float = 0.2):
+    async def connect(self, address: str):
         """Connects to the specified remote address. Login data is received
         from a user prompt. Passwords are hashed with SHA-256 before sending
         login request."""
@@ -51,7 +53,13 @@ class AIMM(aio.Resource):
         password_hash = hashlib.sha256()
         password_hash.update(getpass("Password: ").encode("utf-8"))
 
-        connection = await juggler.connect(address)
+        connection = None
+        async for attempt in AsyncRetrying(
+            wait=wait_fixed(1), stop=stop_after_attempt(3)
+        ):
+            with attempt:
+                connection = await juggler.connect(address)
+
         await connection.send(
             "login",
             {"username": username, "password": password_hash.hexdigest()},

@@ -23,7 +23,7 @@ class MockClient:
         self._query_queue.put_nowait(query_data)
         return self._query_result
 
-    async def register(self, events, with_response=False):
+    async def register(self, events, _=False):
         self._register_queue.put_nowait(events)
         return events
 

@@ -11,27 +11,31 @@ async def create(conf, _):
     common.json_schema_repo.validate(
         "aimm://server/backend/sqlite.yaml#", conf
     )
-    backend = SQLiteBackend()
-
-    executor = aio.create_executor(1)
-    connection = await executor(_ext_db_connect, Path(conf["path"]))
-    connection.row_factory = sqlite3.Row
-
-    group = aio.Group()
-    group.spawn(aio.call_on_cancel, executor, _ext_db_close, connection)
-
-    backend._executor = executor
-    backend._connection = connection
-    backend._group = group
-
+    backend = SQLiteBackend(conf)
+    await backend.start()
     return backend
 
 
 class SQLiteBackend(common.Backend):
+    def __init__(self, conf):
+        self._conf = conf
+        self._executor = aio.create_executor(1)
+        self._connection = None
+        self._group = aio.Group()
+
     @property
     def async_group(self) -> aio.Group:
         """Async group"""
         return self._group
+
+    async def start(self):
+        self._connection = await self._executor(
+            _ext_db_connect, Path(self._conf["path"])
+        )
+        self._connection.row_factory = sqlite3.Row
+        self._group.spawn(
+            aio.call_on_cancel, self._executor, _ext_db_close, self._connection
+        )
 
     async def get_models(self):
         query = """SELECT * FROM models"""
