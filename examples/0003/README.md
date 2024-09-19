@@ -1,7 +1,7 @@
 # hat-aimm-anomaly
 Hat aimm anomaly example.
 
-![GUI screenshot](scr.png)
+![GUI screenshot](docs/scr.png)
 
 ## Use
 

@@ -58,8 +58,9 @@ export function plot() {
             const dateValue = new Date(k);
 
             dateValue.setHours(dateValue.getHours() + 24);
-            return dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate() + " "
-		   + dateValue.getHours() + ":00:00";
+            const date = dateValue.getFullYear()+ "-" + (dateValue.getMonth()+1) + "-" + dateValue.getDate();
+            const hour = dateValue.getHours() + ":00:00";
+            return date + " " + hour;
 
         }),
         y: r.get('remote', 'timeseries','values','forecast'),
