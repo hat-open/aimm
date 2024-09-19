@@ -5,7 +5,7 @@ event_server:
         host: 127.0.0.1
         port: 23012
 devices:
-    - module: hat.device
+    - module: scada.device
       name: device
 log:
     disable_existing_loggers: false

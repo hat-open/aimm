@@ -15,10 +15,10 @@ def main():
 async def async_main():
     connections = set()
 
-    def connection_cb(connection):
-        connections.add(connection)
-        connection.async_group.spawn(
-            aio.call_on_cancel, lambda: connections.remove(connection)
+    def connection_cb(new_connection):
+        connections.add(new_connection)
+        new_connection.async_group.spawn(
+            aio.call_on_cancel, lambda: connections.remove(new_connection)
         )
 
     server = await iec104.listen(

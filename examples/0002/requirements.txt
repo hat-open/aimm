@@ -14,7 +14,7 @@ hat-gateway==0.6.11
 hat-gui==0.7.9
 hat-json==0.5.28
 hat-juggler==0.6.21
-hat-monitor==0.8.11
+hat-monitor==0.8.12
 hat-orchestrator==0.7.4
 hat-peg==0.5.9
 hat-sbs==0.7.2
@@ -42,6 +42,7 @@ referencing==0.35.1
 rpds-py==0.20.0
 scipy==1.13.1
 six==1.16.0
+tenacity==9.0.0
 tomli==2.0.1
 tomli_w==1.0.0
 tqdm==4.66.5

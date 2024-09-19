@@ -13,7 +13,7 @@ backend:
             - ['*']
     timeseries: []
 modules:
-    - module: hat.module
+    - module: scada.module
 eventer_server:
     host: 127.0.0.1
     port: 23012
