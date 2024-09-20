@@ -9,7 +9,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
           - name: Install requirements
-            run: pip install -r requirements.txt
+            run: |
+              pip install poetry
+              poetry install --dev
           - name: Create dist
             run: doit dist
           - name: Push to PyPI
