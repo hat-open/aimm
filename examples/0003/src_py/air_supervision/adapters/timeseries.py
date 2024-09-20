@@ -10,7 +10,7 @@ import logging
 mlog = logging.getLogger(__name__)
 
 
-async def create_subscription(conf):
+async def create_subscription(_):
     return hat.event.common.create_subscription(
         [("gui", "system", "timeseries", "*"), ("gui", "log", "*")]
     )
@@ -71,62 +71,58 @@ class Adapter(hat.gui.common.Adapter):
                 Additional data for GUI. Just pass it through, JS will handle
                 it.
                 """
-
                 self._models_info[event.type[2]] = dict(
                     self._models_info[event.type[2]],
                     **{event.type[3]: event.payload.data}
                 )
-                continue
-
-            """
-            # Data is from reading OR forecast OR anomaly
-
-            Data has the following structure:
-            {
-                'timestamp': datetime.datetime(...),
-                'value': original y value,
-                'result': result from model
-            }
-
-            Anomaly:
-                'result' is a number 0 or 1, save 'value' if 'result' == 1
-            Forecast:
-                'result' is a predicted value y,always save 'value'
-            Reading:
-                'result' DOESN'T EXIST
-            """
-
-            series_id = event.type[-1]
-            if series_id == "anomaly" and event.payload.data["result"] <= 0:
-                continue
-            value_k = "result" if series_id == "forecast" else "value"
-            self._series_values[series_id].append(event.payload.data[value_k])
-
-            self._series_timestamps[series_id].append(datetime.strptime(
-                event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
-            ))
-
-            forecast_v = self._series_values["forecast"]
-            forecast_t = self._series_timestamps["forecast"]
-
-            if forecast_t:
-                forecast_v, forecast_t = _truncate_lists(
-                    forecast_v, forecast_t
-                )
-
-                oldest_forecast = (
-                    max(self._series_timestamps["reading"]) - timedelta(days=2)
-                )
-                if min(forecast_t) < oldest_forecast:
-                    forecast_t = [
-                        i for i in forecast_t if i >= oldest_forecast
-                    ]
-                    forecast_v = forecast_v[-len(forecast_t) :]
-
-                self._series_values["forecast"] = forecast_v
-                self._series_timestamps["forecast"] = forecast_t
-
+            else:
+                await self._update_series(event)
         self._state_change_cb_registry.notify()
+
+    async def _update_series(self, event):
+        """
+        # Data is from reading OR forecast OR anomaly
+
+        Data has the following structure:
+        {
+            'timestamp': datetime.datetime(...),
+            'value': original y value,
+            'result': result from model
+        }
+
+        Anomaly:
+            'result' is a number 0 or 1, save 'value' if 'result' == 1
+        Forecast:
+            'result' is a predicted value y,always save 'value'
+        Reading:
+            'result' DOESN'T EXIST
+        """
+
+        series_id = event.type[-1]
+        if series_id == "anomaly" and event.payload.data["result"] <= 0:
+            return
+        value_key = "result" if series_id == "forecast" else "value"
+        self._series_values[series_id].append(event.payload.data[value_key])
+
+        self._series_timestamps[series_id].append(datetime.strptime(
+            event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
+        ))
+
+        forecast_t = self._series_timestamps["forecast"]
+        if not forecast_t:
+            return
+        forecast_v = self._series_values["forecast"]
+        forecast_v, forecast_t = _truncate_lists(forecast_v, forecast_t)
+
+        oldest_forecast = (
+            max(self._series_timestamps["reading"]) - timedelta(days=2)
+        )
+        if min(forecast_t) < oldest_forecast:
+            forecast_t = [i for i in forecast_t if i >= oldest_forecast]
+            forecast_v = forecast_v[-len(forecast_t) :]
+
+        self._series_values["forecast"] = forecast_v
+        self._series_timestamps["forecast"] = forecast_t
 
 
 class Session(hat.gui.common.AdapterSession):
@@ -168,18 +164,8 @@ class Session(hat.gui.common.AdapterSession):
                     k: list(v) for k, v in self._adapter.series_values.items()
                 },
                 "timestamps": {
-                    "reading": [
-                        str(ts)
-                        for ts in self._adapter.series_timestamps["reading"]
-                    ],
-                    "anomaly": [
-                        str(ts)
-                        for ts in self._adapter.series_timestamps["anomaly"]
-                    ],
-                    "forecast": [
-                        str(ts)
-                        for ts in self._adapter.series_timestamps["forecast"]
-                    ],
+                    k: [str(v) for v in series]
+                    for k, series in self._adapter.series_timestamps.items()
                 },
                 "info": {
                     "anomaly": self._adapter.models_info["anomaly"],
@@ -204,20 +190,19 @@ def _truncate_lists(vals, tss):
     max_ts = tss[0]
     index = 0
     for ts in tss:
-        if ts >= max_ts:
-            max_ts = ts
-            index = index + 1
-        else:
+        if ts < max_ts:
             break
+        max_ts = ts
+        index = index + 1
 
     # index of element with value equal to max_ts
     index_last = len(tss) - list(reversed(tss)).index(max_ts)
 
     # delete elements from index_first to index
-    vals_new = vals[:index] + vals[index_last:]
-    tss_new = tss[:index] + tss[index_last:]
+    del vals[index + 1 : index_last]
+    del tss[index + 1 : index_last]
 
-    return vals_new, tss_new
+    return vals, tss
 
 
 info = hat.gui.common.AdapterInfo(
