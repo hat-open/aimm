@@ -2,23 +2,15 @@ import hat.aio
 import hat.event.common
 
 
-async def create(conf, engine, source):
-    module = ReadingsModule()
-
-    module._source = source
-    module._subscription = hat.event.common.create_subscription(
-        [("gateway", "example", "?", "gateway", "reading")]
-    )
-    module._async_group = hat.aio.Group()
-    module._engine = engine
-
-    return module
-
-
-info = hat.event.common.ModuleInfo(create=create)
-
-
 class ReadingsModule(hat.event.common.Module):
+    def __init__(self, _, engine, source):
+        self._source = source
+        self._subscription = hat.event.common.create_subscription(
+            [("gateway", "example", "?", "gateway", "reading")]
+        )
+        self._async_group = hat.aio.Group()
+        self._engine = engine
+
     @property
     def async_group(self):
         return self._async_group
@@ -35,3 +27,6 @@ class ReadingsModule(hat.event.common.Module):
                 payload=event.payload,
             )
         ]
+
+
+info = hat.event.common.ModuleInfo(create=ReadingsModule)

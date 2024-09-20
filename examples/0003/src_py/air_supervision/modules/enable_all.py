@@ -6,23 +6,15 @@ import logging
 mlog = logging.getLogger(__name__)
 
 
-async def create(conf, engine, source):
-    module = EnableAll()
-
-    module._source = source
-    module._subscription = common.create_subscription(
-        [("event", "?", "eventer", "gateway")]
-    )
-    module._async_group = hat.aio.Group()
-    module._engine = engine
-
-    return module
-
-
-info = common.ModuleInfo(create=create)
-
-
 class EnableAll(common.Module):
+    def __init__(self, _, engine, source):
+        self._source = source
+        self._subscription = common.create_subscription(
+            [("event", "?", "eventer", "gateway")]
+        )
+        self._async_group = hat.aio.Group()
+        self._engine = engine
+
     @property
     def async_group(self):
         return self._async_group
@@ -40,3 +32,6 @@ class EnableAll(common.Module):
                     payload=common.EventPayloadJson(data=True),
                 )
             ]
+
+
+info = common.ModuleInfo(create=EnableAll)
