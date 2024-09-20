@@ -136,7 +136,7 @@ export function plot() {
                 "button",
                 {
                     props: {
-                        disabled: cur_model_name === value  || value === 'linear' || value === 'Cluster',
+                        disabled: cur_model_name === value  || value === 'Linear' || value === 'Cluster',
                         type: 'checkbox', id: 'id1',
                         name: 'modelSelect',
                         style: change_button_color(value, prediction_type),

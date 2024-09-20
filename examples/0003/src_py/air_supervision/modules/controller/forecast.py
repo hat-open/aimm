@@ -19,7 +19,7 @@ async def create(conf, engine, source):
     builder.engine = engine
 
     builder.model_family = "forecast"
-    builder.supported_models = ["MultiOutputSVR", "linear", "constant"]
+    builder.supported_models = ["MultiOutputSVR", "Linear", "Constant"]
     builder.batch_size = 48
     builder.min_readings = 24
 

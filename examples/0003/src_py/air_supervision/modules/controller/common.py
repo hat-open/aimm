@@ -58,13 +58,11 @@ class GenericReadingsModule(hat.event.common.Module, abc.ABC):
         self._batch_size = builder.batch_size
         self._min_readings = builder.min_readings
 
-        self._subscription = hat.event.common.create_subscription(
-            [
-                builder.user_action_type,
-                ("aimm", "*"),
-                ("gui", "system", "timeseries", "reading"),
-            ]
-        )
+        self._subscription = hat.event.common.create_subscription([
+            builder.user_action_type,
+            ("aimm", "*"),
+            ("gui", "system", "timeseries", "reading"),
+        ])
 
         self._async_group = hat.aio.Group()
 
