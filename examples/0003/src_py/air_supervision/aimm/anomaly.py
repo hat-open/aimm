@@ -19,26 +19,10 @@ class GenericAnomalyModel(aimm.plugins.Model):
         self.model = None
         self.hyperparameters = {}
 
-    def _scale(self, x):
-        min_max_scaler = preprocessing.StandardScaler()
-
-        self.mean_ = np.mean(x, axis=0)
-        self.scale_ = np.std(x, axis=0)
-
-        return pd.DataFrame(min_max_scaler.fit_transform(x))
-
     def predict(self, x):
         x = pd.DataFrame((x - self.mean_) / self.scale_)
         series = pd.Series(self.model.predict(x))
         return series.map({1: 0, -1: 1}).values.tolist()
-
-    def _update_hp(self, **kwargs):
-        changed = False
-        for key, value in kwargs.items():
-            if key in self.hyperparameters:
-                self.hyperparameters[key] = float(value)
-                changed = True
-        return changed
 
     def fit(self, x, y, **kwargs):
         self.model.fit(self._scale(x))
@@ -48,8 +32,24 @@ class GenericAnomalyModel(aimm.plugins.Model):
         return pickle.dumps(self)
 
     @classmethod
-    def deserialize(self, b):
+    def deserialize(cls, b):
         return pickle.loads(b)
+
+    def _scale(self, x):
+        min_max_scaler = preprocessing.StandardScaler()
+
+        self.mean_ = np.mean(x, axis=0)
+        self.scale_ = np.std(x, axis=0)
+
+        return pd.DataFrame(min_max_scaler.fit_transform(x))
+
+    def _update_hp(self, **kwargs):
+        changed = False
+        for key, value in kwargs.items():
+            if key in self.hyperparameters:
+                self.hyperparameters[key] = float(value)
+                changed = True
+        return changed
 
 
 @aimm.plugins.model
@@ -70,8 +70,7 @@ class Forest(GenericAnomalyModel):
                 contamination=self.hyperparameters["contamination"]
             )
 
-        super().fit(x, y, **kwargs)
-        return self
+        return super().fit(x, y, **kwargs)
 
 
 @aimm.plugins.model
@@ -93,14 +92,13 @@ class SVM(GenericAnomalyModel):
                 nu=0.95 * self.hyperparameters["contamination"]
             )
 
-        super().fit(x, y, **kwargs)
-        return self
+        return super().fit(x, y, **kwargs)
 
 
 @aimm.plugins.model
-class Cluster(aimm.plugins.Model):
+class Cluster(GenericAnomalyModel):
     def __init__(self, **kwargs):
-        pass
+        super().__init__(**kwargs)
 
     def fit(self, x, y, **kwargs):
         data = x[["value", "hours", "daylight", "DayOfTheWeek", "WeekDay"]]
@@ -110,7 +108,7 @@ class Cluster(aimm.plugins.Model):
         min_max_scaler = preprocessing.StandardScaler()
         np_scaled = min_max_scaler.fit_transform(data)
         data = pd.DataFrame(np_scaled)
-        # reduce to 2 importants features
+        # reduce to 2 important features
         pca = PCA(n_components=2)
         data = pca.fit_transform(data)
         # standardize these 2 new features
@@ -131,31 +129,29 @@ class Cluster(aimm.plugins.Model):
 
         # return Series of distance between each point and his distance with
         # the closest centroid
-        def getDistanceByPoint(data, model):
-            distance = pd.Series()
+        def get_distance_by_point(data, model):
+            result = pd.Series()
             for i in range(0, len(data)):
                 Xa = np.array(data.loc[i])
                 Xb = model.cluster_centers_[model.labels_[i] - 1]
-                distance.at[i] = np.linalg.norm(Xa - Xb)
-            return distance
+                result.at[i] = np.linalg.norm(Xa - Xb)
+            return result
 
         # get the distance between each point and its nearest centroid. The
         # biggest distances are considered as anomaly
-        distance = getDistanceByPoint(data, kmeans[14])
+        distance = get_distance_by_point(data, kmeans[14])
         number_of_outliers = int(outliers_fraction * len(distance))
         threshold = distance.nlargest(number_of_outliers).min()
         # anomaly21 contain the anomaly result of method
         # 2.1 Cluster (0:normal, 1:anomaly)
-        x["anomaly21"] = (distance >= threshold).astype(int)
+        x["anomaly21"] = int(distance >= threshold)
 
-        a = x.loc[x["anomaly21"] == 1, ["time_epoch", "value"]]  # anomaly
-
-        return a
+        return self
 
     def predict(self, x):
         try:
             x = np.array(x).reshape(1, -1)
-            return self._model.predict(x).reshape(-1).tolist()
+            return self.model.predict(x).reshape(-1).tolist()
         except exceptions.NotFittedError:
             return []
 
