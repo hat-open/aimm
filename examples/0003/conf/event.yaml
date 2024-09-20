@@ -14,8 +14,22 @@ backend:
     timeseries: []
 modules:
     - module: air_supervision.modules.readings
-    - module: air_supervision.modules.controller.anomaly
-    - module: air_supervision.modules.controller.forecast
+    - module: air_supervision.modules.controller.module
+      model_family: anomaly
+      supported_models:
+          - Forest
+          - SVM
+          - Cluster
+      batch_size: 48
+      min_readings: 24
+    - module: air_supervision.modules.controller.module
+      model_family: forecast
+      supported_models:
+          - MultiOutputSVR
+          - Linear
+          - Constant
+      batch_size: 48
+      min_readings: 24
     - module: air_supervision.modules.enable_all
 eventer_server:
     host: 127.0.0.1

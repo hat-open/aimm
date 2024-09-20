@@ -1,7 +1,8 @@
+from datetime import datetime
+
 from air_supervision.modules.controller import model
-from dataclasses import dataclass
-from typing import Any, List, Tuple
-import abc
+from hat.event import common
+from typing import Any
 import hat.aio
 import hat.event.common
 import hat.event.server.engine
@@ -38,28 +39,17 @@ class FitLock:
         self.lock = False
 
 
-@dataclass
-class ReadingsModuleBuilder:
-    engine: hat.event.server.engine.Engine = None
-    source: hat.event.common.Source = None
-    user_action_type: Tuple[str] = None
-    model_family: str = None
-    supported_models: List[str] = None
-    batch_size: int = 48
-    min_readings: int = 0
-
-
-class GenericReadingsModule(hat.event.common.Module, abc.ABC):
-    def __init__(self, builder: ReadingsModuleBuilder):
-        self._engine = builder.engine
-        self._source = builder.source
-        self._model_family = builder.model_family
-        self._supported_models = builder.supported_models
-        self._batch_size = builder.batch_size
-        self._min_readings = builder.min_readings
+class Controller(hat.event.common.Module):
+    def __init__(self, conf, engine, source):
+        self._engine = engine
+        self._source = source
+        self._model_family = conf["model_family"]
+        self._supported_models = conf["supported_models"]
+        self._batch_size = conf["batch_size"]
+        self._min_readings = conf["min_readings"]
 
         self._subscription = hat.event.common.create_subscription([
-            builder.user_action_type,
+            ("user_action", self._model_family, "*"),
             ("aimm", "*"),
             ("gui", "system", "timeseries", "reading"),
         ])
@@ -81,17 +71,6 @@ class GenericReadingsModule(hat.event.common.Module, abc.ABC):
     @property
     def subscription(self):
         return self._subscription
-
-    @abc.abstractmethod
-    def transform_row(self, value: float, timestamp: float) -> Any:
-        """Convert a given value and timestamp into a table row, used to create
-        a table input for the AIMM model.
-
-        value: received measurement
-        timestamp: time of measurement
-
-        Returns:
-            Row representation"""
 
     async def process(self, source, event):
         events = []
@@ -161,7 +140,7 @@ class GenericReadingsModule(hat.event.common.Module, abc.ABC):
         yield self._message(self._supported_models, "supported_models")
         if not self._lock.can_fit():
             return
-        row = self.transform_row(
+        row = self._transform_row(
             event.payload.data["value"], event.payload.data["timestamp"]
         )
         self._readings.append((row, event.payload.data["timestamp"]))
@@ -179,6 +158,26 @@ class GenericReadingsModule(hat.event.common.Module, abc.ABC):
 
         total_readings = len(self._readings)
         self._readings = self._readings[total_readings - self._min_readings :]
+
+    def _transform_row(self, value: float, timestamp: str) -> Any:
+        """Convert a given value and timestamp into a table row, used to create
+        a table input for the AIMM model.
+
+        value: received measurement
+        timestamp: time of measurement
+
+        Returns:
+            Row representation"""
+        if self._model_family == "forecast":
+            return value
+        d = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+        return [
+            float(value),
+            d.hour,
+            int((d.hour >= 7) & (d.hour <= 22)),
+            d.weekday(),
+            int(d.weekday() < 5),
+        ]
 
     def _process_user_action(self, event):
         user_action = event.type[-1]
@@ -212,6 +211,9 @@ class GenericReadingsModule(hat.event.common.Module, abc.ABC):
         return _register_event(
             ("gui", "log", self._model_family, type_name), data
         )
+
+
+info = common.ModuleInfo(create=Controller)
 
 
 def _register_event(event_type, payload, source_timestamp=None):
