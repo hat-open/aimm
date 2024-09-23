@@ -19,7 +19,7 @@ the main GUI app is on 23023 (credentials are `user` and `pass`).
 [```AnomalyModule```](src_py/air_supervision/modules/controller/anomaly.py) and
 [```ForecastModule```](src_py/air_supervision/modules/controller/forecast.py)
 run in parallel. Both are inherited from
-[```GenericReadingsModule```](src_py/air_supervision/modules/controller/module.py).
+[```GenericReadingsModule```](src_py/air_supervision/modules/controller.py).
 
 Both recieve new data from the device with event types: ```('gui', 'system',
 'timeseries', 'reading')```. The received data is being saved in their
@@ -58,7 +58,7 @@ current_model = 'linear'
 ```
 
 
-[```FitLock```](src_py/air_supervision/modules/controller/module.py) class is
+[```FitLock```](src_py/air_supervision/modules/controller.py) class is
 used to manage which model is the current one,and in which state it is(is it
 fitted or not or is it even defined, that way we cant send predict actions
 beforehand).
@@ -68,7 +68,7 @@ model with a same name in backend. When we get confim message, we fit that
 model and prepare data for prediction process.
 
 When
-[```ReadingsHandler```](src_py/air_supervision/modules/controller/module.py)
+[```ReadingsHandler```](src_py/air_supervision/modules/controller.py)
 is ready and current model is defined and is fitted (we also get a confirm
 message from AIMM), we send a batch of data to AIMM for prediction.  AIMM will
 return predicted values,that we then send to the adapter.

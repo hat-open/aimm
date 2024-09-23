@@ -14,22 +14,44 @@ backend:
     timeseries: []
 modules:
     - module: air_supervision.modules.readings
-    - module: air_supervision.modules.controller.module
+    - module: air_supervision.modules.controller
       model_family: anomaly
-      supported_models:
-          - Forest
-          - SVM
-          - Cluster
       batch_size: 48
       min_readings: 24
-    - module: air_supervision.modules.controller.module
+      models:
+          SVM:
+              contamination: 0.3
+              svm1: 1
+              svm2: 2
+          Cluster:
+              contamination: 0.3
+              cluster1: 1
+              cluster2: 3
+          Forest:
+              contamination: 0.3
+              other_test_p: 1
+              third: 4
+          Forest2:
+              contamination: 0.3
+              other_test_p: 1
+              third: 4
+    - module: air_supervision.modules.controller
       model_family: forecast
-      supported_models:
-          - MultiOutputSVR
-          - Linear
-          - Constant
       batch_size: 48
       min_readings: 24
+      models:
+          MultiOutputSVR:
+              C: 2000
+              svm1: 1
+              svm2: 2
+          Linear:
+              contamination: 0.3
+              cluster1: 1
+              cluster2: 3
+          Constant:
+              contamination: 0.3
+              other_test_p: 1
+              third: 4
     - module: air_supervision.modules.enable_all
 eventer_server:
     host: 127.0.0.1
