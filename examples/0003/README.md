@@ -36,14 +36,14 @@ Types of actions you can expect from the adapter:
 * ```model_change```
 
 In case of an event with type = ```('back_action', '*', 'model_change')```,
-```ForecastModule```/```AnomalyModule``` create a new model instance of a class
-with the name ```'model'``` in that event dict. (for example
+```Controller``` create a new model instance of a class with the name
+```'model'``` in that event dict. (for example
 ```event.payload.data['model']``` is in that case == ```'SVM'``` and class
 'SVM' exists in anomaly_model.py).
 
-Each ForecastModule/AnomalyModule have their own dicts of model objects and
-depending on later back_action events,that dicts gets appended with new models.
-If a model of same type is again registered, that wont create a new model, it
+Every Controller module has its own dicts of model objects and
+depending on later back_action events, that dicts gets appended with new models.
+If a model of same type is again registered, that won't create a new model, it
 will just label old one as the current. (only one can be the current model in
 both modules)
 
@@ -57,22 +57,9 @@ models = {
 current_model = 'linear'
 ```
 
-
-[```FitLock```](src_py/air_supervision/modules/controller.py) class is
-used to manage which model is the current one,and in which state it is(is it
-fitted or not or is it even defined, that way we cant send predict actions
-beforehand).
-
 When a model is created, module sends a message to AIMM module to create that
 model with a same name in backend. When we get confim message, we fit that
 model and prepare data for prediction process.
-
-When
-[```ReadingsHandler```](src_py/air_supervision/modules/controller.py)
-is ready and current model is defined and is fitted (we also get a confirm
-message from AIMM), we send a batch of data to AIMM for prediction.  AIMM will
-return predicted values,that we then send to the adapter.
-
 
 If we get a setting_change event,it is expected from the module to update
 hyperparameters of the current model. (means that a user changes some of that
