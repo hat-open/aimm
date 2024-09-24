@@ -3,7 +3,6 @@ import csv
 from datetime import datetime
 from enum import Enum
 from itertools import count
-
 import numpy
 from hat.event import common
 from typing import Any
@@ -13,25 +12,6 @@ import hat.event.server.engine
 import logging
 
 mlog = logging.getLogger(__name__)
-
-
-class FitLock:
-    def __init__(self):
-        self.lock = True
-        self.current_model = None
-
-    def can_fit(self):
-        return not self.lock
-
-    def created(self, model):
-        self.current_model = model
-
-    def changed(self, model):
-        self.current_model = model
-        self.lock = True
-
-    def fitted(self):
-        self.lock = False
 
 
 class Controller(hat.event.common.Module):
@@ -54,12 +34,10 @@ class Controller(hat.event.common.Module):
         self._async_group = hat.aio.Group()
 
         self._readings = []
-        self._current_model_name = None
-
         self._models = {}
         self._request_ids = {}
-
-        self._lock = FitLock()
+        self._current_model = None
+        self._locked = True
 
     @property
     def async_group(self):
@@ -73,12 +51,12 @@ class Controller(hat.event.common.Module):
         events = []
         selector = event.type[0]
         if selector == "aimm":
-            events = list(self._process_aimm(event))
+            events = self._process_aimm(event)
         elif selector == "gui":
-            events = list(self._process_reading(event))
+            events = self._process_reading(event)
         elif selector == "user_action":
-            events = list(self._process_user_action(event))
-        return events
+            events = self._process_user_action(event)
+        return list(events)
 
     async def register_with_action_id(
         self,
@@ -120,14 +98,14 @@ class Controller(hat.event.common.Module):
         type_, model_name = self._request_ids[request_id]
 
         if type_ == ReturnType.CREATE:
-            self._lock.created(model_name)
+            self._current_model = model_name
             self._async_group.spawn(self._models[model_name].fit)
 
             yield self._message(model_name, "new_current_model")
             params = self._models[model_name].hyperparameters
             yield self._message(params, "setting")
         elif type_ == ReturnType.FIT:
-            self._lock.fitted()
+            self._locked = False
         elif type_ == ReturnType.PREDICT:
             yield from self._process_predict(event)
         else:
@@ -146,7 +124,7 @@ class Controller(hat.event.common.Module):
 
     def _process_reading(self, event):
         yield self._message(list(self._models_conf), "supported_models")
-        if not self._lock.can_fit():
+        if self._locked:
             return
         row = self._transform_row(
             event.payload.data["value"], event.payload.data["timestamp"]
@@ -161,7 +139,7 @@ class Controller(hat.event.common.Module):
             return
 
         model_input, _ = zip(*self._readings[: self._batch_size])
-        current_model = self._models[self._lock.current_model]
+        current_model = self._models[self._current_model]
         self._async_group.spawn(current_model.predict, [model_input])
 
         total_readings = len(self._readings)
@@ -197,17 +175,18 @@ class Controller(hat.event.common.Module):
     def _process_setting_change(self, event):
         kw = dict(event.payload.data)
         del kw["action"]
-        current_model = self._models[self._lock.current_model]
+        current_model = self._models[self._current_model]
         self._async_group.spawn(current_model.fit, **kw)
 
     def _process_model_change(self, event):
         received_model_name = event.payload.data["model"]
 
         if received_model_name in self._models:
-            self._lock.current_model = received_model_name
+            self._current_model = received_model_name
             yield self._message(received_model_name, "new_current_model")
 
-        self._lock.changed(received_model_name)
+        self._current_model = received_model_name
+        self._locked = True
         new_model = Model(
             self._model_family,
             self,

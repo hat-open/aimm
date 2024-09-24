@@ -31,10 +31,6 @@ modules:
               contamination: 0.3
               other_test_p: 1
               third: 4
-          Forest2:
-              contamination: 0.3
-              other_test_p: 1
-              third: 4
     - module: air_supervision.modules.controller
       model_family: forecast
       batch_size: 48

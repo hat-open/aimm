@@ -94,7 +94,11 @@ class Constant(aimm.plugins.Model):
         return self
 
     def predict(self, x):
-        return self._linear.predict(x)
+        try:
+            x = np.array(x).reshape(1, -1)
+            return self._linear.predict(x).reshape(-1).tolist()
+        except exceptions.NotFittedError:
+            return []
 
     def serialize(self):
         return pickle.dumps(self)
