@@ -26,12 +26,12 @@ class Adapter(hat.gui.common.Adapter):
         self._series_values = {
             "reading": deque(maxlen=72),
             "anomaly": deque(maxlen=21),
-            "forecast": []
+            "forecast": [],
         }
         self._series_timestamps = {
             "reading": deque(maxlen=72),
             "anomaly": deque(maxlen=21),
-            "forecast": []
+            "forecast": [],
         }
 
         self._state_change_cb_registry = hat.util.CallbackRegistry()
@@ -58,7 +58,7 @@ class Adapter(hat.gui.common.Adapter):
             state,
             notify_cb,
             self._async_group.create_subgroup(),
-            self._event_client
+            self._event_client,
         )
         self._state_change_cb_registry.register(session.on_state_change)
         session.on_state_change()
@@ -104,9 +104,11 @@ class Adapter(hat.gui.common.Adapter):
         value_key = "result" if series_id == "forecast" else "value"
         self._series_values[series_id].append(event.payload.data[value_key])
 
-        self._series_timestamps[series_id].append(datetime.strptime(
-            event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
-        ))
+        self._series_timestamps[series_id].append(
+            datetime.strptime(
+                event.payload.data["timestamp"], "%Y-%m-%d %H:%M:%S"
+            )
+        )
 
         forecast_t = self._series_timestamps["forecast"]
         if not forecast_t:
@@ -114,8 +116,8 @@ class Adapter(hat.gui.common.Adapter):
         forecast_v = self._series_values["forecast"]
         forecast_v, forecast_t = _truncate_lists(forecast_v, forecast_t)
 
-        oldest_forecast = (
-            max(self._series_timestamps["reading"]) - timedelta(days=2)
+        oldest_forecast = max(self._series_timestamps["reading"]) - timedelta(
+            days=2
         )
         if min(forecast_t) < oldest_forecast:
             forecast_t = [i for i in forecast_t if i >= oldest_forecast]

@@ -33,15 +33,17 @@ class AirReading(hat.gateway.common.Device):
             timestamp = self._df.iloc[index]["timestamp"]
             value = (float(value) - 32) * 5 / 9
 
-            await self._event_client.register([
-                hat.event.common.RegisterEvent(
-                    type=(*self._event_type_prefix, "gateway", "reading"),
-                    source_timestamp=hat.event.common.Timestamp(index, 0),
-                    payload=hat.event.common.EventPayloadJson(
-                        {"timestamp": timestamp, "value": value},
-                    ),
-                )
-            ])
+            await self._event_client.register(
+                [
+                    hat.event.common.RegisterEvent(
+                        type=(*self._event_type_prefix, "gateway", "reading"),
+                        source_timestamp=hat.event.common.Timestamp(index, 0),
+                        payload=hat.event.common.EventPayloadJson(
+                            {"timestamp": timestamp, "value": value},
+                        ),
+                    )
+                ]
+            )
 
 
 info = hat.gateway.common.DeviceInfo(type="example", create=AirReading)

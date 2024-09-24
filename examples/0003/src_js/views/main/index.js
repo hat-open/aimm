@@ -127,7 +127,7 @@ export function plot() {
     }
 
     const generate_model_buttons = function (prediction_type) {
-        if (!r.get('remote','timeseries','info',prediction_type,'supported_models')) return;
+        if (!r.get('remote','timeseries','info',prediction_type,'supported_models')) return [];
 
         const cur_model_name = prediction_type === 'anomaly' ? cur_anomaly_model_name : cur_forecast_model_name;
 

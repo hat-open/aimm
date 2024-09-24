@@ -29,10 +29,9 @@ ports need to be mapped. All processes should be ran in the same container.
 #. Default command will start hat, relevant ports:
     * ``23020``: SysLog UI - system logs of all components
     * ``23021``: Orchestrator UI - active Hat processes
-    * ``23022``: Monitor UI - system components and their redundancy statuses
-    * ``23023``: GUI - interface where measurments and estimations are shown
-#. Simulation is started separatly with command
+    * ``23023``: GUI - interface where measurements and estimations are shown
+#. Simulation is started separately with command
    ``docker exec <container_name> python ./src_py/simulation.py``
 #. Measurements should be visible on the GUI
-#. AIMM is started separatly with commadn ``docker exec <container_name> ./aimm.sh``
+#. AIMM is started separately with command ``docker exec <container_name> ./aimm.sh``
 #. Estimations are shown alongside measurements in the GUI

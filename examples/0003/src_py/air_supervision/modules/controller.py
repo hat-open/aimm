@@ -23,11 +23,13 @@ class Controller(hat.event.common.Module):
         self._min_readings = conf["min_readings"]
         self._models_conf = conf["models"]
 
-        self._subscription = hat.event.common.create_subscription([
-            ("user_action", self._model_family, "*"),
-            ("aimm", "*"),
-            ("gui", "system", "timeseries", "reading"),
-        ])
+        self._subscription = hat.event.common.create_subscription(
+            [
+                ("user_action", self._model_family, "*"),
+                ("aimm", "*"),
+                ("gui", "system", "timeseries", "reading"),
+            ]
+        )
 
         self._model_prefix = f"air_supervision.aimm.{self._model_family}"
 
@@ -59,15 +61,10 @@ class Controller(hat.event.common.Module):
         return list(events)
 
     async def register_with_action_id(
-        self,
-        model_type,
-        request_id,
-        return_type,
-        events
+        self, model_type, request_id, return_type, events
     ):
         await self._engine.register(self._source, events)
         self._request_ids[request_id] = (return_type, model_type)
-
 
     def _process_aimm(self, event):
         msg_type = event.type[1]
@@ -288,7 +285,7 @@ class Model(abc.ABC):
                     source_timestamp=None,
                     payload=hat.event.common.EventPayloadJson(data),
                 )
-            ]
+            ],
         )
 
 
@@ -326,13 +323,15 @@ def _ext_anomaly_dataset():
         )
         value = float(line[0].split(",")[1])
         value = (float(value) - 32) * 5 / 9
-        train_data.append([
-            value,
-            timestamp.hour,
-            int((timestamp.hour >= 7) & (timestamp.hour <= 22)),
-            timestamp.weekday(),
-            int(timestamp.weekday() < 5),
-        ])
+        train_data.append(
+            [
+                value,
+                timestamp.hour,
+                int((timestamp.hour >= 7) & (timestamp.hour <= 22)),
+                timestamp.weekday(),
+                int(timestamp.weekday() < 5),
+            ]
+        )
     fit_start = int(len(train_data) * 0.25)
     return [train_data[fit_start:], None]
 

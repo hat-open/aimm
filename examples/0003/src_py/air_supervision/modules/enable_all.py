@@ -10,7 +10,7 @@ class EnableAll(common.Module):
     def __init__(self, _, engine, source):
         self._source = source
         self._subscription = common.create_subscription(
-            [("event", "?", "eventer", "gateway")]
+            [("event", "?", "eventer", "gateway/gateway")]
         )
         self._async_group = hat.aio.Group()
         self._engine = engine

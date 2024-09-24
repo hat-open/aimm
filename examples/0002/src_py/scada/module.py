@@ -12,12 +12,14 @@ mlog = logging.getLogger(__name__)
 class Module(common.Module):
     def __init__(self, _, engine, source):
         self._gw_prefix = ("gateway", "gateway", "device", "device")
-        self._subscription = common.create_subscription([
-            ("measurement", "?", "?"),
-            ("event", "?", "eventer", "gateway"),
-            ("aimm", "state"),
-            ("aimm", "response"),
-        ])
+        self._subscription = common.create_subscription(
+            [
+                ("measurement", "?", "?"),
+                ("event", "?", "eventer", "gateway/gateway"),
+                ("aimm", "state"),
+                ("aimm", "response"),
+            ]
+        )
 
         self._source = source
 
@@ -49,13 +51,13 @@ class Module(common.Module):
             return
 
         payload = e.payload.data
-        if e.type == ("event", "0", "eventer", "gateway"):
+        if e.type == ("event", "0", "eventer", "gateway/gateway"):
             if payload == "CONNECTED":
                 yield _register_event(
                     (
                         "gateway",
                         "device",
-                        "device",
+                        "example",
                         "system",
                         "enable",
                     ),
