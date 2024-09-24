@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Control" href="control/index.html" />
+    <link rel="prev" title="Engine" href="engine.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hat">Hat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#common-data-structures">Common data structures</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#components">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="engine.html">Engine</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Backend</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Backend"><code class="docutils literal notranslate"><span class="pre">Backend</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.create_backend"><code class="docutils literal notranslate"><span class="pre">create_backend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.create_subscription"><code class="docutils literal notranslate"><span class="pre">create_subscription()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sqlite">SQLite</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#event">Event</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="control/index.html">Control</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Server</a></li>
+      <li class="breadcrumb-item active">Backend</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/server/backend.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="backend">
+<h1>Backend<a class="headerlink" href="#backend" title="Link to this heading"></a></h1>
+<p>The function of backend instances is performing model persistance. They provide
+functions that allow its callers to store and retrieve modules.</p>
+<p>The backend configuration is one of the properties in the server configuration.
+Schema does not set limits on which backend implementations are available and
+instead offers an interface that allows dynamic imports of backend
+implementations, requiring only a <code class="docutils literal notranslate"><span class="pre">module</span></code> parameter that is a Python module
+name of the concrete backend implementation. The exact minimal schema is as
+follows:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/backend/main.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">module</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">module</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>All backend implementations need to implement the following interface:</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.Backend">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">Backend</span></span><a class="headerlink" href="#aimm.server.common.Backend" title="Link to this definition"></a></dt>
+<dd><p>Backend interface. In order to integrate in the aimm server, create a
+module with the implementation and function <code class="docutils literal notranslate"><span class="pre">create</span></code> that creates a
+backend instance. The function should have a signature as the
+<a class="reference internal" href="#aimm.server.common.create_backend" title="aimm.server.common.create_backend"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_backend()</span></code></a> function.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">event_client</span></code> argument is not <code class="docutils literal notranslate"><span class="pre">None</span></code> if backend module also
+contains function named <code class="docutils literal notranslate"><span class="pre">create_subscription</span></code> with the same signature as
+the <a class="reference internal" href="#aimm.server.common.create_subscription" title="aimm.server.common.create_subscription"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_subscription()</span></code></a>. The function receives the same backend
+configuration the <code class="docutils literal notranslate"><span class="pre">create</span></code> function would receive and returns the
+subscription object for the backend.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Backend.get_models">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_models</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><span class="pre">Model</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aimm.server.common.Backend.get_models" title="Link to this definition"></a></dt>
+<dd><p>Get all persisted models, requires that a deserialization function
+is defined for all persisted types</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>persisted models</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Backend.create_model">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Backend.create_model" title="Link to this definition"></a></dt>
+<dd><p>Store a new model, requires that a serialization for the model type
+is defined</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Backend.update_model">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><span class="pre">Model</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Backend.update_model" title="Link to this definition"></a></dt>
+<dd><p>Replaces the old stored model with the new one, requires that a
+serialization is defined for the model type</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Backend.register_model_change_cb">
+<span class="sig-name descname"><span class="pre">register_model_change_cb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><span class="pre">Model</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RegisterCallbackHandle</span></span></span><a class="headerlink" href="#aimm.server.common.Backend.register_model_change_cb" title="Link to this definition"></a></dt>
+<dd><p>Register callback for backend-side model changes. Implementation
+optional, defaults to ignoring the callback.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Backend.process_events">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">process_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Backend.process_events" title="Link to this definition"></a></dt>
+<dd><p>Implementation optional. Called when event client receives events
+matched by subscription from <cite>create_backend_subscription</cite>. Ignores
+events by default, with a warning log.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.server.common.create_backend">
+<span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">create_backend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Client</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.server.common.Backend" title="aimm.server.common.Backend"><span class="pre">Backend</span></a></span></span><a class="headerlink" href="#aimm.server.common.create_backend" title="Link to this definition"></a></dt>
+<dd><p>Placeholder of the backend’s create function, needs to satisfy the given
+signature</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.server.common.create_subscription">
+<span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">create_subscription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aimm.server.common.create_subscription" title="Link to this definition"></a></dt>
+<dd><p>Placeholder of the backends and controls optional create subscription
+function, needs to satisfy the given signature</p>
+</dd></dl>
+
+<p>Only one instance of a backend can be configured on a aimm server and its
+configuration depends on the concrete implementation of the interface. Two
+kinds of backend implementations are available with the aimm package - sqlite
+and event backend.</p>
+<section id="sqlite">
+<h2>SQLite<a class="headerlink" href="#sqlite" title="Link to this heading"></a></h2>
+<p>SQLite backend stores all the models into a SQLite database. The configuration
+needs to follow the schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/backend/sqlite.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>Only configuration property is <code class="docutils literal notranslate"><span class="pre">path</span></code> - path to the SQLite file where data is
+stored.</p>
+</section>
+<section id="event">
+<h2>Event<a class="headerlink" href="#event" title="Link to this heading"></a></h2>
+<p>The event backend makes use of Hat’s event infrastructure to create and access
+events that contain model blobs. It requires a connection to hat event server
+to be configured and its configuration needs to follow the schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/backend/event.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_prefix</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_prefix</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>The only configurable property, <code class="docutils literal notranslate"><span class="pre">model_prefix</span></code> is the prefix of the model
+blob event’s types. The events that the model raises will have the following
+structure:</p>
+<blockquote>
+<div><ul>
+<li><p>event type: <code class="docutils literal notranslate"><span class="pre">[&lt;model_prefix&gt;,</span> <span class="pre">&lt;instance_id&gt;]</span></code></p></li>
+<li><p>source timestamp: None</p></li>
+<li><p>payload: dictionary that follows the schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">            </span><span class="no">model type, used to pair with deserialization function,</span>
+<span class="w">            </span><span class="no">when needed</span>
+<span class="w">    </span><span class="nt">instance</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base64 encoded serialized instance</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="engine.html" class="btn btn-neutral float-left" title="Engine" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="control/index.html" class="btn btn-neutral float-right" title="Control" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

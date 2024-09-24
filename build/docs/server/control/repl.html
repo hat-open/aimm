@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REPL &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Event" href="event.html" />
+    <link rel="prev" title="Control" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#hat">Hat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#common-data-structures">Common data structures</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#components">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../engine.html">Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backend.html">Backend</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Control</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="index.html#aimm.server.common.Control"><code class="docutils literal notranslate"><span class="pre">Control</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="index.html#aimm.server.common.create_control"><code class="docutils literal notranslate"><span class="pre">create_control()</span></code></a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">REPL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="event.html">Event</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Server</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Control</a></li>
+      <li class="breadcrumb-item active">REPL</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/server/control/repl.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="repl">
+<h1>REPL<a class="headerlink" href="#repl" title="Link to this heading"></a></h1>
+<p>REPL control serves as an interface to the REPL client. Its configuration has
+the following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/control/repl.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">server</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">users</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">repl</span>
+<span class="w">    </span><span class="nt">server</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">port</span>
+<span class="w">        </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">host</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">port</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">    </span><span class="nt">users</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">            </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">            </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">username</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>REPL control works as a Websocket server, using the hat-juggler protocol. It
+translates engine’s state into JSON serializable data and transfers it to its
+clients over local-remote data synchronization. It also provides its clients an
+RPC interface, which allows them to send messages causing calls to engine’s
+functions and receive their results.</p>
+<p>The server listens at the address <code class="docutils literal notranslate"><span class="pre">ws://&lt;host&gt;:&lt;port&gt;/ws</span></code>, where <code class="docutils literal notranslate"><span class="pre">host</span></code> and
+<code class="docutils literal notranslate"><span class="pre">port</span></code> are configuration parameters. After connecting, the clients have
+access to the initial state and RPC actions.</p>
+<section id="state">
+<h2>State<a class="headerlink" href="#state" title="Link to this heading"></a></h2>
+<p>Before accessing the state, clients need to be authorized (described in the
+Actions section). The initial state, before login is just an empty JSON object.
+After successful login, engine’s state is translated into JSON with the
+following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">actions</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&quot;(.)+&quot;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">copied directly from engine&#39;s state property</span>
+<span class="w">    </span><span class="nt">models</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&quot;(.)+&quot;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">type</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span>
+<span class="w">                </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">                        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                    </span><span class="nt">id</span><span class="p">:</span>
+<span class="w">                        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">                    </span><span class="nt">instance</span><span class="p">:</span>
+<span class="w">                        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base64 encoded instance</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</section>
+<section id="rpc-interface">
+<h2>RPC interface<a class="headerlink" href="#rpc-interface" title="Link to this heading"></a></h2>
+<p>RPC interface provides several actions its clients may call. These actions are
+documented in this section, along with some additional considerations about
+result JSON representations and advanced argument passing.</p>
+<section id="actions">
+<h3>Actions<a class="headerlink" href="#actions" title="Link to this heading"></a></h3>
+<section id="login">
+<h4><code class="docutils literal notranslate"><span class="pre">login</span></code><a class="headerlink" href="#login" title="Link to this heading"></a></h4>
+<p>Authorizes the user with given username and password. Successful authorization
+gives access to other actions and full state.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>username</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>)</p></li>
+<li><p><cite>password</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Login procedure here is added pro forma and might not provide optimal
+level of security for some use cases. If this is the case, it is advised to
+develop a separate control that implements a more appropriate procedure.</p>
+</div>
+</section>
+<section id="logout">
+<h4><code class="docutils literal notranslate"><span class="pre">logout</span></code><a class="headerlink" href="#logout" title="Link to this heading"></a></h4>
+<p>Logs the user out.</p>
+</section>
+<section id="create-instance">
+<h4><code class="docutils literal notranslate"><span class="pre">create_instance</span></code><a class="headerlink" href="#create-instance" title="Link to this heading"></a></h4>
+<p>Connects to engine’s <code class="docutils literal notranslate"><span class="pre">create_instance</span></code> method. Argument preprocessing is
+supported.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>model_type</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>): model type as defined in plugins</p></li>
+<li><p><cite>args</cite> (<code class="docutils literal notranslate"><span class="pre">List[Any]</span></code>): positional arguments passed to the plugin method</p></li>
+<li><p><cite>kwargs</cite> (<code class="docutils literal notranslate"><span class="pre">Dict[str:</span> <span class="pre">Any]</span></code>): keyword arguments passed to the plugin
+method</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns JSON representation of the model.</p>
+</section>
+<section id="add-instance">
+<h4><code class="docutils literal notranslate"><span class="pre">add_instance</span></code><a class="headerlink" href="#add-instance" title="Link to this heading"></a></h4>
+<p>Connects to engine’s <code class="docutils literal notranslate"><span class="pre">add_instance</span></code> method.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>model_type</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>): model type as defined in plugins</p></li>
+<li><p><cite>instance</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>): base64 encoded serialized model instance</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns JSON representation of the model.</p>
+</section>
+<section id="update-instance">
+<h4><code class="docutils literal notranslate"><span class="pre">update_instance</span></code><a class="headerlink" href="#update-instance" title="Link to this heading"></a></h4>
+<p>Connects to engine’s <code class="docutils literal notranslate"><span class="pre">update_instance</span></code> method.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>model_type</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>): model type as defined in plugins</p></li>
+<li><p><cite>instance_id</cite> (<code class="docutils literal notranslate"><span class="pre">int</span></code>): ID of the instance that is being updated</p></li>
+<li><p><cite>instance</cite> (<code class="docutils literal notranslate"><span class="pre">str</span></code>): base64 encoded serialized model instance</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns JSON representation of the model.</p>
+</section>
+<section id="fit">
+<h4><code class="docutils literal notranslate"><span class="pre">fit</span></code><a class="headerlink" href="#fit" title="Link to this heading"></a></h4>
+<p>Connects to engine’s <code class="docutils literal notranslate"><span class="pre">fit</span></code> method. Argument preprocessing is supported.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>instance_id</cite> (<code class="docutils literal notranslate"><span class="pre">int</span></code>): ID of the instance that is being fitted</p></li>
+<li><p><cite>args</cite> (<code class="docutils literal notranslate"><span class="pre">List[Any]</span></code>): positional arguments for the fitting method</p></li>
+<li><p><cite>kwargs</cite> (<code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>): keyword arguments for the fitting method</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns JSON representation of the model.</p>
+</section>
+<section id="predict">
+<h4><code class="docutils literal notranslate"><span class="pre">predict</span></code><a class="headerlink" href="#predict" title="Link to this heading"></a></h4>
+<p>Connects to engine’s <code class="docutils literal notranslate"><span class="pre">predict</span></code> method. Argument preprocessing is supported.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p><cite>instance_id</cite> (<code class="docutils literal notranslate"><span class="pre">int</span></code>): ID of the instance that is being fitted</p></li>
+<li><p><cite>args</cite> (<code class="docutils literal notranslate"><span class="pre">List[Any]</span></code>): positional arguments for the fitting method</p></li>
+<li><p><cite>kwargs</cite> (<code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>): keyword arguments for the fitting method</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns prediction converted to JSON.</p>
+</section>
+</section>
+<section id="json-representations">
+<h3>JSON representations<a class="headerlink" href="#json-representations" title="Link to this heading"></a></h3>
+<p>Some data structures mentioned in the sections above are, by the default, not
+JSON serializable and JSON schema of the structure they take is described in
+this section.</p>
+<p>Models schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance_id</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">instance_id</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">instance</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base64 encoded serialized model instance</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>Prediction schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="w">    </span><span class="nt">oneOf</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">type</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">        </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">enum</span><span class="p">:</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">numpy_array</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pandas_dataframe</span>
+<span class="w">                    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pandas_series</span>
+<span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">                    </span><span class="no">prediction result serialized as json, for numpy</span>
+<span class="w">                    </span><span class="no">arrays and pandas Series, tolist methods are used</span>
+<span class="w">                    </span><span class="no">and for dataframe, its to_dict method is used</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</section>
+<section id="argument-preprocessing">
+<h3>Argument preprocessing<a class="headerlink" href="#argument-preprocessing" title="Link to this heading"></a></h3>
+<p>Actions correspond to engine’s interface, and that interface provides support
+for passing <a class="reference internal" href="../index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a> objects, to signify that an
+engine action needs to execute a data access plugin before calling the main
+action. Control allows sections of messages that contain arguments to take a
+specific structure that signify that that argument needs to be converted into
+an object. Conversion to <a class="reference internal" href="../index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> is currently supported. The
+structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nt">oneOf</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">converts to common.DataAccess</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">name</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">args</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kwargs</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_access</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data access plugin name</span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">            </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">        </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                    </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">converts to numpy.array</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dtype</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">numpy_array</span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">dtype</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">converts to pandas.DataFrame</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pandas_dataframe</span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">            </span><span class="nt">descirption</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">result of pandas.DataFrame.to_dict function</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">converts to pandas.Series</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pandas_series</span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">            </span><span class="nt">descirption</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">result of pandas.Series.tolist function</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Control" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="event.html" class="btn btn-neutral float-right" title="Event" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

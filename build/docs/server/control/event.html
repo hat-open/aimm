@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Clients" href="../../clients/index.html" />
+    <link rel="prev" title="REPL" href="repl.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#hat">Hat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#common-data-structures">Common data structures</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#components">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../engine.html">Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backend.html">Backend</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Control</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="index.html#aimm.server.common.Control"><code class="docutils literal notranslate"><span class="pre">Control</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="index.html#aimm.server.common.create_control"><code class="docutils literal notranslate"><span class="pre">create_control()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="repl.html">REPL</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Event</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Server</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Control</a></li>
+      <li class="breadcrumb-item active">Event</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/server/control/event.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="event">
+<h1>Event<a class="headerlink" href="#event" title="Link to this heading"></a></h1>
+<p>Event control communicates with hat’s event server and, responding to events,
+calls engine’s methods and reports their results over the same event bus. The
+control’s configuration needs to satisfy the following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/control/event.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">event_prefixes</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">state_event_type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action_state_event_type</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">event</span>
+<span class="w">    </span><span class="nt">event_prefixes</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">create_instance</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">add_instance</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">update_instance</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">fit</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">predict</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">cancel</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">state_event_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">action_state_event_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<section id="state">
+<h2>State<a class="headerlink" href="#state" title="Link to this heading"></a></h2>
+<p>Upon any engine state change, event control registers an event with the
+following structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;state_type&gt;]</span></code></p></li>
+<li><p>source_timestamp is None</p></li>
+<li><p>payload: JSON with following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">models</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">models</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model type</span>
+<span class="w">    </span><span class="nt">actions</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">copied as-is from engine&#39;s state</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+</section>
+<section id="action-requests-and-states">
+<h2>Action requests and states<a class="headerlink" href="#action-requests-and-states" title="Link to this heading"></a></h2>
+<p>Engine’s functions are used as reactions to received events. Control receives
+events with types that match one of the <code class="docutils literal notranslate"><span class="pre">[&lt;prefix&gt;,</span> <span class="pre">'*']</span></code> query types and
+calls the functions depending on which exact prefix has matched.</p>
+<p>Prior to the calling the functions, arguments passed in the payload may be
+preprocessed and converted into <a class="reference internal" href="../index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a> objects
+of they have a specific structure. Arguments of any call specified in the
+request event’s payload should have the following structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nt">oneOf</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">converted to ``common.DataAccess``</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">type</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">name</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">args</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kwargs</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">const</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_access</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data access plugin name</span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">            </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">        </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                    </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>The control registers events that refer directly to the request that started
+the action and that contain information on the actions state, and, if an action
+returns it, its result. The event has the following structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;action_state_type&gt;]</span></code></p></li>
+<li><p>source_timestamp is None</p></li>
+<li><p>payload: JSON with the following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">request_id</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">result</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">request_id</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">            </span><span class="no">event id that started the execution</span>
+<span class="w">    </span><span class="nt">status</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">enum</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IN_PROGRESS</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DONE</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FAILED</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CANCELLED</span>
+<span class="w">    </span><span class="nt">result</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<section id="create-instance">
+<h3>Create instance<a class="headerlink" href="#create-instance" title="Link to this heading"></a></h3>
+<p>Incoming event structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;create_instance_prefix&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>payload with structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">args</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kwargs</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">    </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p>Result passed in the response is either an integer, representing ID of the
+generated instance, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if creation has failed.</p>
+</section>
+<section id="add-instance">
+<h3>Add instance<a class="headerlink" href="#add-instance" title="Link to this heading"></a></h3>
+<p>Incoming event structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;add_instance_prefix&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>payload with structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">instance</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base64 encoded instance</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p>Result passed in the response is either an integer, representing ID of the
+generated instance, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if creation has failed.</p>
+</section>
+<section id="update-instance">
+<h3>Update instance<a class="headerlink" href="#update-instance" title="Link to this heading"></a></h3>
+<p>Incoming event structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;update_instance_prefix&gt;,</span> <span class="pre">&lt;instance_id&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>payload with structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_type</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instance</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">instance</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base64 encoded instance</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p>Result is a boolean, <code class="docutils literal notranslate"><span class="pre">true</span></code> if update was performed successfully.</p>
+</section>
+<section id="fit">
+<h3>Fit<a class="headerlink" href="#fit" title="Link to this heading"></a></h3>
+<p>Incoming event structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;fit_prefix&gt;,</span> <span class="pre">&lt;instance_id&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>payload with structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">args</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kwargs</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">    </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p>Result is a boolean, <code class="docutils literal notranslate"><span class="pre">true</span></code> if update was performed successfully.</p>
+</section>
+<section id="predict">
+<h3>Predict<a class="headerlink" href="#predict" title="Link to this heading"></a></h3>
+<p>Incoming event structure:</p>
+<blockquote>
+<div><ul>
+<li><p>type: <code class="docutils literal notranslate"><span class="pre">[&lt;predixt_prefix&gt;,</span> <span class="pre">&lt;instance_id&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>payload with structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">args</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kwargs</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="w">    </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">            </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">                </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;#object_arg&#39;</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p>Result is the prediction, exact value returned by the call to the predict
+plugin.</p>
+</section>
+<section id="cancel">
+<h3>Cancel<a class="headerlink" href="#cancel" title="Link to this heading"></a></h3>
+<p>Any action that can have the state <code class="docutils literal notranslate"><span class="pre">IN_PROGRESS</span></code> may be canceled. This is
+done by registering a cancel event, with the following structure:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>type <code class="docutils literal notranslate"><span class="pre">[&lt;cancel_prefix&gt;,</span> <span class="pre">'*']</span></code></p></li>
+<li><p>JSON payload that is a dictionary representation of the id of the event
+that started the action</p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="repl.html" class="btn btn-neutral float-left" title="REPL" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../clients/index.html" class="btn btn-neutral float-right" title="Clients" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

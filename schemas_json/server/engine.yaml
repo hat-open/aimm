@@ -1,0 +1,16 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/engine.yaml#'
+type: object
+required:
+    - sigterm_timeout
+    - max_children
+    - check_children_period
+properties:
+    sigterm_timeout:
+        type: number
+    max_children:
+        type: number
+    check_children_period:
+        type: number
+...

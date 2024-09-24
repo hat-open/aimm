@@ -1,0 +1,303 @@
+{
+    "aimm": {
+        "plugins.yaml": {
+            "id": "aimm://plugins.yaml#",
+            "type": "object",
+            "required": [
+                "names"
+            ],
+            "properties": {
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Python module name"
+                    }
+                }
+            }
+        },
+        "server/hat.yaml": {
+            "id": "aimm://server/hat.yaml#",
+            "type": "object",
+            "oneOf": [
+                {
+                    "required": [
+                        "monitor_component"
+                    ],
+                    "properties": {
+                        "monitor_component": {
+                            "type": "object",
+                            "required": [
+                                "host",
+                                "port",
+                                "group"
+                            ],
+                            "properties": {
+                                "host": {
+                                    "type": "string",
+                                    "default": "127.0.0.1"
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 23010
+                                },
+                                "group": {
+                                    "type": "string"
+                                },
+                                "event_server_group": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "required": [
+                        "eventer_server"
+                    ],
+                    "properties": {
+                        "eventer_server": {
+                            "type": "object",
+                            "required": [
+                                "host",
+                                "port"
+                            ],
+                            "properties": {
+                                "host": {
+                                    "type": "string",
+                                    "default": "127.0.0.1"
+                                },
+                                "port": {
+                                    "type": "integer",
+                                    "default": 23012
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "server/engine.yaml": {
+            "id": "aimm://server/engine.yaml#",
+            "type": "object",
+            "required": [
+                "sigterm_timeout",
+                "max_children",
+                "check_children_period"
+            ],
+            "properties": {
+                "sigterm_timeout": {
+                    "type": "number"
+                },
+                "max_children": {
+                    "type": "number"
+                },
+                "check_children_period": {
+                    "type": "number"
+                }
+            }
+        },
+        "server/main.yaml": {
+            "id": "aimm://server/main.yaml#",
+            "type": "object",
+            "required": [
+                "name",
+                "engine",
+                "backend",
+                "control",
+                "plugins",
+                "log"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "engine": {
+                    "$ref": "aimm://server/engine.yaml#"
+                },
+                "backend": {
+                    "$ref": "aimm://server/backend/main.yaml#"
+                },
+                "control": {
+                    "$ref": "aimm://server/control/main.yaml#"
+                },
+                "plugins": {
+                    "$ref": "aimm://plugins.yaml#"
+                },
+                "hat": {
+                    "$ref": "aimm://server/hat.yaml#"
+                },
+                "log": {
+                    "type": "object"
+                }
+            }
+        },
+        "server/backend/event.yaml": {
+            "id": "aimm://server/backend/event.yaml#",
+            "type": "object",
+            "required": [
+                "model_prefix"
+            ],
+            "properties": {
+                "model_prefix": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server/backend/main.yaml": {
+            "id": "aimm://server/backend/main.yaml#",
+            "type": "object",
+            "required": [
+                "module"
+            ],
+            "properties": {
+                "module": {
+                    "type": "string"
+                }
+            }
+        },
+        "server/backend/sqlite.yaml": {
+            "id": "aimm://server/backend/sqlite.yaml#",
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "server/control/repl.yaml": {
+            "id": "aimm://server/control/repl.yaml#",
+            "type": "object",
+            "required": [
+                "server",
+                "users"
+            ],
+            "properties": {
+                "type": {
+                    "const": "repl"
+                },
+                "server": {
+                    "type": "object",
+                    "required": [
+                        "host",
+                        "port"
+                    ],
+                    "properties": {
+                        "host": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "username",
+                            "password"
+                        ],
+                        "properties": {
+                            "username": {
+                                "type": "string"
+                            },
+                            "password": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "server/control/event.yaml": {
+            "id": "aimm://server/control/event.yaml#",
+            "type": "object",
+            "required": [
+                "event_prefixes",
+                "state_event_type",
+                "action_state_event_type"
+            ],
+            "properties": {
+                "type": {
+                    "const": "event"
+                },
+                "event_prefixes": {
+                    "type": "object",
+                    "properties": {
+                        "create_instance": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "add_instance": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "update_instance": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "fit": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "predict": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "cancel": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "state_event_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "action_state_event_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server/control/main.yaml": {
+            "id": "aimm://server/control/main.yaml#",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "module"
+                ],
+                "properties": {
+                    "module": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

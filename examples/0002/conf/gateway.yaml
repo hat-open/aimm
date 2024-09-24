@@ -1,0 +1,28 @@
+---
+name: gateway
+event_server:
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
+devices:
+    - module: scada.device
+      name: device
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            comm_type: TCP
+            formatter: default
+            host: 127.0.0.1
+            level: INFO
+            port: 6514
+            queue_size: 10
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+...

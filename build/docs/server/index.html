@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Engine" href="engine.html" />
+    <link rel="prev" title="Plugins" href="../plugins.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hat">Hat</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.server.common.CreateSubscription"><code class="docutils literal notranslate"><span class="pre">CreateSubscription</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#common-data-structures">Common data structures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.server.common.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Model.instance"><code class="docutils literal notranslate"><span class="pre">Model.instance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Model.model_type"><code class="docutils literal notranslate"><span class="pre">Model.model_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Model.instance_id"><code class="docutils literal notranslate"><span class="pre">Model.instance_id</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.server.common.DataAccess"><code class="docutils literal notranslate"><span class="pre">DataAccess</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.DataAccess.name"><code class="docutils literal notranslate"><span class="pre">DataAccess.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.DataAccess.args"><code class="docutils literal notranslate"><span class="pre">DataAccess.args</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.DataAccess.kwargs"><code class="docutils literal notranslate"><span class="pre">DataAccess.kwargs</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="engine.html">Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backend.html">Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="control/index.html">Control</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Server</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/server/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="server">
+<h1>Server<a class="headerlink" href="#server" title="Link to this heading"></a></h1>
+<p>AIMM server is a server application that listens on one or several interfaces
+(web services, multiprocess communication, etc.) and allows the clients that
+connect to them to perform various operations with its configured plugins.</p>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>After successful installation, the server can be run by calling
+<code class="docutils literal notranslate"><span class="pre">aimm-server</span></code> in the command line. The command has the following interface:</p>
+<blockquote>
+<div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: aimm-server [-h] [--conf path]
+
+Run AIMM server
+
+options:
+  -h, --help   show this help message and exit
+  --conf path  configuration defined by aimm://server/main.yaml# (default
+               $XDG_CONFIG_HOME/aimm/server.yaml)
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>To use the server, it needs to be configured. The configuration is a YAML file
+that contains options specific to different components of which the system
+consists. It also contains options for logging and Hat configuration. It needs
+to validate against the following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/main.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">name</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">engine</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">backend</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">control</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">plugins</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">log</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">    </span><span class="nt">engine</span><span class="p">:</span>
+<span class="w">        </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;aimm://server/engine.yaml#&#39;</span>
+<span class="w">    </span><span class="nt">backend</span><span class="p">:</span>
+<span class="w">        </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;aimm://server/backend/main.yaml#&#39;</span>
+<span class="w">    </span><span class="nt">control</span><span class="p">:</span>
+<span class="w">        </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;aimm://server/control/main.yaml#&#39;</span>
+<span class="w">    </span><span class="nt">plugins</span><span class="p">:</span>
+<span class="w">        </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;aimm://plugins.yaml#&#39;</span>
+<span class="w">    </span><span class="nt">hat</span><span class="p">:</span>
+<span class="w">        </span><span class="s">&#39;$ref&#39;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&#39;aimm://server/hat.yaml#&#39;</span>
+<span class="w">    </span><span class="nt">log</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>Logging configuration is mandatory and its values are passed directly to the
+<code class="xref py py-func docutils literal notranslate"><span class="pre">logging.basicConfig()</span></code> function. Remaining properties of the root part
+of the configuration directly correlate to the main components of the server’s
+architecture, are more complex and will be explained separately.</p>
+</section>
+<section id="hat">
+<h2>Hat<a class="headerlink" href="#hat" title="Link to this heading"></a></h2>
+<p>AIMM server configuration contains options that allow it to work as a part of
+<a class="reference external" href="https://hat-open.com/">Hat</a> infrastructure. The optional <code class="docutils literal notranslate"><span class="pre">hat</span></code> property of the configuration
+contains the options that allow this integration.</p>
+<p>Connection to monitor is the minimal requirement in order to integrate to the
+Hat network and the configuration parameters are as specified by the <a class="reference external" href="https://hat-monitor.hat-open.com/">monitor
+documentation</a>. Additionally, if <code class="docutils literal notranslate"><span class="pre">event_server_group</span></code> field is set, AIMM
+server will also attempt to connect to event server with in the given group.
+If these properties are configured but the server cannot connect to Hat
+components, it will halt and wait until it manages to connect.</p>
+<p>Since AIMM server supports dynamic imports of different backend and control
+implementations that may use the event server connection to receive and
+register events, the modules containing these components need to implement a
+<code class="docutils literal notranslate"><span class="pre">get_subscriptions</span></code> function that returns a list of event server
+subscriptions. It should have the following type:</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="aimm.server.common.CreateSubscription">
+<span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">CreateSubscription</span></span><a class="headerlink" href="#aimm.server.common.CreateSubscription" title="Link to this definition"></a></dt>
+<dd><p>Type of the <code class="docutils literal notranslate"><span class="pre">create_subscription</span></code> function that the dynamically imported
+controls and backends may implement. Receives component configuration as the
+only argument and returns a subscription object.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Subscription</span></code>]</p>
+</dd></dl>
+
+<p>A combined list of all these subscriptions is then used as the global
+subscription of the entire server. If the <code class="docutils literal notranslate"><span class="pre">get_subscriptions</span></code> function is
+provided, the component implementation will receive an instance of a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">hat.event.eventer.Client</span></code>, as specified <a class="reference external" href="https://hat-event.hat-open.com/py_api/hat/event/eventer.html#Client">here</a>.</p>
+</section>
+<section id="architecture">
+<h2>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
+<p>After initialization and, optionally, Hat integration, the architecture of AIMM
+server may be represented with the following diagram:</p>
+<img alt="../_images/server.svg" src="../_images/server.svg" />
+<p>The main components are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>engine - implements function calls that connect control interfaces with
+plugins, keeps the state of the application and uses backend to store it
+when neccessary</p></li>
+<li><p>backend - handles state data persistence</p></li>
+<li><p>plugins - contain model and data access implementations</p></li>
+<li><p>control - provides external interfaces for clients, calls engine functions
+and notifies clients of state changes or call results</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="common-data-structures">
+<h2>Common data structures<a class="headerlink" href="#common-data-structures" title="Link to this heading"></a></h2>
+<p>The server has some common data structures used in different components,
+required as arguments at some methods or returned as their results. They are
+documented in this section.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.Model">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Model" title="Link to this definition"></a></dt>
+<dd><p>Server’s representation of objects returned by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">plugins.exec_instantiate()</span></code>. Contains all metadata necessary to
+identify and perform other actions with it.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.Model.instance">
+<span class="sig-name descname"><span class="pre">instance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></em><a class="headerlink" href="#aimm.server.common.Model.instance" title="Link to this definition"></a></dt>
+<dd><p>instance</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.Model.model_type">
+<span class="sig-name descname"><span class="pre">model_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#aimm.server.common.Model.model_type" title="Link to this definition"></a></dt>
+<dd><p>model type, used to identify which plugin to use</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.Model.instance_id">
+<span class="sig-name descname"><span class="pre">instance_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#aimm.server.common.Model.instance_id" title="Link to this definition"></a></dt>
+<dd><p>instance id</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.DataAccess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">DataAccess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.DataAccess" title="Link to this definition"></a></dt>
+<dd><p>Representation of a <code class="xref py py-func docutils literal notranslate"><span class="pre">plugins.exec_data_access()</span></code> call. May be passed
+as an argument in some methods, indicating that data needs to be retrieved
+prior to calling the main action. See more details on the exact method
+docstrings.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.DataAccess.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#aimm.server.common.DataAccess.name" title="Link to this definition"></a></dt>
+<dd><p>name of the data access type, used to identify which plugin to use</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.DataAccess.args">
+<span class="sig-name descname"><span class="pre">args</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Iterable</span></em><a class="headerlink" href="#aimm.server.common.DataAccess.args" title="Link to this definition"></a></dt>
+<dd><p>positional arguments to be passed to the plugin call</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="aimm.server.common.DataAccess.kwargs">
+<span class="sig-name descname"><span class="pre">kwargs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#aimm.server.common.DataAccess.kwargs" title="Link to this definition"></a></dt>
+<dd><p>keyword arguments to be passed to the plugin call</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="components">
+<h2>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine.html">Engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend.html">Backend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="control/index.html">Control</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../plugins.html" class="btn btn-neutral float-left" title="Plugins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="engine.html" class="btn btn-neutral float-right" title="Engine" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

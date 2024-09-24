@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plugins &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Server" href="server/index.html" />
+    <link rel="prev" title="Getting started" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Plugins</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#aimm.plugins.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#decorators">Decorators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.data_access"><code class="docutils literal notranslate"><span class="pre">data_access()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.instantiate"><code class="docutils literal notranslate"><span class="pre">instantiate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.serialize"><code class="docutils literal notranslate"><span class="pre">serialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.deserialize"><code class="docutils literal notranslate"><span class="pre">deserialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.plugins.Model.fit"><code class="docutils literal notranslate"><span class="pre">Model.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.plugins.Model.predict"><code class="docutils literal notranslate"><span class="pre">Model.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.plugins.Model.serialize"><code class="docutils literal notranslate"><span class="pre">Model.serialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.plugins.Model.deserialize"><code class="docutils literal notranslate"><span class="pre">Model.deserialize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.model"><code class="docutils literal notranslate"><span class="pre">model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#calling-plugins">Calling plugins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_data_access"><code class="docutils literal notranslate"><span class="pre">exec_data_access()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_instantiate"><code class="docutils literal notranslate"><span class="pre">exec_instantiate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_fit"><code class="docutils literal notranslate"><span class="pre">exec_fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_predict"><code class="docutils literal notranslate"><span class="pre">exec_predict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_serialize"><code class="docutils literal notranslate"><span class="pre">exec_serialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.exec_deserialize"><code class="docutils literal notranslate"><span class="pre">exec_deserialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aimm.plugins.StateCallback"><code class="docutils literal notranslate"><span class="pre">StateCallback</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="server/index.html">Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Plugins</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/plugins.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="plugins">
+<h1>Plugins<a class="headerlink" href="#plugins" title="Link to this heading"></a></h1>
+<p>AIMM system relies on user-written plugins for implementations of machine
+learning models, preprocessing and data-fetching methods. Both server and its
+clients may use the plugin API. The plugins are implemented as Python modules
+that are dynamically imported at some point during servers or clients runtime.
+Within these modules, plugin implementators should use the decorators from the
+<code class="docutils literal notranslate"><span class="pre">aimm.plugins</span></code> module to indicate which functions and classes are entry
+points to various machine learning workflow actions. They may also, through
+decorator arguments, pass information to plugin callers, allowing them to
+further declare semantics of some of their arguments (e.g. declare that an
+argument should receive a callback function for progress notification).</p>
+<p>Before accessing any plugins, they need to be imported and initialized. One way
+to do this (other then importing them manually) is by calling the
+initialization function:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.initialize">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.plugins.initialize" title="Link to this definition"></a></dt>
+<dd><p>Imports the plugin modules, registering the entry point functions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conf</strong> – configuration that follows schema under id
+<code class="docutils literal notranslate"><span class="pre">aimm://plugins/schema.yaml#</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>Initialize configuration schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://plugins.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">names</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">names</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">        </span><span class="nt">items</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">            </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Python module name</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The AIMM plugin interface does not create a sandbox environment
+when executing plugins, it is up to the implementator to make sure not to
+perform unsafe actions</p>
+</div>
+<section id="decorators">
+<h2>Decorators<a class="headerlink" href="#decorators" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.data_access">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">data_access</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cb_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#aimm.plugins.data_access" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a data access
+function. The decorated function can take any number of positional and
+keyword arguments and should return the accessed data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the data access type</p></li>
+<li><p><strong>state_cb_arg_name</strong> – if set, indicates that the caller should pass a
+state callback function as a keyword argument and use the passed
+value as the argument name. The function is of type Callable[Any],
+where the only argument is JSON serializable data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.instantiate">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">instantiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cb_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#aimm.plugins.instantiate" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a model instance
+creation function. The decorated function should take any number of
+positional and keyword arguments and should return the newly created model
+instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_type</strong> – name of the model type</p></li>
+<li><p><strong>state_cb_arg_name</strong> – if set, indicates that the caller should pass a
+state callback function as a keyword argument and use the passed
+value as the argument name. The function is of type Callable[Any].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.fit">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cb_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#aimm.plugins.fit" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a fitting
+function. The decorated function should take at least one argument - model
+instance (passed as the first positional argument by default). It may also
+take any number of additional positional and keyword arguments and should
+return the updated model instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_types</strong> – types of models supported by the decorated function</p></li>
+<li><p><strong>state_cb_arg_name</strong> – if set, indicates that the caller should pass a
+state callback function as a keyword argument and use the passed
+value as the argument name. The function is of type Callable[Any]</p></li>
+<li><p><strong>instance_arg_name</strong> – if set, indicates under which
+argument name to pass the concrete model instance. If not set, it
+is passed in the first positional argument</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.predict">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cb_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_arg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#aimm.plugins.predict" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a prediction
+function. The decorated function should take at least one argument - model
+instance (passed as the first positional argument by default). It may also
+take any number of additional positional and keyword arguments and should
+return the updated model instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_types</strong> – types of models supported by the decorated function</p></li>
+<li><p><strong>state_cb_arg_name</strong> – if set, indicates that the caller should pass a
+state callback function as a keyword argument and use the passed
+value as the argument name. The function is of type Callable[Any]</p></li>
+<li><p><strong>instance_arg_name</strong> – if set, indicates under which argument name to pass
+the concrete model instance. If not set, it is passed in the first
+positional argument</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.serialize">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">serialize</span></span><a class="headerlink" href="#aimm.plugins.serialize" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a serialize
+function. The decorated function should have the following signature:</p>
+<p><code class="docutils literal notranslate"><span class="pre">(instance:</span> <span class="pre">Any)</span> <span class="pre">-&gt;</span> <span class="pre">ByteString</span></code></p>
+<p>The return value is the byte representation of the model instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_types</strong> – types of models supported by the decorated function</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.deserialize">
+<span class="sig-prename descclassname"><span class="pre">&#64;</span></span><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><a class="headerlink" href="#aimm.plugins.deserialize" title="Link to this definition"></a></dt>
+<dd><p>Decorator used to indicate that the wrapped function is a
+deserialize function. The decorated function should have the following
+signature:</p>
+<p><code class="docutils literal notranslate"><span class="pre">(instance_bytes:</span> <span class="pre">ByteString)</span> <span class="pre">-&gt;</span> <span class="pre">Any</span></code></p>
+<p>The return value is the deserialized model instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_types</strong> – types of models supported by the decorated function</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>It is common for a model type to have all of the above defined functions, for
+this reason the following class and decorator are introduced:</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.plugins.Model">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><a class="headerlink" href="#aimm.plugins.Model" title="Link to this definition"></a></dt>
+<dd><p>Interface unifying multiple plugin entry points under same type.
+<code class="docutils literal notranslate"><span class="pre">__init__</span></code> method is treated as instantiation function.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.plugins.Model.fit">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.Model.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit method for model instances</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.plugins.Model.predict">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.Model.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict method for model instances</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.plugins.Model.serialize">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ByteString</span></span></span><a class="headerlink" href="#aimm.plugins.Model.serialize" title="Link to this definition"></a></dt>
+<dd><p>Serialize method for model instances</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.plugins.Model.deserialize">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instance_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ByteString</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.plugins.Model" title="aimm.plugins.common.Model"><span class="pre">Model</span></a></span></span><a class="headerlink" href="#aimm.plugins.Model.deserialize" title="Link to this definition"></a></dt>
+<dd><p>Deserialize method for model instances</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.model">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Type</span></span></span><a class="headerlink" href="#aimm.plugins.model" title="Link to this definition"></a></dt>
+<dd><p>Model class decorator, used to mark that a class may be used as a model
+implementation. Model class unifies different plugin actions
+(<a class="reference internal" href="#aimm.plugins.instantiate" title="aimm.plugins.instantiate"><code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code></a> as <code class="docutils literal notranslate"><span class="pre">__init__</span></code>, <a class="reference internal" href="#aimm.plugins.fit" title="aimm.plugins.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit()</span></code></a>, <a class="reference internal" href="#aimm.plugins.predict" title="aimm.plugins.predict"><code class="xref py py-func docutils literal notranslate"><span class="pre">predict()</span></code></a>,
+<a class="reference internal" href="#aimm.plugins.serialize" title="aimm.plugins.serialize"><code class="xref py py-func docutils literal notranslate"><span class="pre">serialize()</span></code></a>, <a class="reference internal" href="#aimm.plugins.deserialize" title="aimm.plugins.deserialize"><code class="xref py py-func docutils literal notranslate"><span class="pre">deserialize()</span></code></a> as their same-named class methods)
+under the same model type (module + class name). The class should implement
+the <a class="reference internal" href="#aimm.plugins.Model" title="aimm.plugins.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a> interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cls</strong> (<a class="reference internal" href="#aimm.plugins.Model" title="aimm.plugins.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a>) – model class</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorated class</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="calling-plugins">
+<h2>Calling plugins<a class="headerlink" href="#calling-plugins" title="Link to this heading"></a></h2>
+<p>After implementing and loading plugins, they can be called using following
+functions:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_data_access">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_data_access</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name:</span> <span class="pre">str,</span> <span class="pre">state_cb:</span> <span class="pre">~typing.Callable[[~typing.Dict],</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">*args:</span> <span class="pre">~typing.Any,</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Any</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.exec_data_access" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to access data</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_instantiate">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_instantiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model_type:</span> <span class="pre">str,</span> <span class="pre">state_cb:</span> <span class="pre">~typing.Callable[[~typing.Dict],</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">*args:</span> <span class="pre">~typing.Any,</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Any</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.exec_instantiate" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to create a model instance</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_fit">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model_type:</span> <span class="pre">str,</span> <span class="pre">instance:</span> <span class="pre">~typing.Any,</span> <span class="pre">state_cb:</span> <span class="pre">~typing.Callable[[~typing.Dict],</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">*args:</span> <span class="pre">~typing.Any,</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Any</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.exec_fit" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to fit a model instance</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_predict">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model_type:</span> <span class="pre">str,</span> <span class="pre">instance:</span> <span class="pre">~typing.Any,</span> <span class="pre">state_cb:</span> <span class="pre">~typing.Callable[[~typing.Dict],</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;,</span> <span class="pre">*args:</span> <span class="pre">~typing.Any,</span> <span class="pre">**kwargs:</span> <span class="pre">~typing.Any</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#aimm.plugins.exec_predict" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to perform a prediction with a given model
+instance. Also returns the instance because it might be altered during the
+prediction, e.g. with reinforcement learning models.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_serialize">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_serialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ByteString</span></span></span><a class="headerlink" href="#aimm.plugins.exec_serialize" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to convert model into bytes</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.plugins.exec_deserialize">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">exec_deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ByteString</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.plugins.exec_deserialize" title="Link to this definition"></a></dt>
+<dd><p>Uses a loaded plugin to convert bytes into a model instance</p>
+</dd></dl>
+
+<p>State callbacks have the following signature:</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="aimm.plugins.StateCallback">
+<span class="sig-prename descclassname"><span class="pre">aimm.plugins.</span></span><span class="sig-name descname"><span class="pre">StateCallback</span></span><a class="headerlink" href="#aimm.plugins.StateCallback" title="Link to this definition"></a></dt>
+<dd><p>Generic state callback function signature a plugin would receive</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="server/index.html" class="btn btn-neutral float-right" title="Server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

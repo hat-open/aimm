@@ -1,0 +1,32 @@
+html, body, input, textarea, select, button {
+    font-family: 'Roboto';
+}
+
+html, body {
+    font-size: 10pt;
+    margin: 0px;
+    height: 100%;
+}
+
+#anomaly_div,#forecast_div {
+    width: 45%;
+    float: left;
+}
+
+
+.main {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    & > .settings {
+	width: 100%;
+	float: left;
+	height: 20%;
+    }
+    & > .plot {
+	flex-grow: 1;
+	width: 100%;
+	float: left;
+    }
+}

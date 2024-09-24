@@ -1,0 +1,27 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/main.yaml#'
+type: object
+required:
+    - name
+    - engine
+    - backend
+    - control
+    - plugins
+    - log
+properties:
+    name:
+        type: string
+    engine:
+        '$ref': 'aimm://server/engine.yaml#'
+    backend:
+        '$ref': 'aimm://server/backend/main.yaml#'
+    control:
+        '$ref': 'aimm://server/control/main.yaml#'
+    plugins:
+        '$ref': 'aimm://plugins.yaml#'
+    hat:
+        '$ref': 'aimm://server/hat.yaml#'
+    log:
+        type: object
+...

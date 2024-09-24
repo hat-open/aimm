@@ -1,0 +1,47 @@
+---
+name: gui
+event_server:
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
+address:
+    host: 0.0.0.0
+    port: 23023
+adapters:
+  - module: air_supervision.adapters.timeseries
+    name: timeseries
+views:
+  - name: login
+    builtin: login
+    conf: null
+  - name: main
+    view_path: build/views/main
+    conf: null
+initial_view: login
+users:
+  - name: user
+    password:
+        hash: cef3cf37b4fa2a692f06d6e637e112bd3a37179a8c6752c115ff21813a816574
+        salt: 497b53087260002cd62ffabc94267437
+    roles:
+        - user
+    view: main
+log:
+  disable_existing_loggers: false
+  formatters:
+    default: {}
+  handlers:
+    syslog:
+      class: hat.syslog.handler.SysLogHandler
+      host: 127.0.0.1
+      port: 6514
+      comm_type: TCP
+      level: INFO
+      formatter: default
+      queue_size: 50
+  root:
+    handlers:
+      - syslog
+    level: INFO
+  version: 1
+...

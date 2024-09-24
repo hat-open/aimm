@@ -1,0 +1,29 @@
+---
+name: gateway
+event_server:
+    eventer_server:
+        host: 127.0.0.1
+        port: 23012
+devices:
+    - module: air_supervision.devices.air_readings
+      name: device
+      dataset_path: dataset/ambient_temperature_system_failure.csv
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+        - syslog
+        level: INFO
+    version: 1
+...

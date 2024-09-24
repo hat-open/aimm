@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting started &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Plugins" href="plugins.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plugins.html">Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server/index.html">Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting started</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>After <a class="reference internal" href="introduction.html"><span class="doc">installing AIMM</span></a>, its CLI and libraries become
+available. Since the main purpose of the server is providing an API to
+dynamically defined plugins, the first step is defining the plugins the server
+will provide an interface for. The following code shows an example of a module
+containing multiple plugin definitions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aimm</span> <span class="kn">import</span> <span class="n">plugins</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">svm</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">datasets</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+
+<span class="nd">@plugins</span><span class="o">.</span><span class="n">data_access</span><span class="p">(</span><span class="s2">&quot;iris_inputs&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">iris_inputs</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_iris</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="nd">@plugins</span><span class="o">.</span><span class="n">data_access</span><span class="p">(</span><span class="s2">&quot;iris_outputs&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">iris_outputs</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_iris</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="nd">@plugins</span><span class="o">.</span><span class="n">model</span>
+<span class="k">class</span> <span class="nc">SVC</span><span class="p">(</span><span class="n">plugins</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">100.0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_svc</span> <span class="o">=</span> <span class="n">svm</span><span class="o">.</span><span class="n">SVC</span><span class="p">(</span><span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_svc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svc</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">instance_bytes</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">instance_bytes</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The plugins defined are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>data access for Iris dataset inputs and outputs</p></li>
+<li><p>model implementation that is actually a wrapper around sklearn’s SVC</p></li>
+</ul>
+</div></blockquote>
+<p>For more information on the plugin interface, consult the <a class="reference internal" href="plugins.html"><span class="doc">documentation
+entry</span></a>.</p>
+<p>The next step is server configuration. This involves writing a YAML file
+containing the necessary settings. An example of such a configuration,
+following up to the previous example, may be:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AIMM</span>
+<span class="nt">log</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">disable_existing_loggers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">formatters</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">    </span><span class="nt">handlers</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">console</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">logging.StreamHandler</span>
+<span class="w">            </span><span class="nt">level   </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INFO</span>
+<span class="w">            </span><span class="nt">stream  </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ext://sys.stdout</span>
+<span class="w">    </span><span class="nt">root</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">handlers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">console</span>
+<span class="w">        </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INFO</span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">engine</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">sigterm_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">    </span><span class="nt">max_children</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">    </span><span class="nt">check_children_period</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">backend</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aimm.server.backend.sqlite</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./data/aimm.db</span>
+<span class="nt">control</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aimm.server.control.repl</span>
+<span class="w">    </span><span class="nt">server</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0.0</span>
+<span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9999</span>
+<span class="w">    </span><span class="nt">users</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span>
+<span class="w">          </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1</span>
+<span class="nt">plugins</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">names</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&#39;plugins.sklearn_wrapper&#39;</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>For more details on configuring and running the server, consult the
+<a class="reference internal" href="server/index.html"><span class="doc">documentation entry</span></a>.</p>
+<p>Running the server now starts a service that listens on the address
+<code class="docutils literal notranslate"><span class="pre">127.0.0.1:9999</span></code> and allows clients to connect, create, fit and use SVC
+models. Since the only configured control is REPL control, it should be
+possible to connect using the <a class="reference internal" href="clients/repl.html"><span class="doc">REPL client</span></a>. Following
+snippet shows how the library may be used:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aimm.client</span> <span class="kn">import</span> <span class="n">repl</span>
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+    <span class="n">aimm</span> <span class="o">=</span> <span class="n">repl</span><span class="o">.</span><span class="n">AIMM</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">aimm</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;ws://127.0.0.1:9999/ws&#39;</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aimm</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="s1">&#39;plugins.sklearn.SVC&#39;</span><span class="p">)</span>
+
+    <span class="k">await</span> <span class="n">m</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">repl</span><span class="o">.</span><span class="n">DataAccessArg</span><span class="p">(</span><span class="s1">&#39;iris_inputs&#39;</span><span class="p">),</span> <span class="n">repl</span><span class="o">.</span><span class="n">DataAccessArg</span><span class="p">(</span><span class="s1">&#39;iris_outputs&#39;</span><span class="p">))</span>
+    <span class="k">await</span> <span class="n">m</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">repl</span><span class="o">.</span><span class="n">DataAccessArg</span><span class="p">(</span><span class="s1">&#39;iris_inputs&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The code would connect to the server, create an SVC instance, remotely fit it
+with Iris data and use it to perform classification.</p>
+<p>Example of Hat integration is available in the <a class="reference external" href="https://github.com/hat-open/aimm/tree/master/examples/0002">examples directory</a>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="plugins.html" class="btn btn-neutral float-right" title="Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

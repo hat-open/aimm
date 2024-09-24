@@ -1,0 +1,64 @@
+[tool.poetry]
+name = "aimm"
+version = "1.2.dev0"
+description = "Artificial intelligence model manager"
+authors = ["zlatsic <zlatan.sicanica@gmail.com>"]
+license = "Apache"
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
+]
+include = [
+    { path = "aimm/json_schema_repo.json", format = ["sdist", "wheel"] }
+]
+
+[tool.poetry.scripts]
+aimm-server = "aimm.server.main:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+appdirs = "^1.4.4"
+hat-aio = "^0.7.10"
+hat-json = "^0.5.28"
+hat-monitor = "^0.8.11"
+hat-event = "^0.9.20"
+psutil = "^6.0.0"
+tenacity = "^9.0.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+doit = "^0.36.0"
+flake8 = "^7.1.1"
+flake8-pyproject = "^1.2.3"
+numpy = "^2.1.1"
+pandas = "^2.2.2"
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^5.0.0"
+pytest-timeout = "^2.3.1"
+sphinx-rtd-theme = "^2.0.0"
+sphinxcontrib-programoutput = "^0.17"
+twine = "^5.1.1"
+hat-syslog = "^0.7.18"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 79
+
+[tool.flake8]
+ignore = "E203"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope="function"

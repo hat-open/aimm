@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engine &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Backend" href="backend.html" />
+    <link rel="prev" title="Server" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hat">Hat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#common-data-structures">Common data structures</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#components">Components</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Engine</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Action"><code class="docutils literal notranslate"><span class="pre">Action</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#state">State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multiprocessing">Multiprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="backend.html">Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="control/index.html">Control</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Server</a></li>
+      <li class="breadcrumb-item active">Engine</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/server/engine.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="engine">
+<h1>Engine<a class="headerlink" href="#engine" title="Link to this heading"></a></h1>
+<p>Engine is the central component of the AIMM system. Its purpose is handling
+manageable calls to plugins, using the backend when persistence is required and
+serving its state to all controllers.</p>
+<p>Engine’s part of the configuration needs to satisfy the following schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/engine.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="nt">required</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sigterm_timeout</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_children</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">check_children_period</span>
+<span class="nt">properties</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">sigterm_timeout</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">number</span>
+<span class="w">    </span><span class="nt">max_children</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">number</span>
+<span class="w">    </span><span class="nt">check_children_period</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">number</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>When engine is started, it queries its backend to access all existing model
+instances. The instances are then stored in engine’s state. Any component
+holding a reference to the engine may use it to perform different actions, such
+as creating model instances, fitting them or using them for predictions. When a
+new model instance is created, or an old one is updated, state change is
+notified to any components that have subscribed to state changes. Additionally,
+calls to the plugins themselves are manageable and engine keeps theirs states
+in its state as well.</p>
+<p>Workflow actions such as fitting or using models are ran asynchronously in
+separate asyncio tasks. Additionally, any plugin they call is ran in a separate
+process, wrapped in a handler that allows subscriptions to call’s state (if the
+plugin call supports state notification). The calls can also be cancelled,
+which is done using signals - initially SIGTERM and later SIGKILL if a
+configured timeout expires. Also, to avoid fork bombs, a separate pseudo-pool
+is implemented to serve as an interface for process creation, disallowing
+creation of new processes if a certain number of subprocesses is already
+running.</p>
+<p>Engine configuration reflects the multiprocessing nature of the implementation,
+since all of the options refer to different timeouts and limitations:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sigterm_timeout</span></code> is the number of seconds waited after SIGTERM was sent
+to a process before SIGKILL is sent if it doesn’t terminate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_children</span></code> is the maximum amount of children - concurrent subprocesses
+that can run at the same time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check_children_period</span></code> - the check for children counts is done
+periodically and this setting indicates how often it is checked</p></li>
+</ul>
+</div></blockquote>
+<p>Engine module provides the following interface:</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.Engine">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">Engine</span></span><a class="headerlink" href="#aimm.server.common.Engine" title="Link to this definition"></a></dt>
+<dd><p>Engine interface</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.state">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span></em><a class="headerlink" href="#aimm.server.common.Engine.state" title="Link to this definition"></a></dt>
+<dd><p>Engine state, contains references to all models and actions. It’s
+never modified in-place, instead <a class="reference internal" href="#aimm.server.common.Engine.subscribe_to_state_change" title="aimm.server.common.Engine.subscribe_to_state_change"><code class="xref py py-meth docutils literal notranslate"><span class="pre">subscribe_to_state_change()</span></code></a>
+should be used</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.subscribe_to_state_change">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">subscribe_to_state_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RegisterCallbackHandle</span></span></span><a class="headerlink" href="#aimm.server.common.Engine.subscribe_to_state_change" title="Link to this definition"></a></dt>
+<dd><p>Subscribes to any changes to the engine state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.create_instance">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.server.common.Action" title="aimm.server.common.Action"><span class="pre">Action</span></a></span></span><a class="headerlink" href="#aimm.server.common.Engine.create_instance" title="Link to this definition"></a></dt>
+<dd><p>Starts an action that creates a model instance and stores it in
+state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_type</strong> – model type</p></li>
+<li><p><strong>*args</strong> – instantiation arguments</p></li>
+<li><p><strong>**kwargs</strong> – instantiation keyword arguments</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.add_instance">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><span class="pre">Model</span></a></span></span><a class="headerlink" href="#aimm.server.common.Engine.add_instance" title="Link to this definition"></a></dt>
+<dd><p>Adds existing instance to the state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.update_instance">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_instance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><span class="pre">Model</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Engine.update_instance" title="Link to this definition"></a></dt>
+<dd><p>Update existing instance in the state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.fit">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.server.common.Action" title="aimm.server.common.Action"><span class="pre">Action</span></a></span></span><a class="headerlink" href="#aimm.server.common.Engine.fit" title="Link to this definition"></a></dt>
+<dd><p>Starts an action that fits an existing model instance. The used
+fitting function is the one assigned to the model type. The instance,
+while it is being fitted, is not accessible by any of the other
+functions that would use it (other calls to fit, predictions, etc.).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>instance_id</strong> – id of model instance that will be fitted</p></li>
+<li><p><strong>*args</strong> – arguments to pass to the fitting function - if of type
+<a class="reference internal" href="index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a>, the value passed to the
+fitting function is the result of the call to that plugin,
+other arguments are passed directly</p></li>
+<li><p><strong>**kwargs</strong> – keyword arguments, work the same as the positional
+arguments</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Engine.predict">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.server.common.Action" title="aimm.server.common.Action"><span class="pre">Action</span></a></span></span><a class="headerlink" href="#aimm.server.common.Engine.predict" title="Link to this definition"></a></dt>
+<dd><p>Starts an action that uses an existing model instance to perform a
+prediction. The used prediction function is the one assigned to model’s
+type. The instance, while prediction is called, is not accessible by
+any of the other functions that would use it (other calls to predict,
+fittings, etc.).  If instance has changed while predicting, it is
+updated in the state and database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>instance_id</strong> – id of the model instance used for prediction</p></li>
+<li><p><strong>*args</strong> – arguments to pass to the predict function - if of type
+<a class="reference internal" href="index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a>, the value passed to the
+predict function is the result of the call to that plugin,
+other arguments are passed directly</p></li>
+<li><p><strong>**kwargs</strong> – keyword arguments, work the same as the positional
+arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reference to task of the manageable predict call, result of it is
+the model’s prediction</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.Action">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">Action</span></span><a class="headerlink" href="#aimm.server.common.Action" title="Link to this definition"></a></dt>
+<dd><p>Represents a manageable call. Is an <code class="xref py py-class docutils literal notranslate"><span class="pre">aio.Resource</span></code> so call can be
+cancelled using <code class="docutils literal notranslate"><span class="pre">async_close</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Action.wait_result">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wait_result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#aimm.server.common.Action.wait_result" title="Link to this definition"></a></dt>
+<dd><p>Wait until call returns a result. May raise
+<code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.CancelledError</span></code> in case the call was cancelled.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>Since there are no strict limitations on the arguments that may be passed to
+plugins, i.e., positional and keyword arguments are mostly passed as-is,
+callers of the actions have the options of passing different special kinds of
+objects as arguments. These objects are interpreted by the engine as subactions
+that need to be executed before the main action. E.g., a fitting function may
+expect a dataset as an input, and while it is possible to pass the dataset
+directly to engine’s <code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.fit()</span></code> call, the caller could create a
+<a class="reference internal" href="index.html#aimm.server.common.DataAccess" title="aimm.server.common.DataAccess"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.DataAccess</span></code></a> object and pass it instead. This would
+indicate to the engine that it needs to use the data access plugin to access
+the required data before fitting. All subactions are also ran in a separate
+subprocesses and notify their progress through state.</p>
+<section id="state">
+<h2>State<a class="headerlink" href="#state" title="Link to this heading"></a></h2>
+<p>State is a dictionary consisting of two properties, <code class="docutils literal notranslate"><span class="pre">models</span></code> and <code class="docutils literal notranslate"><span class="pre">actions</span></code>.
+Models are a dictionary with instance IDs as keys and
+<a class="reference internal" href="index.html#aimm.server.common.Model" title="aimm.server.common.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.common.Model</span></code></a> instances as values. Actions are also a
+dictionary, with the following structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keys are action IDs</span>
+<span class="nt">patternProperties</span><span class="p">:</span>
+<span class="w">    </span><span class="s">&#39;(.)+&#39;</span><span class="p p-Indicator">:</span>
+<span class="w">        </span><span class="nt">oneOf</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;null&#39;</span>
+<span class="w">            </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prior to start of the action call</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">            </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">meta</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">progress</span>
+<span class="w">            </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">meta</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">                        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">call</span>
+<span class="w">                    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">                        </span><span class="nt">call</span><span class="p">:</span>
+<span class="w">                            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                            </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">call that the action is making</span>
+<span class="w">                        </span><span class="nt">model_type</span><span class="p">:</span>
+<span class="w">                            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">                        </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">                            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">                        </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">                            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="w">                        </span><span class="nt">kwargs</span><span class="p">:</span>
+<span class="w">                            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                </span><span class="nt">progress</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">enum</span><span class="p">:</span>
+<span class="w">                        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessing_data</span>
+<span class="w">                        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">executing</span>
+<span class="w">                        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">complete</span>
+<span class="w">                </span><span class="nt">data_access</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">                    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">                        </span><span class="no">keys represent argument IDs (numbers for</span>
+<span class="w">                        </span><span class="no">positional, strings for named), values are set by</span>
+<span class="w">                        </span><span class="no">plugin&#39;s state callbacks</span>
+<span class="w">                </span><span class="nt">action</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">set by plugin state callback</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+</section>
+<section id="multiprocessing">
+<h2>Multiprocessing<a class="headerlink" href="#multiprocessing" title="Link to this heading"></a></h2>
+<p>The details of the multiprocessing implementation are placed in a separate
+module, <code class="docutils literal notranslate"><span class="pre">aimm.server.mprocess</span></code>. This module is in charge of providing an
+interface for managed process calls. The central class of the module is the
+<a class="reference internal" href="#aimm.server.mprocess.ProcessManager" title="aimm.server.mprocess.ProcessManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.mprocess.ProcessManager</span></code></a>. Its purpose is similar to one of
+a standard <code class="xref py py-class docutils literal notranslate"><span class="pre">multiprocessing.Pool</span></code>, main difference being that it does
+not keep an exact amount of process workers alive at all times and instead
+holds an <code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.Condition</span></code> that prevents creation of new processes
+until the number of children is under the <code class="docutils literal notranslate"><span class="pre">max_children</span></code> configuration
+parameter.</p>
+<p>The manager is implemented in the following class:</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.mprocess.ProcessManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.mprocess.</span></span><span class="sig-name descname"><span class="pre">ProcessManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_children</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Group</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_children_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigterm_timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.mprocess.ProcessManager" title="Link to this definition"></a></dt>
+<dd><p>Class used to create <code class="xref py py-class docutils literal notranslate"><span class="pre">ProcessHandler</span></code> objects and limit the
+amount of concurrently active child processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_children</strong> – maximum number of child processes that may be created</p></li>
+<li><p><strong>async_group</strong> – async group</p></li>
+<li><p><strong>check_children_period</strong> – number of seconds waited before checking if a
+child process may be created and notifying pending handlers</p></li>
+<li><p><strong>sigterm_timeout</strong> – number of seconds waited before sending SIGKILL if a
+child process does not terminate after SIGTERM</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="aimm.server.mprocess.ProcessManager.async_group">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">async_group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Group</span></em><a class="headerlink" href="#aimm.server.mprocess.ProcessManager.async_group" title="Link to this definition"></a></dt>
+<dd><p>Group controlling resource’s lifetime.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.mprocess.ProcessManager.create_handler">
+<span class="sig-name descname"><span class="pre">create_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_cb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ProcessHandler</span></span></span><a class="headerlink" href="#aimm.server.mprocess.ProcessManager.create_handler" title="Link to this definition"></a></dt>
+<dd><p>Creates a ProcessHandler</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state_cb</strong> (<em>Callable</em><em>[</em><em>List</em><em>[</em><em>Any</em><em>]</em><em>, </em><em>None</em><em>]</em>) – state callback for changes
+in the process call</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>ProcessHandler</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>The process calls are wrapped in a <code class="xref py py-class docutils literal notranslate"><span class="pre">aimm.server.mprocess.ProcessHandler</span></code>
+instance, whose interface allows callers to terminate the process call. It also
+allows callers to pass their state change callback functions which are called
+whenever the process’ state changes.</p>
+<p>After calling <a class="reference internal" href="#aimm.server.mprocess.ProcessManager.create_handler" title="aimm.server.mprocess.ProcessManager.create_handler"><code class="xref py py-meth docutils literal notranslate"><span class="pre">aimm.server.mprocess.ProcessManager.create_handler()</span></code></a> and
+receiving a process handler, the call can be made using the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">aimm.server.mprocess.ProcessHandler.run()</span></code> function, which, in reality,
+first spawns an asyncio task that blocks until the process manager allows
+creation of a new process and only then actually creates a new process.</p>
+<p>The state notification is done using callbacks and multiprocessing pipes.
+Process handler receives a <code class="docutils literal notranslate"><span class="pre">state_cb</span></code> argument in its constructor and this is
+the function used to notify states to the rest of the system. It also provides
+a method <code class="docutils literal notranslate"><span class="pre">proc_notify_state_change</span></code>, which is a callback passed to the
+function running in the separate process. This function uses a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">multiprocessing.Pipe</span></code> object to send function’s state values (need to
+be pickle-able). Handlers also have internal state listening loops, running in
+the main asyncio event loop, that react to receiving these state changes and
+notify the rest of the system using the <code class="docutils literal notranslate"><span class="pre">state_cb</span></code> passed in the constructor.
+Result of the separated process call is also passed through a separate pipe and
+set as the result of the <code class="xref py py-data docutils literal notranslate"><span class="pre">aimm.server.mprocess.ProcessHandler.result</span></code>
+property.</p>
+<p>The complete class docstring:</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.mprocess.</span></span><span class="sig-name descname"><span class="pre">ProcessHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">async_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Group</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigterm_timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_cb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Condition</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Handler for calls in separate processes. Created through
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">ProcessManager.create()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>async_group</strong> (<em>hat.aio.Group</em>) – async group</p></li>
+<li><p><strong>sigterm_timeout</strong> (<em>float</em>) – time waited until process handles SIGTERM
+before sending SIGKILL during forced shutdown</p></li>
+<li><p><strong>state_cb</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>[</em><em>Any</em><em>]</em><em>]</em>) – state change cb</p></li>
+<li><p><strong>condition</strong> (<em>asyncio.Condition</em>) – condition that notifies when a new
+process may be created</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">async_group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Group</span></em></dt>
+<dd><p>Group controlling resource’s lifetime.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">proc_notify_state_change</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>To be passed to and ran in the separate process call. Notifies the
+handler of state change, new state is passed to <code class="docutils literal notranslate"><span class="pre">state_cb</span></code> received
+in the constructor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> – call state, needs to be pickleable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Requests the start of function execution in the separate process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn</strong> – function that will be called</p></li>
+<li><p><strong>*args</strong> – positional arguments, need to be pickleable</p></li>
+<li><p><strong>**kwargs</strong> – keyword arguments, need to be pickleable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Server" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="backend.html" class="btn btn-neutral float-right" title="Backend" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

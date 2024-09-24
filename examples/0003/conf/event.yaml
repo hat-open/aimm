@@ -1,0 +1,73 @@
+---
+name: event
+server_id: 0
+backend:
+    db_path: data/event.db
+    identifier: null
+    module: hat.event.backends.lmdb
+    flush_period: 5
+    cleanup_period: 5
+    conditions: []
+    latest:
+        subscriptions:
+            - ['*']
+    timeseries: []
+modules:
+    - module: air_supervision.modules.readings
+    - module: air_supervision.modules.controller
+      model_family: anomaly
+      batch_size: 48
+      min_readings: 24
+      models:
+          SVM:
+              contamination: 0.3
+              svm1: 1
+              svm2: 2
+          Cluster:
+              contamination: 0.3
+              cluster1: 1
+              cluster2: 3
+          Forest:
+              contamination: 0.3
+              other_test_p: 1
+              third: 4
+    - module: air_supervision.modules.controller
+      model_family: forecast
+      batch_size: 48
+      min_readings: 24
+      models:
+          MultiOutputSVR:
+              C: 2000
+              svm1: 1
+              svm2: 2
+          Linear:
+              contamination: 0.3
+              cluster1: 1
+              cluster2: 3
+          Constant:
+              contamination: 0.3
+              other_test_p: 1
+              third: 4
+    - module: air_supervision.modules.enable_all
+eventer_server:
+    host: 127.0.0.1
+    port: 23012
+log:
+    disable_existing_loggers: false
+    formatters:
+        default: {}
+    handlers:
+        syslog:
+            class: hat.syslog.handler.SysLogHandler
+            host: 127.0.0.1
+            port: 6514
+            comm_type: TCP
+            level: INFO
+            formatter: default
+            queue_size: 50
+    root:
+        handlers:
+            - syslog
+        level: INFO
+    version: 1
+...

@@ -1,0 +1,47 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/control/event.yaml#'
+type: object
+required:
+    - event_prefixes
+    - state_event_type
+    - action_state_event_type
+properties:
+    type:
+        const: event
+    event_prefixes:
+        type: object
+        properties:
+            create_instance:
+                type: array
+                items:
+                    type: string
+            add_instance:
+                type: array
+                items:
+                    type: string
+            update_instance:
+                type: array
+                items:
+                    type: string
+            fit:
+                type: array
+                items:
+                    type: string
+            predict:
+                type: array
+                items:
+                    type: string
+            cancel:
+                type: array
+                items:
+                    type: string
+    state_event_type:
+        type: array
+        items:
+            type: string
+    action_state_event_type:
+        type: array
+        items:
+            type: string
+...

@@ -1,0 +1,41 @@
+---
+$schema: 'http://json-schema.org/schema#'
+id: 'aimm://server/hat.yaml#'
+type: object
+oneOf:
+  - required:
+        - monitor_component
+    properties:
+        monitor_component:
+            type: object
+            required:
+                - host
+                - port
+                - group
+            properties:
+                host:
+                    type: string
+                    default: 127.0.0.1
+                port:
+                    type: integer
+                    default: 23010
+                group:
+                    type: string
+                event_server_group:
+                    type: string
+  - required:
+        - eventer_server
+    properties:
+        eventer_server:
+            type: object
+            required:
+                - host
+                - port
+            properties:
+                host:
+                    type: string
+                    default: 127.0.0.1
+                port:
+                    type: integer
+                    default: 23012
+...

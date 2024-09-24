@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control &mdash; aimm  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="REPL" href="repl.html" />
+    <link rel="prev" title="Backend" href="../backend.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            aimm
+          </a>
+              <div class="version">
+                1.2.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plugins.html">Plugins</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Server</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#hat">Hat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#common-data-structures">Common data structures</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#components">Components</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../engine.html">Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backend.html">Backend</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.Control"><code class="docutils literal notranslate"><span class="pre">Control</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#aimm.server.common.create_control"><code class="docutils literal notranslate"><span class="pre">create_control()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="repl.html">REPL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="event.html">Event</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../clients/index.html">Clients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cite.html">Citing AIMM</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">aimm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Server</a></li>
+      <li class="breadcrumb-item active">Control</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/server/control/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="control">
+<h1>Control<a class="headerlink" href="#control" title="Link to this heading"></a></h1>
+<p>Control interface is used to communicate to external actors and call engine’s
+functions. They may notify their respective actors of state changes and serve
+as a general entry point for any external client.</p>
+<p>Control configuration is one of the properties in the server configuration.
+Similar to backend, control interface works on the principle of dynamic
+imports, configuration schema only consisting of a list of objects (multiple
+controls may run in parallel) that require a <code class="docutils literal notranslate"><span class="pre">module</span></code> parameter, which is a
+Python module name that contains the concrete control implementation. The exact
+configuration schema looks as follows:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">$schema</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;http://json-schema.org/schema#&#39;</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;aimm://server/control/main.yaml#&#39;</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="nt">items</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">module</span>
+<span class="w">    </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">module</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<p>All control implementations should implement the following interface:</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="aimm.server.common.Control">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">Control</span></span><a class="headerlink" href="#aimm.server.common.Control" title="Link to this definition"></a></dt>
+<dd><p>Control interface. In order to integrate in the aimm server, create a
+module with the implementation and function <code class="docutils literal notranslate"><span class="pre">create</span></code> that creates a
+control instance and should have a signature as the <a class="reference internal" href="#aimm.server.common.create_control" title="aimm.server.common.create_control"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_control()</span></code></a>
+function.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">event_client</span></code> argument is not <code class="docutils literal notranslate"><span class="pre">None</span></code> if control module also
+contains function named <code class="docutils literal notranslate"><span class="pre">create_subscription</span></code> with the same signature as
+the <a class="reference internal" href="../backend.html#aimm.server.common.create_subscription" title="aimm.server.common.create_subscription"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_subscription()</span></code></a>.  The function receives the same control
+configuration the <code class="docutils literal notranslate"><span class="pre">create</span></code> function would receive and returns the list of
+subscriptions <code class="docutils literal notranslate"><span class="pre">ProxyClient</span></code> should subscribe to.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="aimm.server.common.Control.process_events">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">process_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Collection</span><span class="p"><span class="pre">[</span></span><span class="pre">Event</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#aimm.server.common.Control.process_events" title="Link to this definition"></a></dt>
+<dd><p>Implementation optional. Called when event client receives events
+matched by subscription from <cite>create_backend_subscription</cite>. Ignores
+events by default, with a warning log.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="aimm.server.common.create_control">
+<span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">create_control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../engine.html#aimm.server.common.Engine" title="aimm.server.common.Engine"><span class="pre">Engine</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Client</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#aimm.server.common.Control" title="aimm.server.common.Control"><span class="pre">Control</span></a></span></span><a class="headerlink" href="#aimm.server.common.create_control" title="Link to this definition"></a></dt>
+<dd><p>Placeholder of the control’s create function, needs to satisfy the given
+signature</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">aimm.server.common.</span></span><span class="sig-name descname"><span class="pre">create_subscription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Placeholder of the backends and controls optional create subscription
+function, needs to satisfy the given signature</p>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="repl.html">REPL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event.html">Event</a></li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../backend.html" class="btn btn-neutral float-left" title="Backend" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="repl.html" class="btn btn-neutral float-right" title="REPL" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Zlatan Sičanica.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
