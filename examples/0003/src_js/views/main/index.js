@@ -136,7 +136,7 @@ export function plot() {
                 "button",
                 {
                     props: {
-                        disabled: cur_model_name === value  || value === 'Linear' || value === 'Cluster',
+                        disabled: (cur_model_name || "").endsWith(value) || value === 'Linear' || value === 'Cluster',
                         type: 'checkbox', id: 'id1',
                         name: 'modelSelect',
                         style: change_button_color(value, prediction_type),
@@ -156,8 +156,8 @@ export function plot() {
             {props: {
                     id: prediction_type + '_div',
                 }},
-            ["label",{props: {for: 'input2'}},' Current '+prediction_type+' Model '],
-            ["input",{props: {disabled: true, id: 'input2',value: cur_model_name }}],
+            ["label",{props: {for: 'input2'}},' Current '+prediction_type+' model '],
+            ["label", {props: {style: "font-weight: bold; color: green;"}}, cur_model_name || ''],
             ["br"],
             generate_setting_inputs(prediction_type),
             ["br"],
