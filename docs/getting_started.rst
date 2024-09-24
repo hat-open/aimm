@@ -7,7 +7,7 @@ dynamically defined plugins, the first step is defining the plugins the server
 will provide an interface for. The following code shows an example of a module
 containing multiple plugin definitions:
 
-.. literalinclude:: ../examples/0001/plugins/sklearn.py
+.. literalinclude:: ../examples/0001/plugins/sklearn_wrapper.py
 
 The plugins defined are:
 
