@@ -11,7 +11,7 @@ jobs:
           - name: Install requirements
             run: |
               pip install poetry
-              poetry install --dev
+              poetry install
           - name: Create dist
             run: doit dist
           - name: Push to PyPI
