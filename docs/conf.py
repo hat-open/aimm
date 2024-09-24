@@ -1,8 +1,4 @@
-from pathlib import Path
 import importlib.metadata
-
-
-root = Path(__file__).parents[1]
 
 project = "aimm"
 copyright = "2024, Zlatan Sičanica"
