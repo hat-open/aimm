@@ -4,7 +4,7 @@ import importlib.metadata
 
 root = Path(__file__).parents[1]
 
-project = "AIMM"
+project = "aimm"
 copyright = "2024, Zlatan Sičanica"
 author = "Zlatan Sičanica"
 version = importlib.metadata.version(project)
