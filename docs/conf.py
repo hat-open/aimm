@@ -3,7 +3,7 @@ import importlib.metadata
 project = "aimm"
 copyright = "2024, Zlatan Sičanica"
 author = "Zlatan Sičanica"
-version = "1.2.dev0"
+version = importlib.metadata.version(project)
 
 extensions = [
     "sphinxcontrib.programoutput",
